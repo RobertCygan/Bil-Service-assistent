@@ -63,8 +63,10 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     if (snapshot == null || analyzer == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
+    // A review interrupted by closing the app can be picked up again: the private copy is still there.
+    var pending by remember { mutableStateOf<StagedDocument?>(null) }
     fun read(uri: Uri, fresh: Boolean) {
-        busy = true
+        busy = true; pending = null
         if (fresh) session.clear()
         scope.launch {
             try {
@@ -75,11 +77,30 @@ private fun stateMessage(state: FieldState): Int = when (state) {
             } finally { busy = false }
         }
     }
+    LaunchedEffect(Unit) { if (session.analysis == null) pending = store?.pending() }
+    fun resume(document: StagedDocument) {
+        busy = true; pending = null
+        scope.launch {
+            try {
+                session.staged = document
+                session.analysis = analyzer.analyse(requireNotNull(store).stagedUri(document), VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
+            } finally { busy = false }
+        }
+    }
     val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) read(uri, fresh = true) }
     var photo by remember { mutableStateOf<Uri?>(null) }
     var noCamera by remember { mutableStateOf(false) }
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> photo?.takeIf { taken }?.let { read(it, fresh = false) } }
     NoteCard(stringResource(R.string.import_explanation))
+    pending?.takeIf { !busy && session.analysis == null }?.let { document ->
+        OutlinedCard(Modifier.fillMaxWidth().testTag("import_pending")) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.import_pending))
+                Button(onClick = { resume(document) }, modifier = Modifier.testTag("import_resume")) { Text(stringResource(R.string.import_resume)) }
+                TextButton(onClick = { pending = null; store?.discardStaged() }) { Text(stringResource(R.string.import_discard)) }
+            }
+        }
+    }
     Button(onClick = { pick.launch(arrayOf("image/*", "application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("pick_document")) { Text(stringResource(R.string.import_pick)) }
     if (store != null) OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("take_photo"), onClick = {
         session.clear(); noCamera = false

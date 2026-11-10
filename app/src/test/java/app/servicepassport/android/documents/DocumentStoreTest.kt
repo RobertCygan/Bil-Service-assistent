@@ -92,6 +92,24 @@ class DocumentStoreTest {
         assertTrue(install.staged().isEmpty())
     }
 
+    @Test fun anInterruptedReviewCanBePickedUpFromTheStagedCopy() = runBlocking {
+        val install = installation(); val car = car(install)
+        assertNull(install.store.pending())
+        val content = "%PDF interrupted".toByteArray()
+        val staged = requireNotNull(install.store.stage(picked(content)))
+
+        // A new store stands for the app after a restart: nothing but the file is left.
+        val restarted = DocumentStore(context, install.db, clock, install.base)
+        assertEquals(staged, restarted.pending())
+        assertArrayEquals(content, File(requireNotNull(restarted.stagedUri(staged).path)).readBytes())
+        assertTrue(restarted.attach(staged, car, service(install, car)))
+        assertNull(restarted.pending())
+
+        requireNotNull(install.store.stage(picked("again".toByteArray())))
+        install.store.discardStaged()
+        assertNull(install.store.pending())
+    }
+
     @Test fun unsupportedEmptyOrOversizedFilesAreNotKept() = runBlocking {
         val install = installation()
         assertNull(install.store.stage(picked("text".toByteArray(), "notat-${id()}.txt")))
