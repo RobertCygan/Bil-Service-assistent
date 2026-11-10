@@ -107,4 +107,4 @@ Od tego miejsca całość prowadzi jeden autor (decyzja właściciela). Zmiany w
 - **Zaległość przy starszym wybranym odczycie:** jeśli próg km minął już przy wybranym odczycie, a jedyną wątpliwością jest nowszy, wyższy odczyt w historii, pozycja pozostaje „zaległa” z widocznymi km. Przy cofniętym liczniku, różnych km tego samego dnia lub zapisanym wyjątku nadal „wymaga danych”.
 - **Ekran wskaźnika serwisowego jest w MVP** (decyzja właściciela) — do zrobienia w osobnym przyroście.
 
-Znana rozbieżność do usunięcia w przyroście przypomnień: pulpit zaostrza kategorię silnika po swojej stronie, a `ReminderPlanner` czyta surowy wynik silnika. Przypomnienia muszą korzystać z tego samego końcowego wyniku co pulpit.
+Rozbieżność kategorii między pulpitem a przypomnieniami jest usunięta: `ReminderPlanner` przyjmuje `ReminderSubject`, który aplikacja buduje z końcowego wyniku pulpitu (`ReminderCoordinator`). Szczegóły: [07-etap-6-przypomnienia.md](07-etap-6-przypomnienia.md).

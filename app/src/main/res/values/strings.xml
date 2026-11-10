@@ -215,4 +215,24 @@
     <string name="interval_kind_repeat">Repeat interval</string>
     <string name="interval_kind_upper_limit">Upper limit for a variable schedule; check the car indicator</string>
     <string name="interval_kind_indicator">Service indicator reading from the car</string>
+    <string name="reminders">Reminders</string>
+    <string name="reminders_help">Get a notification when something is due soon or overdue. Reminders follow the same result as the service overview.</string>
+    <string name="reminders_enable">Service reminders</string>
+    <string name="reminders_blocked">Notifications are turned off for this app in the system settings, so no reminder can be shown. The rest of the app works as before.</string>
+    <string name="reminders_repeat">Repeat the same reminder</string>
+    <string name="reminders_repeat_never">Never</string>
+    <string name="reminders_repeat_7">Every 7 days</string>
+    <string name="reminders_repeat_14">Every 14 days</string>
+    <string name="reminders_repeat_30">Every 30 days</string>
+    <string name="reminders_odometer">Remind me to update the mileage</string>
+    <string name="reminders_timing_note">The app checks about once a day. Android decides the exact time. The app cannot read the mileage from the car; it only knows what you enter.</string>
+    <string name="reminder_channel">Service reminders</string>
+    <string name="reminder_channel_description">Overdue and upcoming service items, and mileage updates</string>
+    <string name="reminder_overdue_title">%1$s: overdue</string>
+    <string name="reminder_due_soon_title">%1$s: due soon</string>
+    <string name="reminder_limit_km">at %1$s km</string>
+    <string name="reminder_limit_date">by %1$s</string>
+    <string name="reminder_odometer_title">%1$s: update the mileage</string>
+    <string name="reminder_odometer_text">The saved mileage is %1$d days old. Enter the current reading so the service overview stays reliable.</string>
+    <string name="reminder_odometer_missing">Check the saved mileage. The service overview needs a current reading.</string>
 </resources>

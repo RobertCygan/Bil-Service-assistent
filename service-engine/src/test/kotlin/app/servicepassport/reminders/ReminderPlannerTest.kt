@@ -32,7 +32,7 @@ class ReminderPlannerTest {
         history: List<PerformedTask>,
         odometer: List<OdometerReading> = emptyList(),
         rules: List<ServiceRule> = listOf(oil, brakes),
-    ) = ServiceEngine.evaluate(EvaluationInput(today, d("2020-01-01"), rules, history, odometer))
+    ) = ServiceEngine.evaluate(EvaluationInput(today, d("2020-01-01"), rules, history, odometer)).map(ReminderSubject::from)
 
     private val history = listOf(
         PerformedTask("oil", d("2025-11-25"), null), // termin 2026-11-25
@@ -112,7 +112,7 @@ class ReminderPlannerTest {
         val st = statuses(day, hist, listOf(OdometerReading(d("2026-03-01"), 52_000)), rules)
         val plan = ReminderPlanner.plan(car, st, day)
         assertEquals(listOf("car-1|UPDATE_ODOMETER"), plan.notifyNow.map { it.key })
-        assertNull(plan.notifyNow.single().status)
+        assertNull(plan.notifyNow.single().subject)
         assertEquals(254, ReminderPlanner.odometerAgeDays(st, day))
 
         val off = ReminderPlanner.plan(car, st, day, ReminderSettings(odometerReminders = false))
@@ -129,7 +129,7 @@ class ReminderPlannerTest {
         val day = d("2026-11-10")
         val expired = DemoCatalog.source.copy(validUntil = d("2026-01-01"))
         val rules = listOf(oil.copy(source = expired), brakes)
-        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), rules, history))
+        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), rules, history)).map(ReminderSubject::from)
         val plan = ReminderPlanner.plan(car, st, day)
         assertEquals(listOf("car-1|OVERDUE|r-brakes"), plan.notifyNow.map { it.key })
         assertEquals(mapOf("r-oil" to Reason.SOURCE_EXPIRED), plan.suppressed)
@@ -157,8 +157,19 @@ class ReminderPlannerTest {
         val day = d("2026-11-10")
         val selected = OdometerReading(d("2026-10-01"), 52_000)
         val hist = listOf(PerformedTask("belt", d("2026-01-10"), 50_000), PerformedTask("other", d("2026-10-20"), 58_000))
-        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), listOf(belt), hist, listOf(selected), currentOdometer = CurrentOdometer.Selected(selected)))
+        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), listOf(belt), hist, listOf(selected), currentOdometer = CurrentOdometer.Selected(selected))).map(ReminderSubject::from)
         assertEquals(listOf("car-1|UPDATE_ODOMETER"), ReminderPlanner.plan(car, st, day).notifyNow.map { it.key })
+    }
+
+    @Test
+    fun `the final category supplied by the app wins over the raw engine category`() {
+        val day = d("2026-11-10")
+        // Pulpit zaostrzył wynik do „wymaga danych” i prosi o przebieg, choć silnik sam powiedziałby „zbliża się”.
+        val subject = ReminderSubject("user:1", app.servicepassport.engine.Category.NEEDS_DATA, null, null, null, odometerNeedsAttention = true)
+        val plan = ReminderPlanner.plan(car, listOf(subject), day)
+        assertEquals(listOf("car-1|UPDATE_ODOMETER"), plan.notifyNow.map { it.key }, "no due-soon reminder, one odometer reminder even without any reading")
+        val again = ReminderPlanner.plan(car, listOf(subject), day.plusDays(1), delivered = delivered(plan, day))
+        assertTrue(again.notifyNow.isEmpty())
     }
 
     @Test

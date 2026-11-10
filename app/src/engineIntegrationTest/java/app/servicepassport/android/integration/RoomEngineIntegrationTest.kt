@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.servicepassport.android.data.*
 import app.servicepassport.engine.*
 import app.servicepassport.reminders.ReminderPlanner
+import app.servicepassport.reminders.ReminderSubject
 import app.servicepassport.reminders.ReminderKind
 import java.time.*
 import java.util.UUID
@@ -96,7 +97,7 @@ class RoomEngineIntegrationTest {
         val result = evaluate(oil(source.copy(verifiedOn = today.minusDays(300), validUntil = today.minusDays(1))))
         assertEquals(Category.OVERDUE, result.category)
         assertTrue(Reason.SOURCE_EXPIRED in result.reasons)
-        assertTrue(ReminderPlanner.plan(car, listOf(result), today).notifyNow.isEmpty())
+        assertTrue(ReminderPlanner.plan(car, listOf(ReminderSubject.from(result)), today).notifyNow.isEmpty())
     }
 
     @Test fun anExplainedCounterResetIsStillAnAnomalyAndDoesNotProduceAConfidentReminder() = runBlocking {
@@ -109,7 +110,7 @@ class RoomEngineIntegrationTest {
         assertEquals(100, result.basis.odometerUsed?.km)
         assertTrue(Reason.ODOMETER_INCONSISTENT in result.reasons)
         assertNull(result.estimatedKmDueMonth)
-        assertEquals(listOf(ReminderKind.UPDATE_ODOMETER), ReminderPlanner.plan(car, listOf(result), today).notifyNow.map { it.kind })
+        assertEquals(listOf(ReminderKind.UPDATE_ODOMETER), ReminderPlanner.plan(car, listOf(ReminderSubject.from(result)), today).notifyNow.map { it.kind })
     }
 
     @Test fun incompleteConfigurationDoesNotAcquireAVerifiedPlanAndDemoIsRejectedForProduction() = runBlocking {
