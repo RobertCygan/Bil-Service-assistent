@@ -68,4 +68,4 @@ Utrzymanie obejmuje przegląd aktualności harmonogramów, błędy aplikacji/ANR
 
 ## Stan na koniec Etapu 0
 
-Dokumentacja gotowa do przeglądu. Brak implementacji i kosztów uruchomionych usług. Rekomendowany następny krok: zatwierdzić zakres oraz decyzje D-01–D-03 i rozpocząć Etap 1. Wybór i budżet źródła harmonogramów pozostają osobną, jawną decyzją przed Etapem 4.
+Aktualizacja po odbiorze: właściciel zaakceptował zakres i kierunek D-01–D-03 oraz polecił rozpocząć [Etap 1](stage-1/README.md). Nie uruchomiono usług i nie rozpoczęto implementacji Android. Wybór i budżet źródła harmonogramów pozostają osobną, jawną decyzją przed Etapem 4.

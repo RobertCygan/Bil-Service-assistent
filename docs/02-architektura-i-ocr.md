@@ -1,6 +1,6 @@
 # Rekomendacja techniczna i OCR
 
-Data: **10 listopada 2026**. To propozycja do zatwierdzenia w Etapie 0, bez implementacji. Szczegółowe ekrany i schemat danych powstaną w Etapie 1.
+Data: **10 listopada 2026**. Kierunek techniczny zaakceptowany przez właściciela po Etapie 0, bez implementacji. Szczegółowe ekrany i model danych przedstawia [Etap 1](stage-1/README.md). Warunki integracji źródła nadal otwarte.
 
 ## Technologia
 
