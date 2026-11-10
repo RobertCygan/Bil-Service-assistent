@@ -2,7 +2,7 @@
 
 Data: **10 listopada 2026**. Etap 0 oraz rozpoczęcie Etapu 1 zostały zaakceptowane przez właściciela w rozmowie („TAk Zaczynaj”). PR #1 po tej akceptacji włączono do `main`. Nie oznacza to zakupu danych ani zamknięcia bramki licencyjnej.
 
-**Status Etapu 1: gotowy do odbioru.** Zakres: makiety, teksty, stany i model danych. To nie jest implementacja aplikacji Android. Etap 2 wymaga odrębnej akceptacji.
+**Status Etapu 1: zaakceptowany przez właściciela 10 listopada 2026.** Zakres: makiety, teksty, stany i model danych. To nie jest implementacja aplikacji Android. Właściciel zaakceptował rozpoczęcie [Etapu 2](../stage-2/README.md).
 
 ## 1. Cel
 
@@ -60,10 +60,10 @@ Nie ma jeszcze aplikacji, bazy Room, OCR, notyfikacji systemowych, eksportu ani 
 
 ## 7. Kryteria odbioru
 
-- [ ] Właściciel akceptuje główną nawigację i proces ręczny/OCR.
-- [ ] Właściciel akceptuje stany braku danych oraz sposób prezentowania źródła.
-- [ ] Właściciel akceptuje model danych i zasady potwierdzania.
-- [ ] Właściciel zgadza się rozpocząć Etap 2.
+- [x] Właściciel akceptuje główną nawigację i proces ręczny/OCR.
+- [x] Właściciel akceptuje stany braku danych oraz sposób prezentowania źródła.
+- [x] Właściciel akceptuje model danych i zasady potwierdzania.
+- [x] Właściciel zgadza się rozpocząć Etap 2.
 
 ## 8. Następny krok
 

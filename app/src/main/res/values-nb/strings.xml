@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="overview">Oversikt</string>
+    <string name="history">Historikk</string>
+    <string name="settings">Innstillinger</string>
+    <string name="welcome_title">Neste service, litt enklere.</string>
+    <string name="welcome_body">Samle bilopplysninger og servicehistorikk på ett sted.</string>
+    <string name="language">Språk</string>
+    <string name="language_help">Velg språk for denne appen.</string>
+    <string name="add_car">Legg til bil</string>
+    <string name="edit_car">Rediger bilopplysninger</string>
+    <string name="local_storage_note">Opplysningene lagres på denne telefonen. Ingen konto er nødvendig.</string>
+    <string name="no_verified_schedule">Ingen bekreftet serviceplan</string>
+    <string name="no_schedule_body">Planen må passe til den nøyaktige bilvarianten. Produsentfrister vises ikke uten bekreftede data.</string>
+    <string name="history_empty_title">Ingen service registrert ennå</string>
+    <string name="history_empty_body">Bekreftede serviceoppføringer vises her. Manglende dokumentasjon betyr ikke at servicen er forsømt.</string>
+    <string name="your_data">Dine data</string>
+    <string name="car_details">Bilopplysninger</string>
+    <string name="car_name">Merke, modell eller eget navn</string>
+    <string name="model_year_optional">Modellår · valgfritt</string>
+    <string name="model_year_hint">Modellår kan være forskjellig fra året bilen ble registrert første gang. La feltet stå tomt hvis du er usikker.</string>
+    <string name="model_year_value">Modellår: %1$s</string>
+    <string name="save_car">Lagre bil</string>
+    <string name="saving">Lagrer…</string>
+    <string name="read_error">De lagrede opplysningene kunne ikke lastes inn. Prøv igjen.</string>
+    <string name="write_error">Endringene kunne ikke lagres. Tidligere opplysninger er uendret. Prøv igjen.</string>
+    <string name="retry">Prøv igjen</string>
+    <string name="name_required">Skriv inn et navn på bilen.</string>
+    <string name="name_too_long">Bruk et bilnavn på høyst 80 tegn.</string>
+    <string name="invalid_year">Skriv inn et gyldig modellår, eller la feltet stå tomt.</string>
+</resources>
