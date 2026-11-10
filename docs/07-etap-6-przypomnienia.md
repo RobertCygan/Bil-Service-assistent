@@ -6,12 +6,22 @@ Data: **10 listopada 2026**. Pakiet `app.servicepassport.reminders` w module `se
 
 | Element | Stan |
 | --- | --- |
-| Decyzja „o czym i kiedy przypomnieć”, brak duplikatów, reakcja na zmianę danych | **Zaimplementowane i przetestowane** na wynikach prawdziwego silnika terminów |
-| Powiadomienia Androida, WorkManager, prośba o uprawnienie, ekran ustawień, teksty NO/EN | **Nie ma** — wymaga kodu etapów 1–3 |
-| Test na rzeczywistym telefonie (kryterium odbioru Etapu 6) | **Niewykonany** |
-| Czytelność, duże czcionki, kontrast | **Nie dotyczy tej części** — to praca nad ekranami |
+| Decyzja „o czym i kiedy przypomnieć”, brak duplikatów, reakcja na zmianę danych | **Zaimplementowane i przetestowane** (moduł `service-engine`, 15 testów) |
+| Przypomnienia w aplikacji: zadanie w tle raz na dobę, powiadomienia NO/EN, ustawienia, dobrowolne uprawnienie | **Zaimplementowane**; 12 testów na prawdziwej bazie i pulpicie z atrapą powierzchni powiadomień |
+| Jedno źródło prawdy | Przypomnienia czytają **końcowy wynik pulpitu**, nie surowy wynik silnika — powiadomienie nie powie więcej niż pulpit |
+| Test na rzeczywistym telefonie (kryterium odbioru Etapu 6) | **Niewykonany** — faktyczne wyświetlenie powiadomienia, działanie w tle po restarcie telefonu i okno uprawnienia nie były sprawdzane na urządzeniu |
+| Duże czcionki, kontrast, czytniki ekranu | **Niesprawdzone** |
 
-Etap 6 **nie jest ukończony**.
+Etap 6 **nie jest ukończony**, dopóki nie ma testu na telefonie.
+
+### Zachowanie w aplikacji
+
+- Przypomnienia są **domyślnie wyłączone**; włącza je kierowca w Ustawieniach. Wtedy aplikacja prosi o uprawnienie do powiadomień (Android 13+). Odmowa niczego nie blokuje — ustawienia pokazują, że powiadomienia są wyłączone w systemie.
+- Ustawienia: włącz/wyłącz, powtórka (nigdy / 7 / 14 / 30 dni, domyślnie 14), osobny przełącznik przypomnień o przebiegu.
+- Sprawdzenie w tle mniej więcej raz na dobę; dokładną porę wybiera Android.
+- Gdy aplikacja jest otwarta, nieaktualne powiadomienia są usuwane od razu (np. po dodaniu serwisu), a nowe czekają na sprawdzenie w tle.
+- Brak wybranego bieżącego przebiegu także daje jedno przypomnienie o przebiegu.
+- Ustawienia przypomnień trafiają do kopii danych; zapis „co już pokazano” nie, a po odtworzeniu kopii jest czyszczony.
 
 ## Jak działa
 
@@ -36,13 +46,11 @@ Funkcja jest bezstanowa: aplikacja przechowuje listę wysłanych przypomnień i 
 | Niespójny licznik lub nowszy odczyt w historii niż wybrany | Jedno przypomnienie o sprawdzeniu przebiegu |
 | Przypomnienia wyłączone | Nic do pokazania, wszystko z tego pojazdu do usunięcia |
 
-## Do zrobienia w aplikacji
+## Zostaje do zrobienia
 
-- Dobrowolna prośba o uprawnienie do powiadomień; odmowa nie blokuje aplikacji.
-- Zadanie w tle uruchamiane codziennie (Android nie gwarantuje dokładnej godziny) — `nextCheckOn` tylko pomaga, nie zastępuje codziennego sprawdzenia.
-- Tabela wysłanych przypomnień (`klucz`, `odcisk stanu`, `data`).
-- Treści w `nb-NO` i `en`, w tym jasny komunikat, że aplikacja nie zna bieżącego przebiegu bez wpisu.
+- Test na fizycznym telefonie: wyświetlenie, tryb oszczędzania baterii, restart urządzenia.
+- Przegląd czytelności i dużych czcionek.
 
-## Decyzja dla właściciela
+## Decyzje właściciela
 
-Domyślna powtórka co 14 dni to moja propozycja (ustawienie aplikacji, nie zalecenie producenta). Zostaje?
+Domyślna powtórka co 14 dni — zatwierdzona 10 listopada 2026.

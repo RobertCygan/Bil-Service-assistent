@@ -2,6 +2,7 @@ package app.servicepassport.android.backup
 
 import androidx.room.withTransaction
 import app.servicepassport.android.data.*
+import app.servicepassport.android.reminders.ReminderStore
 import app.servicepassport.contract.ServiceTask
 import app.servicepassport.export.*
 import java.io.InputStream
@@ -120,7 +121,7 @@ object BackupMapper {
  * Writes and restores a complete copy of the local database.
  * Restore replaces all local data in one transaction; any refusal leaves the database untouched.
  */
-class GarageBackup(private val database: GarageDatabase, private val clock: Clock = Clock.systemDefaultZone()) {
+class GarageBackup(private val database: GarageDatabase, private val clock: Clock = Clock.systemDefaultZone(), private val settings: ReminderStore? = null) {
     private val dao get() = database.vehicles()
 
     private object Discard : OutputStream() {
@@ -130,6 +131,7 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
 
     suspend fun write(out: OutputStream, appVersion: String, password: CharArray? = null): ExportManifest = withContext(Dispatchers.IO) {
         val data = database.withTransaction { BackupMapper.export(dao.vehicleIds().mapNotNull { dao.garage(it) }) }
+            .copy(settings = settings?.exportSettings().orEmpty())
         ExportArchive.write(out, data, emptyList(), Instant.now(clock).toString(), appVersion, LocalDate.now(clock), password)
     }
 
@@ -149,6 +151,7 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
             rows.selections.forEach { dao.selectReading(it) }
             rows.intervals.forEach { dao.insertInterval(it) }
         }
+        settings?.importSettings(data.settings)
         RestoreOutcome.Restored
     }
 }

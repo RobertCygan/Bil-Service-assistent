@@ -27,12 +27,13 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import app.servicepassport.android.R
 import app.servicepassport.android.data.ProfileRepository
+import app.servicepassport.android.reminders.ReminderStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarServiceApp(repository: ProfileRepository) {
+fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? = null, onDataChanged: () -> Unit = {}) {
     val model: GarageViewModel = viewModel(factory = GarageViewModel.Factory(repository))
     val state by model.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -41,6 +42,7 @@ fun CarServiceApp(repository: ProfileRepository) {
             while (isActive) { model.refreshDate(); delay(60_000) }
         }
     }
+    LaunchedEffect(state.dashboard) { if (state.dashboard != null) onDataChanged() }
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -76,7 +78,7 @@ fun CarServiceApp(repository: ProfileRepository) {
             NavHost(nav, startDestination = "overview", modifier = Modifier.padding(padding)) {
                 composable("overview") { Overview(state, model.today, model::reload, ::go) }
                 composable("history") { History(state, ::go) }
-                composable("settings") { Settings() }
+                composable("settings") { Settings(reminderStore, onDataChanged) }
                 composable("dashboard") { DashboardPage(state, ::go, model::reload) }
                 composable("forecast/{id}") { node -> ForecastDetails(state, node.arguments?.getString("id").orEmpty(), ::go) }
                 composable("intervals") { IntervalsPage(state, ::go) { id, revision -> model.deleteInterval(id, revision) {} } }

@@ -62,6 +62,7 @@ dependencies {
     implementation(libs.androidx.compose.icons)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.work.runtime)
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.tooling)

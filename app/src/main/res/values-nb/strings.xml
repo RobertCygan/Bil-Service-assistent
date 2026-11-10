@@ -212,4 +212,24 @@
     <string name="interval_kind_repeat">Gjentakende intervall</string>
     <string name="interval_kind_upper_limit">Øvre grense for variabelt serviceintervall; sjekk bilens serviceindikator</string>
     <string name="interval_kind_indicator">Avlesning av bilens serviceindikator</string>
+    <string name="reminders">Påminnelser</string>
+    <string name="reminders_help">Få et varsel når noe nærmer seg eller er forfalt. Påminnelsene følger samme resultat som serviceoversikten.</string>
+    <string name="reminders_enable">Servicepåminnelser</string>
+    <string name="reminders_blocked">Varsler er slått av for denne appen i systeminnstillingene, så ingen påminnelse kan vises. Resten av appen fungerer som før.</string>
+    <string name="reminders_repeat">Gjenta samme påminnelse</string>
+    <string name="reminders_repeat_never">Aldri</string>
+    <string name="reminders_repeat_7">Hver 7. dag</string>
+    <string name="reminders_repeat_14">Hver 14. dag</string>
+    <string name="reminders_repeat_30">Hver 30. dag</string>
+    <string name="reminders_odometer">Minn meg på å oppdatere kilometerstanden</string>
+    <string name="reminders_timing_note">Appen sjekker omtrent én gang om dagen. Android bestemmer det nøyaktige tidspunktet. Appen kan ikke lese kilometerstanden fra bilen; den kjenner bare det du legger inn.</string>
+    <string name="reminder_channel">Servicepåminnelser</string>
+    <string name="reminder_channel_description">Forfalte og kommende servicepunkter, og oppdatering av kilometerstand</string>
+    <string name="reminder_overdue_title">%1$s: forfalt</string>
+    <string name="reminder_due_soon_title">%1$s: nærmer seg</string>
+    <string name="reminder_limit_km">ved %1$s km</string>
+    <string name="reminder_limit_date">innen %1$s</string>
+    <string name="reminder_odometer_title">%1$s: oppdater kilometerstanden</string>
+    <string name="reminder_odometer_text">Den lagrede kilometerstanden er %1$d dager gammel. Legg inn dagens stand, så serviceoversikten forblir pålitelig.</string>
+    <string name="reminder_odometer_missing">Sjekk den lagrede kilometerstanden. Serviceoversikten trenger en aktuell avlesning.</string>
 </resources>
