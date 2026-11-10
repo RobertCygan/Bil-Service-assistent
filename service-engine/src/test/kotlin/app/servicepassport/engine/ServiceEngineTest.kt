@@ -311,6 +311,62 @@ class ServiceEngineTest {
         assertEquals(YearMonth.from(d("2026-11-07").plusDays(610)), s.estimatedKmDueMonth)
     }
 
+    // --- bieżący odczyt wybrany w aplikacji ---
+
+    private fun withCurrent(current: CurrentOdometer, history: List<PerformedTask>, odometer: List<OdometerReading> = emptyList()) =
+        ServiceEngine.evaluate(EvaluationInput(today, d("2022-03-01"), listOf(oil), history, odometer, currentOdometer = current)).single()
+
+    @Test
+    fun `selected current reading is used even when a later invoice has a higher odometer`() {
+        val selected = OdometerReading(d("2026-09-01"), 52_000)
+        val history = listOf(PerformedTask("oil", d("2026-06-01"), 50_000), PerformedTask("other", d("2026-10-20"), 66_000))
+        val s = withCurrent(CurrentOdometer.Selected(selected), history, listOf(selected))
+        assertEquals(selected, s.basis.odometerUsed, "the engine must not silently replace the user's choice")
+        assertEquals(13_000, s.remainingKm)
+        assertEquals(Category.NO_URGENCY, s.category)
+        assertTrue(Reason.NEWER_ODOMETER_IN_HISTORY in s.reasons, "but it says that newer data exists")
+
+        val automatic = withCurrent(CurrentOdometer.LatestKnown, history, listOf(selected))
+        assertEquals(66_000, automatic.basis.odometerUsed?.km)
+        assertEquals(Category.OVERDUE, automatic.category)
+    }
+
+    @Test
+    fun `no selected reading means missing data even though history has odometer values`() {
+        val history = listOf(PerformedTask("oil", d("2026-06-01"), 50_000), PerformedTask("other", d("2026-10-20"), 53_000))
+        val s = withCurrent(CurrentOdometer.NotSelected, history, listOf(OdometerReading(d("2026-08-01"), 51_000)))
+        assertEquals(Category.NEEDS_DATA, s.category)
+        assertEquals(setOf(Reason.ODOMETER_MISSING), s.reasons)
+        assertNull(s.basis.odometerUsed)
+        assertNull(s.remainingKm)
+        assertEquals(65_000, s.dueKm, "the due point itself is still known")
+    }
+
+    @Test
+    fun `selected reading staleness and estimate use the selected reading`() {
+        val selected = OdometerReading(d("2026-07-01"), 52_000) // 132 dni temu
+        val history = listOf(PerformedTask("oil", d("2026-06-01"), 50_000))
+        val s = withCurrent(CurrentOdometer.Selected(selected), history, listOf(selected))
+        assertTrue(Reason.ODOMETER_STALE in s.reasons)
+        assertFalse(Reason.NEWER_ODOMETER_IN_HISTORY in s.reasons)
+        assertEquals(selected, s.basis.odometerUsed)
+    }
+
+    @Test
+    fun `selected reading dated in the future is ignored and flagged`() {
+        val s = withCurrent(CurrentOdometer.Selected(OdometerReading(d("2027-01-01"), 60_000)), listOf(PerformedTask("oil", d("2026-06-01"), 50_000)))
+        assertEquals(Category.NEEDS_DATA, s.category)
+        assertTrue(Reason.FUTURE_ENTRIES_IGNORED in s.reasons && Reason.ODOMETER_MISSING in s.reasons)
+    }
+
+    @Test
+    fun `time-only rules do not depend on the selected reading`() {
+        val r = rule("x", Schedule.Fixed(Interval(months = 12)))
+        val s = ServiceEngine.evaluate(EvaluationInput(today, d("2022-03-01"), listOf(r), listOf(PerformedTask("x", d("2026-06-01"), 50_000)), currentOdometer = CurrentOdometer.NotSelected)).single()
+        assertEquals(Category.NO_URGENCY, s.category)
+        assertTrue(s.reasons.isEmpty())
+    }
+
     // --- źródła, kolejność, dane demo ---
 
     @Test

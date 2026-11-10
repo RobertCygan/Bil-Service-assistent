@@ -12,7 +12,8 @@ public object ServiceEngine {
         val today = input.today
         val history = input.history.filter { !it.date.isAfter(today) }
         val indicators = input.indicators.filter { !it.date.isAfter(today) }
-        val futureIgnored = history.size != input.history.size ||
+        val selectedInFuture = (input.currentOdometer as? CurrentOdometer.Selected)?.reading?.date?.isAfter(today) == true
+        val futureIgnored = selectedInFuture || history.size != input.history.size ||
             indicators.size != input.indicators.size ||
             input.odometer.any { it.date.isAfter(today) }
 
@@ -22,8 +23,14 @@ public object ServiceEngine {
                 indicators.map { OdometerReading(it.date, it.odometerKm) }
             ).sortedWith(compareBy<OdometerReading> { it.date }.thenBy { it.km })
 
+        val current = when (val choice = input.currentOdometer) {
+            is CurrentOdometer.Selected -> choice.reading.takeIf { !it.date.isAfter(today) }
+            CurrentOdometer.NotSelected -> null
+            CurrentOdometer.LatestKnown -> readings.lastOrNull()
+        }
         val odo = OdometerState(
-            current = readings.lastOrNull(),
+            current = current,
+            superseded = current != null && readings.any { it.date.isAfter(current.date) && it.km > current.km },
             inconsistent = readings.zipWithNext().any { (a, b) -> b.km < a.km },
             dailyKm = dailyKm(readings, input.settings),
         )
@@ -37,7 +44,7 @@ public object ServiceEngine {
         )
     }
 
-    private class OdometerState(val current: OdometerReading?, val inconsistent: Boolean, val dailyKm: Double?)
+    private class OdometerState(val current: OdometerReading?, val superseded: Boolean, val inconsistent: Boolean, val dailyKm: Double?)
 
     private class Context(
         val input: EvaluationInput,
@@ -97,6 +104,7 @@ public object ServiceEngine {
         var projectionPassed = false
         if (due.dueKm != null && current != null) {
             if (ctx.odo.inconsistent) reasons += Reason.ODOMETER_INCONSISTENT
+            if (ctx.odo.superseded) reasons += Reason.NEWER_ODOMETER_IN_HISTORY
             val stale = ChronoUnit.DAYS.between(current.date, today) > settings.odometerStaleAfterDays
             if (stale) reasons += Reason.ODOMETER_STALE
             val rate = ctx.odo.dailyKm

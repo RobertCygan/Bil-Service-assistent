@@ -91,15 +91,34 @@ public data class EngineSettings(
     val estimationWindowDays: Int = 365,
 )
 
+/**
+ * Który odczyt jest „stanem obecnym” licznika.
+ *
+ * Aplikacja pozwala użytkownikowi jawnie wskazać bieżący odczyt; silnik nie może go po cichu zastąpić
+ * odczytem z faktury. Dlatego adapter aplikacji ZAWSZE przekazuje [Selected] albo [NotSelected].
+ */
+public sealed interface CurrentOdometer {
+    /** Odczyt wskazany przez użytkownika jako bieżący. */
+    public data class Selected(val reading: OdometerReading) : CurrentOdometer
+
+    /** Użytkownik nie ma wybranego bieżącego odczytu: wymiar km „wymaga danych”, nawet gdy historia zawiera przebiegi. */
+    public data object NotSelected : CurrentOdometer
+
+    /** Najnowszy znany odczyt według daty, także z wpisów serwisowych. Tylko dla wywołań bez aplikacji (testy, narzędzia). */
+    public data object LatestKnown : CurrentOdometer
+}
+
 public data class EvaluationInput(
     val today: LocalDate,
     /** Data rozpoczęcia eksploatacji (pierwsza rejestracja). To nie jest rok modelowy. */
     val inServiceDate: LocalDate?,
     val rules: List<ServiceRule>,
     val history: List<PerformedTask> = emptyList(),
+    /** Wszystkie odczyty; służą do wykrywania niespójności i szacowania średniego przebiegu. */
     val odometer: List<OdometerReading> = emptyList(),
     val indicators: List<IndicatorReading> = emptyList(),
     val settings: EngineSettings = EngineSettings(),
+    val currentOdometer: CurrentOdometer = CurrentOdometer.LatestKnown,
 )
 
 /** Cztery grupy pulpitu. */
@@ -118,6 +137,8 @@ public enum class Reason {
     /** Szacunek wskazuje, że próg km mógł już zostać przekroczony od ostatniego odczytu. */
     ODOMETER_UPDATE_REQUIRED,
     ODOMETER_INCONSISTENT,
+    /** Wybrany bieżący odczyt jest starszy niż inny odczyt z wyższym przebiegiem (np. z późniejszej faktury). */
+    NEWER_ODOMETER_IN_HISTORY,
     SOURCE_EXPIRED,
     FUTURE_ENTRIES_IGNORED,
 }
