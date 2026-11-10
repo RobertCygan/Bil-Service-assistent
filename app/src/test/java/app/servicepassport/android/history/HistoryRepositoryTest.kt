@@ -129,4 +129,29 @@ class HistoryRepositoryTest {
         assertTrue(snapshot().readings.isEmpty())
         assertTrue(snapshot().events.isEmpty())
     }
+
+    @Test fun manualReadingRetryDoesNotDuplicateAndDeletionClearsOnlyTheSelection() = runBlocking {
+        repo.saveReading(ReadingInput(id(), car, null, today - 1, 58000, false))
+        val selected = ReadingInput(id(), car, null, today, 59000, true)
+        repo.saveReading(selected); repo.saveReading(selected)
+        assertEquals(2, snapshot().readings.size)
+        repo.deleteReading(car, selected.id, 1)
+        assertNull(snapshot().currentReading)
+        assertEquals(58000L, snapshot().readings.single().km)
+    }
+
+    @Test fun configurationChangesPreserveHistoryAndInvalidateTheConfigurationRevision() = runBlocking {
+        repo.saveService(event())
+        repo.save(ProfileInput("Renamed car", 2022))
+        assertEquals(1L, snapshot().vehicle.configurationRevision)
+        val registration = LocalDate.of(2021, 12, 20).toEpochDay()
+        repo.save(ProfileInput("Renamed car", 2022, firstRegistrationDay = registration, engineCode = " example "))
+        val saved = snapshot()
+        assertEquals(car, saved.vehicle.id)
+        assertEquals(registration, saved.vehicle.firstRegistrationDay)
+        assertEquals(2022, saved.vehicle.modelYear)
+        assertEquals("EXAMPLE", saved.vehicle.engineCode)
+        assertEquals(2L, saved.vehicle.configurationRevision)
+        assertEquals(1, saved.history.size)
+    }
 }

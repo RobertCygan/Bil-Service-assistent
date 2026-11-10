@@ -24,7 +24,7 @@ class GarageViewModel(private val repository: ProfileRepository) : ViewModel() {
     val today get() = repository.today
     private var observer: Job? = null
     init { reload() }
-    fun clearProblem() { mutableState.update { it.copy(problem = null, inputProblem = null) } }
+    fun clearProblem() { mutableState.update { it.copy(problem = it.problem?.takeIf { problem -> problem == StorageProblem.READ }, inputProblem = null) } }
     fun reload() {
         observer?.cancel()
         mutableState.update { it.copy(loading = true, problem = null, inputProblem = null) }

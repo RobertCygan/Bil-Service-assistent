@@ -105,6 +105,14 @@ Surowy `OcrRun` i `ServiceDraft` nie mają ścieżki do `PerformedTask`. Dopiero
 
 ## 6. Weryfikacja przy integracji — jeszcze nie wykonana
 
+### Dodatki PR #2 odnotowane podczas Etapu 3
+
+Przy `7b966d61a9565ad39c2c7c70bcf40de4e0fa904f` PR #2 dodaje planowanie przypomnień, propozycję formatu eksportu z opcjonalnym hasłem i szkielet serwera rejestru. Nie zmienia dotychczasowych plików API reguł/OCR, ale dodaje plugin Kotlin serialization 2.1.21 i bibliotekę JSON. Przy przyszłym scalaniu także plugin serializacji musi korzystać ze wspólnych wersji. Te dodatki nie są podłączone, przetestowane z Room ani przyjęte jako zakończone etapy aplikacji. Nie zmieniają zakresu ani decyzji tego Etapu 3.
+
+Eksport trzeba uzgodnić z rzeczywistym schematem v2: zachować identyfikatory i jawny wybór bieżącego odczytu, pełne pary czynność/operacja, własne opisy, powiązania i uwagi odczytów, nieznany przebieg, pełny zakres kosztu oraz opcjonalną konfigurację auta. Format, który odtwarza tylko dzień i km, nie wystarcza do bezstratnej kopii tej bazy. Test archiwum w izolacji nie zastępuje testu Room → archiwum → nowa baza.
+
+### Testy granicy aplikacja/silnik
+
 - `engine_oil:inspect` nie resetuje `engine_oil:replace`;
 - potwierdzone pozycje trafiają do silnika, szkice/wyceny nie;
 - dwa kliknięcia/ponowienie po awarii tworzą jedną usługę;

@@ -51,7 +51,7 @@ Potwierdzenie ręczne oznacza deklarację użytkownika, nie weryfikację przez w
 
 ## 6. Koordynacja
 
-[INTEGRATION.md](../INTEGRATION.md) opisuje fizyczny model Room, jednostki, selekcję przebiegu i mapowanie czynności. Sprawdzono PR #2 do `7e405ff43ab83d3527745310b558a7d291f2e686`. Nie zmieniono jego gałęzi ani nie dodano zależności od silnika. Integracja musi rozwiązać jawny bieżący odczyt, anomalie licznika, wygasłe źródła i tymczasowe kody ekstraktora.
+[INTEGRATION.md](../INTEGRATION.md) opisuje fizyczny model Room, jednostki, selekcję przebiegu i mapowanie czynności. Sprawdzono PR #2 do `7e405ff43ab83d3527745310b558a7d291f2e686`. Odnotowano też nowsze dodatki PR #2 przy `7b966d61a9565ad39c2c7c70bcf40de4e0fa904f`: przypomnienia, eksport i serwer rejestru. Nie zmieniono jego gałęzi ani nie dodano zależności od silnika; rozbieżności formatu eksportu zapisano we wspólnym kontrakcie. Integracja musi rozwiązać jawny bieżący odczyt, anomalie licznika, wygasłe źródła i tymczasowe kody ekstraktora.
 
 Progi zaakceptowane przez właściciela to 1500 km / 30 dni oraz 90 dni. W Etapie 3 używane jest wyłącznie oznaczenie nieaktualnego odczytu po 90 dniach; pozostałe progi czekają na reguły. Ekran ręcznego wskaźnika serwisowego pozostaje poza MVP.
 

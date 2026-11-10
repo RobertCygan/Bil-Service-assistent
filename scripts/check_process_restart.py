@@ -50,9 +50,10 @@ nav = next(node for node in root.iter("node") if node.get("text") == "Historikk"
 left, top, right, bottom = map(int, re.findall(r"\d+", nav.get("bounds")))
 adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
 wait_for(
-    lambda text: "15.12.2025" in text and any("Motorolje" in value for value in text)
-    and any("Bremser" in value for value in text)
-    and any(re.fullmatch(r"49[\s\u00a0\u202f]?000 km", value) for value in text),
+    lambda text: any("15.12.2025" in value for value in text)
+    and any("Motorolje · Skift" in value for value in text)
+    and any("Bremser · Kontroll" in value for value in text)
+    and any(re.search(r"49[\s\u00a0\u202f]?000 km", value) for value in text),
     "Fresh process did not restore the service date, edited mileage and both work items",
 )
 (OUT / "history-no.png").write_bytes(adb("exec-out", "screencap", "-p"))

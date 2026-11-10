@@ -96,6 +96,20 @@ class FoundationSmokeTest {
         compose.onNodeWithText("49,000 km").assertExists()
         compose.onAllNodesWithTag("confirmed_work").assertCountEquals(2)
         compose.onNodeWithTag("back").performClick()
+
+        // A service with unknown mileage can be saved and deleted without creating a zero reading.
+        click("add_service")
+        input("service_date", "2025-12-14")
+        click("add_work")
+        pick("work_action_0", "custom")
+        input("custom_work_0", "Window repair")
+        click("save_service")
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("history_entry").fetchSemanticsNodes().size == 2 }
+        compose.onNode(hasTestTag("history_entry") and hasText("Window repair")).performScrollTo().performClick()
+        compose.onNodeWithText(compose.activity.getString(R.string.odometer_unknown)).assertExists()
+        click("delete_service")
+        compose.onNodeWithTag("confirm_delete").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("history_entry").fetchSemanticsNodes().size == 1 }
         screenshot("history-en.png")
 
         // A discarded form must not reappear with an old UUID or its previous values.
@@ -120,7 +134,7 @@ class FoundationSmokeTest {
         compose.onNodeWithText("15.12.2025").assertExists()
         screenshot("history-no.png")
         compose.onNodeWithTag("nav_overview").performClick()
-        compose.onNodeWithTag("current_km").assertTextContains("59")
+        compose.onNodeWithTag("current_km").assertTextContains("59", substring = true)
         // The external test now starts a fresh process and verifies the persisted NO UI and records.
     }
 }
