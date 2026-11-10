@@ -6,11 +6,25 @@ Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazd
 
 ## Status
 
-**Etap 0 — dokumentacja przygotowana do przeglądu, oczekuje na akceptację właściciela.** Nie ma jeszcze kodu aplikacji, działającego OCR ani zatwierdzonych harmonogramów. Nie rozpoczęto Etapu 1.
+**Etapy 0 i 1 zaakceptowane. Etap 2 — fundament Android gotowy do odbioru.** Jest aplikacja Kotlin/Compose z NO/EN i lokalnym profilem auta. Pełna historia, OCR i harmonogramy nie są jeszcze podłączone.
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
 
-## Dokumentacja
+## Aplikacja Android — Etap 2
+
+- [Uruchomienie, APK do pobrania, zakres i weryfikacja](docs/stage-2/README.md)
+- Rzeczywiste ekrany Androida: [NO](docs/stage-2/android-no.png) · [EN](docs/stage-2/android-en.png)
+- [Wspólny kontrakt z silnikiem i OCR](docs/INTEGRATION.md)
+- Build: `./gradlew :service-contract:test :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`
+
+## Makiety i model danych — Etap 1
+
+- [Raport i instrukcja przeglądu](docs/stage-1/README.md)
+- [Plansza ekranów NO](docs/stage-1/preview-no.png) · [Plansza EN](docs/stage-1/preview-en.png)
+- [Klikalne makiety do pobrania](docs/stage-1/wireframes.html)
+- [Model danych i relacje](docs/stage-1/data-model.md)
+
+## Dokumentacja Etapu 0
 
 - [Etap 0: produkt, MVP i decyzje do odbioru](docs/00-etap-0.md)
 - [Źródła danych, licencje i plan pilota](docs/01-dane-i-zrodla.md)
