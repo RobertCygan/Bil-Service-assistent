@@ -338,4 +338,7 @@
     <string name="document_no_viewer">Ingen app på telefonen kan åpne denne filen.</string>
     <string name="document_remove_title">Fjerne dette dokumentet?</string>
     <string name="document_remove_body">Kopien i appen slettes. Serviceoppføringen beholdes som den er.</string>
+    <string name="import_pending">Du begynte å lese et dokument og ble ikke ferdig. Kopien ligger fortsatt på denne telefonen; valgene dine på kontrollskjermen ble ikke lagret.</string>
+    <string name="import_resume">Les det på nytt</string>
+    <string name="import_discard">Forkast dokumentet</string>
 </resources>

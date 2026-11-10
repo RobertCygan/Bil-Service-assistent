@@ -29,7 +29,7 @@ object DocumentTypes {
     fun supported(mimeType: String): Boolean = mimeType.lowercase() in ImportLimits.MIME_TYPES && extension(mimeType) != null
 
     fun of(context: Context, uri: Uri): String? = context.contentResolver.getType(uri) ?: when (uri.lastPathSegment?.substringAfterLast('.', "")?.lowercase()) {
-        "pdf" -> "application/pdf"; "jpg", "jpeg" -> "image/jpeg"; "png" -> "image/png"; "webp" -> "image/webp"; "heic" -> "image/heic"
+        "pdf" -> "application/pdf"; "jpg", "jpeg" -> "image/jpeg"; "png" -> "image/png"; "webp" -> "image/webp"; "heic" -> "image/heic"; "heif" -> "image/heif"
         else -> null
     }
 
@@ -100,6 +100,24 @@ class DocumentStore(
             null
         }
     }
+
+    /**
+     * The document whose review was interrupted, for example because the app was closed. The file is still in the
+     * staging directory; its description is rebuilt from the file itself, so nothing else has to be stored.
+     */
+    suspend fun pending(): StagedDocument? = withContext(Dispatchers.IO) {
+        val file = staging.listFiles()?.filter { it.isFile && it.name != CAMERA_FILE && it.length() > 0 }?.maxByOrNull { it.lastModified() } ?: return@withContext null
+        val mimeType = DocumentTypes.of(context, Uri.fromFile(file))?.takeIf(DocumentTypes::supported) ?: return@withContext null
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) { val n = input.read(buffer); if (n < 0) break; digest.update(buffer, 0, n) }
+        }
+        StagedDocument(file.name.substringBeforeLast('.'), file.name, mimeType, digest.digest().joinToString("") { "%02x".format(it) }, file.length())
+    }
+
+    /** Where a staged copy can be read again by the text recognition. */
+    fun stagedUri(staged: StagedDocument): Uri = Uri.fromFile(File(staging, staged.fileName))
 
     fun discardStaged() { staging.listFiles()?.forEach { it.delete() } }
 

@@ -16,7 +16,7 @@ Data: **10 listopada 2026**.
 | Podgląd dokumentu | Otwarcie zapisanego pliku w innej aplikacji z jednorazowym dostępem tylko do odczytu. **Niesprawdzone na telefonie.** Podświetlenia fragmentu, z którego pochodzi wartość, **nie ma** |
 | Wykrywanie duplikatów | **Zaimplementowane** jako ostrzeżenie (nie blokada): ten sam plik (skrót SHA-256) albo wpis z tą samą datą i przebiegiem |
 | Dokumenty w kopii zapasowej | **Zaimplementowane**: pliki trafiają do kopii (także szyfrowanej) i wracają przy przywracaniu; test porównuje bajty |
-| Trwały szkic (przetrwanie zamknięcia aplikacji w trakcie sprawdzania) | **Nie ma** — szkic żyje tylko w pamięci |
+| Wznowienie po zamknięciu aplikacji w trakcie sprawdzania | **Częściowo**: kopia dokumentu zostaje i ekran importu proponuje odczytanie jej ponownie albo odrzucenie. Wybory z ekranu sprawdzenia **nie są** zachowywane. Niesprawdzone na telefonie |
 
 Etap 5 **nie jest ukończony**.
 

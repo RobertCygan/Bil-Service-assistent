@@ -341,4 +341,7 @@
     <string name="document_no_viewer">No app on this phone can open this file.</string>
     <string name="document_remove_title">Remove this document?</string>
     <string name="document_remove_body">The copy kept in the app is deleted. The service entry stays as it is.</string>
+    <string name="import_pending">You started reading a document and did not finish. The copy is still on this phone; your choices on the review screen were not kept.</string>
+    <string name="import_resume">Read it again</string>
+    <string name="import_discard">Discard the document</string>
 </resources>
