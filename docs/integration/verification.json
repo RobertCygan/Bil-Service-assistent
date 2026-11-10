@@ -1,0 +1,72 @@
+{
+  "date": "2026-11-10",
+  "app_source": "11e4f82c918e9425334d1d868d5c4cc8c8e12d65",
+  "engine_source": "525c223a9b4377a8490ddb464010fa2128a99ca0",
+  "scope": "Integration preparation only; no production engine dependency",
+  "local_suites": [
+    {
+      "module": "app",
+      "tests": 42,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "module": "contract",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "module": "engine",
+      "tests": 111,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "local_build": "passed",
+  "local_test_apk": "passed",
+  "apk_contains_engine_classes": false,
+  "room_mapping_tests": 7,
+  "room_real_engine_tests": 6,
+  "android_api_26_runtime": {
+    "status": "passed",
+    "tests": 1,
+    "engine_and_archive_header": true,
+    "run_id": 42862574387
+  },
+  "android_api_35_regression": {
+    "status": "passed",
+    "tests": 2,
+    "full_process_restart": true,
+    "run_id": 42862574335
+  },
+  "ci": {
+    "integration_pr": 42862574387,
+    "integration_push": 42862549500,
+    "android_pr": 42862574335,
+    "android_push": 42862549312,
+    "all_passed": true,
+    "verified_junit_results": {
+      "app": {
+        "tests": 42,
+        "failures": 0,
+        "errors": 0
+      },
+      "service-engine": {
+        "tests": 111,
+        "failures": 0,
+        "errors": 0
+      }
+    },
+    "verified_revisions": {
+      "app_head": "11e4f82c918e9425334d1d868d5c4cc8c8e12d65",
+      "engine_head": "525c223a9b4377a8490ddb464010fa2128a99ca0",
+      "production_engine_dependency": false
+    },
+    "artifact": {
+      "id": 13784744384,
+      "sha256": "512150f25ed811beed0a04b4ad4dc178e6d3eaa218005c4f29db48e0778c46f5"
+    }
+  },
+  "production_engine_dependency": false
+}

@@ -13,18 +13,24 @@ Stan: **10 listopada 2026**. Odczytano silnik PR #2 przy commicie `ff102f4d1c50d
 
 Pracujemy na osobnych gałęziach. Akceptowane dokumenty Etapu 1 są już w `main`. PR #2 pozostaje osobną propozycją; nie włączamy jego katalogu demo do aplikacji, także w debug, bez odrębnej potrzeby testowej.
 
+## Przyrost przygotowujący integrację — 10 listopada 2026
+
+Po audycie właściciel zatwierdził poprawkę Etapu 3 oraz przygotowanie mapowania i testów połączenia. Aktualny punkt odniesienia dla drugiego modułu to `525c223a9b4377a8490ddb464010fa2128a99ca0`. Autor dodał `CurrentOdometer.Selected`/`NotSelected`, wspólne narzędzia i zmiany ekstrakcji/eksportu/przypomnień. [Raport przygotowania i sposób uruchomienia](integration/README.md) opisuje kod aplikacji, testy rzeczywistego silnika i przypięcie rewizji. Nie jest to scalenie PR #2 ani podłączenie silnika do zwykłego APK.
+
+Poniższe starsze różnice opisują powód zmian; status bieżącego odczytu aktualizuje sekcja A. Kolejne przyrosty muszą nadal rozwiązać prezentację źródła i zastrzeżeń oraz proces zatwierdzania OCR.
+
 ## 1. Narzędzia i granice modułów
 
 Przyjęto dla fundamentu: **Kotlin 2.2.21, Gradle 8.13, AGP 8.11.1, JDK/JVM 17, minSdk 26, compile/targetSdk 36**. Źródłem wersji jest `gradle/libs.versions.toml`. Nie wybierano AGP/Kotlin „na ślepo”: sprawdzono [tabelę Kotlin/Gradle/AGP](https://kotlinlang.org/docs/gradle-configure-project.html), [wymagania AGP 8.11](https://developer.android.com/build/releases/agp-8-11-0-release-notes) oraz [plugin kompilatora Compose](https://developer.android.com/jetpack/androidx/releases/compose-kotlin). Przed wydaniem wymagania Play i aktualizacje zależności wracają do weryfikacji.
 
 `service-contract` to mały moduł Kotlin/JVM, bez Androida, Room, OCR, sieci i interwałów. Aplikacja nie zależy jeszcze od `service-engine` — fundament nie wymaga przedwczesnego scalania Etapu 4.
 
-Przy integracji PR #2:
+Stan przy przypiętej rewizji `525c223…`:
 
-1. W `service-engine/build.gradle.kts` użyć `alias(libs.plugins.kotlin.jvm)` zamiast osobnej wersji 2.1.21.
-2. Dla zachowania samodzielnego builda silnika jego `settings.gradle.kts` może importować katalog `../gradle/libs.versions.toml`; w buildzie głównym katalog jest już dostępny.
-3. Wyrównać wrapper samodzielnego silnika do 8.13 i sumy dystrybucji z root wrappera albo jednoznacznie pozostawić osobny, przetestowany build. Nie nadpisywać wrappera aplikacji plikami ze starszej gałęzi.
-4. Dopiero wtedy dodać `include(":service-engine")` i adapter, a następnie uruchomić dotychczasowe testy silnika oraz testy adaptera w jednym buildzie. Obecne 39 testów nie dowodzi jeszcze poprawności mapowania z Room.
+1. Autor silnika przeszedł na wspólny katalog wersji: Kotlin 2.2.21 oraz wrapper Gradle 8.13 z sumą dystrybucji. Plugin serializacji pobiera tę samą wersję Kotlin; biblioteka JSON nadal jest zadeklarowana po jego stronie.
+2. Samodzielny `service-engine/settings.gradle.kts` importuje `../gradle/libs.versions.toml`. Test integracyjny wymaga więc checkoutu całej rewizji repozytorium, nie pojedynczego katalogu silnika.
+3. Przygotowanie aplikacji używa wyłącznie testowego composite builda z podanym `engineIntegrationRoot`. Zwykły APK nie ma zależności od silnika. Nie nadpisujemy wrappera aplikacji ani plików drugiego modelu.
+4. Workflow przygotowania uruchamia testy kontraktu, rzeczywistą ścieżkę Room → silnik i zestaw `:service-engine:check`. Dotychczasowe oddzielne testy silnika nie zastępują tych testów granicy. Produkcyjne `include` i adapter pulpitu pozostają następnym zaakceptowanym przyrostem.
 
 ## 2. Kody czynności i operacji
 
@@ -72,9 +78,11 @@ Katalog `vehicle-catalog/` i pomocnicze VIN/tablice z PR #2 pozostają do osobne
 
 ### A. Bieżący przebieg
 
-Model logiczny aplikacji zakłada jawne `currentReadingId`. W schemacie Room v2 realizuje to tabela `current_odometer(vehicle_id, reading_id)`, z kluczem obcym sprawdzającym przynależność odczytu do auta. Odczyt starszej faktury nie ustala bieżącego przebiegu. API silnika z PR #2 przyjmuje listę odczytów i sam dołącza/przegląda odczyty z historii; nie ma jeszcze osobnego parametru autorytatywnego odczytu.
+Model logiczny aplikacji zakłada jawne `currentReadingId`. W schemacie Room v2 realizuje to tabela `current_odometer(vehicle_id, reading_id)`. `EngineFactsMapper` zachowuje ten wybór oraz osobną historię. Przy braku wyboru nie rekonstruuje bieżącego odczytu z historii.
 
-Przed integracją potrzebne jest rozszerzenie silnika lub jednoznacznie przetestowana polityka adaptera, która zachowa wybór aplikacji także wtedy, gdy historia zawiera późniejszy odczyt. Preferowany kierunek: opcjonalny jawny odczyt bieżący plus oddzielne odczyty do szacowania; historia nie może go po cichu zastępować. Nie naprawiamy tego przez usunięcie prawdziwych wpisów z historii przekazywanej do obliczeń.
+**Rozwiązane w API drugiego modelu przy `525c223…`:** `EvaluationInput.currentOdometer` przyjmuje `Selected`, `NotSelected` albo `LatestKnown`. Binding aplikacji zawsze ustawia pierwszą lub drugą opcję; `LatestKnown` pozostaje poza ścieżką aplikacji. Testy Room → mapowanie → prawdziwy silnik kontrolują jawny wybór oraz brak zastępstwa po usunięciu odczytu. Odczyty historyczne pozostają dostępne do wykrywania niespójności i szacowania.
+
+Po stronie aplikacji `selectCurrent(CurrentReadingInput)` waliduje także istniejący odczyt w transakcji. Wyjaśnienie i potwierdzenie są wymagane dla aktualnego zestawu danych. Zmiana wyjaśnienia przy odczycie usługowym podnosi rewizję odczytu i usługi, aby nieaktualny edytor nie nadpisał tego potwierdzenia.
 
 ### B. Wygaśnięcie źródła i licencja
 
@@ -103,7 +111,7 @@ Surowy `OcrRun` i `ServiceDraft` nie mają ścieżki do `PerformedTask`. Dopiero
 - Konfiguracja auta jest opcjonalna i ręcznie zadeklarowana. `configuration_revision` rośnie przy zmianie danych dopasowania, w tym roku/rejestracji/VIN/silnika/skrzyni/trybu, a nie przy zmianie samej nazwy. Brak pola i nieznane wartości nie są pełnym dopasowaniem planu. Kodów enum aplikacji nie rzutować bez jawnego mapowania na typy silnika.
 - UI nadal obsługuje jedno auto, zgodnie z MVP. Własność odczytów/usług i selekcji jest wymuszana także kluczami obcymi, co zapobiega podpięciu odczytu innego auta.
 
-## 6. Weryfikacja przy integracji — jeszcze nie wykonana
+## 6. Weryfikacja przygotowania i pozostałe prace
 
 ### Dodatki PR #2 odnotowane podczas Etapu 3
 
@@ -111,15 +119,18 @@ Przy `7b966d61a9565ad39c2c7c70bcf40de4e0fa904f` PR #2 dodaje planowanie przypomn
 
 Eksport trzeba uzgodnić z rzeczywistym schematem v2: zachować identyfikatory i jawny wybór bieżącego odczytu, pełne pary czynność/operacja, własne opisy, powiązania i uwagi odczytów, nieznany przebieg, pełny zakres kosztu oraz opcjonalną konfigurację auta. Format, który odtwarza tylko dzień i km, nie wystarcza do bezstratnej kopii tej bazy. Test archiwum w izolacji nie zastępuje testu Room → archiwum → nowa baza.
 
-### Testy granicy aplikacja/silnik
+### Wykonane w przyroście przygotowującym
 
-- `engine_oil:inspect` nie resetuje `engine_oil:replace`;
-- potwierdzone pozycje trafiają do silnika, szkice/wyceny nie;
-- dwa kliknięcia/ponowienie po awarii tworzą jedną usługę;
-- jawny bieżący odczyt pozostaje podstawą także po dodaniu starszej/nowszej faktury;
-- nieaktualne źródło traci status zweryfikowany, a dane demo nie trafiają do aplikacji;
-- brak historii nie jest przedstawiany jako dowód zaniedbania;
-- kategorie i kody przyczyn tłumaczone z zasobów NO/EN, szacowany miesiąc oddzielony od daty źródłowej;
-- nieobsługiwany typ reguły daje stan braku obsługi, bez fałszywego terminu.
+[Raport](integration/README.md) i [wyniki](integration/verification.json) przypinają obie rewizje. 6 testów rzeczywistego połączenia z Room oraz 7 testów mapowania potwierdzają: wybrany/brakujący przebieg bez zastępstwa z historii, rozróżnienie kontroli i wymiany, pominięcie własnych opisów przy mapowaniu reguł, nieznane km bez 0, niepełną konfigurację, odrzucenie DEMO w bramce katalogu oraz ostrzeżenia i przypomnienia przy wygasłym źródle lub niespójnym liczniku. API 26 wykonuje bibliotekę i odczyt nagłówka archiwum, API 35 sprawdza aplikację i pełny restart procesu.
+
+### Nadal do wykonania przy właściwym podłączeniu
+
+- produkcyjny adapter i pulpit z tłumaczeniami NO/EN wszystkich kategorii i powodów;
+- bramka uprawnień/aktualności źródła przed uznaniem wyniku za zweryfikowane zalecenie, także przy surowym `NO_URGENCY`/`OVERDUE`;
+- ostrożna prezentacja zastrzeżeń licznika oraz szacunku miesiąca, bez normalizacji wymiany licznika;
+- trwałe dokumenty/szkice OCR, dopasowanie pojazdu, klasyfikacja wykonania, jawna waluta i atomowe zatwierdzenie bez duplikatów;
+- pełny obieg Room → kopia → nowa baza, wykraczający poza smoke biblioteki archiwum;
+- katalog z rzeczywistymi prawami użycia i obsługa wyłącznie wspieranych typów reguł;
+- osobne uzgodnienie zakresu ekranu wskaźnika przed jego implementacją.
 
 Zmiana kodu, typu pola, znaczenia statusu albo pochodzenia wymaga aktualizacji tego kontraktu i testów na granicy modułów. Pozostawienie osobnych gałęzi nie zastępuje tej weryfikacji.

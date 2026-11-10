@@ -16,6 +16,11 @@ Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowni
 - Rzeczywista historia Androida: [NO](docs/stage-3/android-no.png) · [EN](docs/stage-3/android-en.png)
 - [Kontrakt z równoległym silnikiem i OCR](docs/INTEGRATION.md)
 
+## Przygotowanie integracji — przyrost 1
+
+- [Mapowanie Room, testy rzeczywistego silnika i ograniczenia](docs/integration/README.md)
+- Silnik PR #2 jest przypięty do konkretnej rewizji i używany wyłącznie przez dodatkowy zestaw testów. Zwykły APK zachowuje zakres Etapu 3.
+
 ## Aplikacja Android — Etap 2
 
 - [Uruchomienie, APK do pobrania, zakres i weryfikacja](docs/stage-2/README.md)
