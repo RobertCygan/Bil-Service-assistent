@@ -20,16 +20,27 @@ import androidx.compose.ui.unit.dp
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import app.servicepassport.android.R
 import app.servicepassport.android.data.ProfileRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CarServiceApp(repository: ProfileRepository) {
     val model: GarageViewModel = viewModel(factory = GarageViewModel.Factory(repository))
     val state by model.state.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (isActive) { model.refreshDate(); delay(60_000) }
+        }
+    }
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -47,6 +58,7 @@ fun CarServiceApp(repository: ProfileRepository) {
     fun go(target: String) { if (dirty) pendingRoute = target else navigate(target) }
     fun back() { if (dirty) pendingBack = true else nav.popBackStack() }
     fun saved(target: String) { dirty = false; navigate(target) }
+    fun intervalSaved() { dirty = false; model.clearProblem(); if (!nav.popBackStack("intervals", false)) navigate("intervals") }
     BackHandler(enabled = dirty) { pendingBack = true }
     LaunchedEffect(route) { model.clearProblem() }
     val colors = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(primary = Color(0xFF285A4B), secondary = Color(0xFF506857), background = Color(0xFFF8F9F5))
@@ -65,6 +77,15 @@ fun CarServiceApp(repository: ProfileRepository) {
                 composable("overview") { Overview(state, model.today, model::reload, ::go) }
                 composable("history") { History(state, ::go) }
                 composable("settings") { Settings() }
+                composable("dashboard") { DashboardPage(state, ::go, model::reload) }
+                composable("forecast/{id}") { node -> ForecastDetails(state, node.arguments?.getString("id").orEmpty(), ::go) }
+                composable("intervals") { IntervalsPage(state, ::go) { id, revision -> model.deleteInterval(id, revision) {} } }
+                composable("interval/new") { IntervalEditor(state, null, { dirty = it }) { input -> model.saveInterval(input, ::intervalSaved) } }
+                composable("interval/edit/{id}") { node ->
+                    val interval = state.snapshot?.intervals?.firstOrNull { it.id == node.arguments?.getString("id") }
+                    if (interval == null) Page { Text(stringResource(R.string.entry_not_found)) }
+                    else IntervalEditor(state, interval, { dirty = it }) { input -> model.saveInterval(input, ::intervalSaved) }
+                }
                 composable("vehicle") { ProfileEditor(state, model.today, { dirty = it }) { input -> model.save(input) { saved("overview") } } }
                 composable("service/new") { ServiceEditor(state, null, model.today, { dirty = it }) { input -> model.saveService(input) { saved("history") } } }
                 composable("service/edit/{id}") { node ->

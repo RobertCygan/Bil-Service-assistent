@@ -13,3 +13,5 @@ local.properties
 *.hprof
 .DS_Store
 .integration/
+__pycache__/
+*.pyc

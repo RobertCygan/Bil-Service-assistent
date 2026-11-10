@@ -1,0 +1,141 @@
+{
+  "date": "2026-11-10",
+  "timezone": "Europe/Berlin",
+  "app_source": "0143da2c4ba47e04eba65cb433209f1fa1a1019c",
+  "engine_import": "525c223a9b4377a8490ddb464010fa2128a99ca0",
+  "production_engine_dependency": true,
+  "scope": "Dashboard and driver intervals; no installed manufacturer catalogue",
+  "room_schema": 3,
+  "unchanged_archived_schemas": [
+    1,
+    2
+  ],
+  "verified_ci_jvm_suites": {
+    "app": {
+      "tests": 59,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "contract": {
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "engine": {
+      "tests": 111,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "build": "passed",
+  "test_apk": "passed",
+  "lint": {
+    "errors": 0,
+    "warnings": 26
+  },
+  "source_comparison": {
+    "non_documentation_files": 113,
+    "mismatches": 0,
+    "unchanged_imported_engine_source_files": 23
+  },
+  "translations": {
+    "base_keys": 215,
+    "bokmal_keys": 212,
+    "shared_nontranslatable_keys": [
+      "app_name",
+      "language_english",
+      "language_norwegian"
+    ],
+    "missing_translatable_keys": []
+  },
+  "android_api_35": {
+    "run_id": 42883641021,
+    "tests": 4,
+    "failures": 0,
+    "skipped": 0,
+    "full_process_restart": true
+  },
+  "android_api_26": {
+    "run_id": 42883640960,
+    "tests": 3,
+    "failures": 0,
+    "skipped": 0,
+    "upgrades_from_versions": [
+      1,
+      2
+    ],
+    "engine_and_archive_runtime": true
+  },
+  "ci_runs": {
+    "application_pr": 42883641021,
+    "application_push": 42883630228,
+    "minimum_android_pr": 42883640960,
+    "minimum_android_push": 42883630402,
+    "standalone_engine_pr": 42883640931,
+    "lookup_server_pr": 42883641074,
+    "vehicle_catalog_pr": 42883640936,
+    "all_successful": true
+  },
+  "verified_artifacts": {
+    "build": {
+      "id": 13795671151,
+      "run_id": 42883641021,
+      "sha256": "cff70a887f1739a93eb76a8c72994e56de7c01569c40589ab531daabc3857f4f"
+    },
+    "api_35": {
+      "id": 13794544700,
+      "run_id": 42883641021,
+      "sha256": "a0e9c0c2ffe9b09f6f5b57c7e8882862c06bcfcd8783ba6eecc690ebdb2f1e1c"
+    },
+    "api_26": {
+      "id": 13795701318,
+      "run_id": 42883640960,
+      "sha256": "e15f68fc1b509fd8799f5631b0893abc8d2ad362191811217a59bfb579edc525"
+    }
+  },
+  "verified_api_26_revisions": {
+    "app_head": "0143da2c4ba47e04eba65cb433209f1fa1a1019c",
+    "engine_import": "525c223a9b4377a8490ddb464010fa2128a99ca0",
+    "production_engine_dependency": true,
+    "engine_source": "service-engine/ in the same checked-out revision"
+  },
+  "apk": {
+    "sha256": "370b9f83aec5c2bf8ab69d3aa5d712fb272f660b3ffdd589e02bee7ac758783c",
+    "bytes": 12936331,
+    "engine_present": true,
+    "demo_catalog_present": false,
+    "version_name": "0.3.0-dev",
+    "version_code": 3,
+    "min_sdk": 26,
+    "target_sdk": 36
+  },
+  "process_restart": {
+    "process_force_stopped": true,
+    "saved_profile_restored": true,
+    "explicit_current_km_restored": 59000,
+    "user_intervals_restored": 4,
+    "dashboard_counts": {
+      "overdue": 1,
+      "due_soon": 1,
+      "needs_data": 1,
+      "no_urgency": 1
+    },
+    "selected_language_restored": "nb-NO",
+    "manufacturer_schedule_present": false
+  },
+  "limitations": [
+    "No licensed manufacturer intervals installed",
+    "No physical-device beta",
+    "OCR confirmation, notifications and full database backup are separate increments",
+    "ExportUserRule still needs revision and timestamps for Room v3 intervals"
+  ],
+  "screenshots": {
+    "dashboard-no.png": "c29c18c966ba68d7146bfed733dfc5db969e857eca7017af19eda811918075b8",
+    "dashboard-en.png": "809295833e6757336c6628767346308a6f942705964efa58a4efc34872273120",
+    "forecast-en.png": "9d7a52f0cab4efc5fed3294d75bb9b76eafc4a2a3c323a31501b2dcc49277773",
+    "dashboard-no-restarted.png": "b670585dc7975c42388f823ec4935e7c49180cab380c7a58bbaba3cd98b7a953"
+  }
+}

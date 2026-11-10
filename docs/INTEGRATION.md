@@ -1,136 +1,98 @@
 # Wspólny kontrakt aplikacji i silnika — v1
 
-Stan: **10 listopada 2026**. Odczytano silnik PR #2 przy commicie `ff102f4d1c50d0974e8c6792270effc26894e4a3`, a następnie aktualizację do `adaf5fd2c74974da14d92e9c0cc59fffd04f37f6`, obejmującą rdzeń ekstrakcji i katalog pojazdów, oraz `7e405ff43ab83d3527745310b558a7d291f2e686` (pomocnicze VIN/tablice i katalog; API reguł/OCR bez zmian). Ten dokument i `service-contract/` są punktem odniesienia dla etapów 1–3 oraz 4–5. Nie oznaczają, że PR #2 został scalony lub że adapter i OCR na Androidzie już działają.
+Stan: **10 listopada 2026**, Europe/Berlin. Aktualny przyrost: [pulpit i własne interwały](stage-4/README.md), [PR #7](https://github.com/RobertCygan/Bil-Service-assistent/pull/7). Etap 3 i przygotowanie integracji zostały scalone do `main` w PR #5 i #6. PR #7 importuje kod drugiego modelu z `525c223a9b4377a8490ddb464010fa2128a99ca0` jako drugiego rodzica commita; gałąź PR #2 pozostaje niezmieniona. Nie oznacza to ukończenia interfejsów OCR, kopii ani powiadomień.
 
-## Podział pracy
+## 1. Własność i wspólny build
 
-| Obszar | Właściciel aktualnej zmiany | Zasada |
-| --- | --- | --- |
-| `app/`, root Gradle, wersje narzędzi, model Room, nawigacja | Etapy 1–3 | Ta gałąź; bez kopiowania implementacji silnika |
-| `service-engine/`, jego testy i projekt OCR | Autor PR #2 | Nie zmieniamy jego gałęzi ani plików w tym etapie |
-| `service-contract/`, ten dokument | Wspólny kontrakt integracyjny | Zmiana identyfikatorów wymaga jawnej wersji i oceny obu stron |
-| Licencja, katalog producenta, release Play | Osobna bramka | Nie zamykamy ich samym buildem lub testami |
+| Obszar | Zasada współpracy |
+| --- | --- |
+| `app/`, Room, nawigacja, pulpit, adapter i root Gradle | Integracja po stronie aplikacji; zmiany w gałęzi `codex/stage-4-dashboard` |
+| Algorytmy `service-engine/`, ekstrakcja, eksport i przypomnienia | Import z PR #2 bez zmian w kodzie algorytmów; dalsze zmiany uzgadniać z autorem tego modułu |
+| `service-contract/` i ten dokument | Wspólne identyfikatory i znaczenie danych; zmiany wymagają oceny obu stron |
+| Katalog producentów i prawa użycia | Osobna bramka, niezależna od kompilacji i testów |
 
-Pracujemy na osobnych gałęziach. Akceptowane dokumenty Etapu 1 są już w `main`. PR #2 pozostaje osobną propozycją; nie włączamy jego katalogu demo do aplikacji, także w debug, bez odrębnej potrzeby testowej.
+Kotlin **2.2.21**, Gradle **8.13**, AGP **8.11.1**, JDK/JVM **17**, minSdk **26**, compile/targetSdk **36**. Kotlin serialization i JSON **1.8.1** korzystają już z `gradle/libs.versions.toml`. `settings.gradle.kts` włącza `service-contract` i `service-engine`; aplikacja ma produkcyjne `implementation(project(":service-engine"))`. Samodzielny build silnika nadal działa.
 
-## Przyrost przygotowujący integrację — 10 listopada 2026
-
-Po audycie właściciel zatwierdził poprawkę Etapu 3 oraz przygotowanie mapowania i testów połączenia. Aktualny punkt odniesienia dla drugiego modułu to `525c223a9b4377a8490ddb464010fa2128a99ca0`. Autor dodał `CurrentOdometer.Selected`/`NotSelected`, wspólne narzędzia i zmiany ekstrakcji/eksportu/przypomnień. [Raport przygotowania i sposób uruchomienia](integration/README.md) opisuje kod aplikacji, testy rzeczywistego silnika i przypięcie rewizji. Nie jest to scalenie PR #2 ani podłączenie silnika do zwykłego APK.
-
-Poniższe starsze różnice opisują powód zmian; status bieżącego odczytu aktualizuje sekcja A. Kolejne przyrosty muszą nadal rozwiązać prezentację źródła i zastrzeżeń oraz proces zatwierdzania OCR.
-
-## 1. Narzędzia i granice modułów
-
-Przyjęto dla fundamentu: **Kotlin 2.2.21, Gradle 8.13, AGP 8.11.1, JDK/JVM 17, minSdk 26, compile/targetSdk 36**. Źródłem wersji jest `gradle/libs.versions.toml`. Nie wybierano AGP/Kotlin „na ślepo”: sprawdzono [tabelę Kotlin/Gradle/AGP](https://kotlinlang.org/docs/gradle-configure-project.html), [wymagania AGP 8.11](https://developer.android.com/build/releases/agp-8-11-0-release-notes) oraz [plugin kompilatora Compose](https://developer.android.com/jetpack/androidx/releases/compose-kotlin). Przed wydaniem wymagania Play i aktualizacje zależności wracają do weryfikacji.
-
-`service-contract` to mały moduł Kotlin/JVM, bez Androida, Room, OCR, sieci i interwałów. Aplikacja nie zależy jeszcze od `service-engine` — fundament nie wymaga przedwczesnego scalania Etapu 4.
-
-Stan przy przypiętej rewizji `525c223…`:
-
-1. Autor silnika przeszedł na wspólny katalog wersji: Kotlin 2.2.21 oraz wrapper Gradle 8.13 z sumą dystrybucji. Plugin serializacji pobiera tę samą wersję Kotlin; biblioteka JSON nadal jest zadeklarowana po jego stronie.
-2. Samodzielny `service-engine/settings.gradle.kts` importuje `../gradle/libs.versions.toml`. Test integracyjny wymaga więc checkoutu całej rewizji repozytorium, nie pojedynczego katalogu silnika.
-3. Przygotowanie aplikacji używa wyłącznie testowego composite builda z podanym `engineIntegrationRoot`. Zwykły APK nie ma zależności od silnika. Nie nadpisujemy wrappera aplikacji ani plików drugiego modelu.
-4. Workflow przygotowania uruchamia testy kontraktu, rzeczywistą ścieżkę Room → silnik i zestaw `:service-engine:check`. Dotychczasowe oddzielne testy silnika nie zastępują tych testów granicy. Produkcyjne `include` i adapter pulpitu pozostają następnym zaakceptowanym przyrostem.
+Plik `.github/engine-integration.ref` przechowuje historyczną rewizję importu. CI nie pobiera osobnej kopii silnika: sprawdza kod aplikacji i modułu z tego samego commita. Dodatkowe zestawy `engineIntegrationTest` i `engineIntegrationAndroidTest` są zawsze częścią testów aplikacji. Workflow Androida uruchamia testy aplikacji, kontraktu i silnika; drugi sprawdza minimum API 26.
 
 ## 2. Kody czynności i operacji
 
-Źródło prawdy: [ServiceTask.kt](../service-contract/src/main/kotlin/app/servicepassport/contract/ServiceTask.kt).
+Źródło prawdy: [ServiceTask.kt](../service-contract/src/main/kotlin/app/servicepassport/contract/ServiceTask.kt). W bazie są oddzielne `action_code` i `operation_code`; do reguł i historii silnika trafia pełna para, np. **`engine_oil:replace` ≠ `engine_oil:inspect`**.
 
-W bazie zachowujemy oddzielnie czynność i operację. Do `ServiceRule.taskCode`, `PerformedTask.taskCode` i mapowania OCR trafia **ta sama pełna para** w postaci `czynność:operacja`. Przykład: `engine_oil:replace` ≠ `engine_oil:inspect`. Sama kontrola poziomu oleju nie resetuje reguły wymiany.
-
-| Kod czynności | Dozwolone operacje |
+| Czynność | Dozwolone operacje |
 | --- | --- |
-| `engine_oil` | `replace`, `inspect` |
-| `oil_filter` | `replace`, `inspect` |
-| `gearbox_oil` | `replace`, `inspect` |
-| `brake_fluid` | `replace`, `inspect` |
-| `coolant` | `replace`, `inspect` |
-| `spark_plugs` | `replace`, `inspect` |
-| `timing_belt` | `replace`, `inspect` |
-| `air_filter` | `replace`, `inspect` |
-| `cabin_filter` | `replace`, `inspect` |
-| `fuel_filter` | `replace`, `inspect` |
-| `brake_pads` | `replace`, `inspect` |
-| `brake_discs` | `replace`, `inspect` |
-| `inspection_service` | `inspect` |
-| `brakes` | `inspect` |
+| `engine_oil`, `oil_filter`, `gearbox_oil` | `replace`, `inspect` |
+| `brake_fluid`, `coolant`, `spark_plugs`, `timing_belt` | `replace`, `inspect` |
+| `air_filter`, `cabin_filter`, `fuel_filter` | `replace`, `inspect` |
+| `brake_pads`, `brake_discs` | `replace`, `inspect` |
+| `inspection_service`, `brakes` | `inspect` |
 | `battery_12v` | `test`, `replace` |
 
-To identyfikatory, **nie zalecenia wykonania ani harmonogram**. Nie utożsamiamy kodu z językiem dokumentu. Opis nieznanej czynności może zostać w historii, ale bez arbitralnego dopasowania do reguł. `fromTaskCode` odrzuca nieznane i niepełne pary; nie robi rozmytego dopasowania. Nie używać obecnych krótkich kodów z fikcyjnych testów silnika jako alternatywnego słownika produkcyjnego.
+To 15 identyfikatorów czynności, nie zalecenia wykonania. Własny opis ma oba kody `null` i pozostaje w historii, lecz nie resetuje reguły po podobieństwie słów. Słownik ekstrakcji PR #2 używa już pełnych par kontraktu; test modułu kontroluje ich zgodność. Szkic nadal wymaga osobnej walidacji i potwierdzenia w aplikacji.
 
-### Tymczasowe kody ekstraktora z aktualizacji PR #2
+## 3. Decyzje i granice przyrostu
 
-`DefaultTaskDictionary` ma 13 kodów wielkimi literami. Przy integracji zastępujemy je pełnymi parami z kontraktu: `ENGINE_OIL` → `engine_oil:replace`, `OIL_FILTER` → `oil_filter:replace`, analogicznie pozostałe nazwy części **tylko po potwierdzeniu wymiany**. `INSPECTION_SERVICE` → `inspection_service:inspect`; ogólne „full service” nie potwierdza wymiany każdej części. Kontrole i testy wymagają własnej operacji, zamiast mapowania dowolnej wzmianki o części na `replace`.
+- `AppPolicy`: **1500 km / 30 dni** dla „zbliża się”, **90 dni** dla nieaktualnego odczytu. Są to zatwierdzone ustawienia aplikacji, przekazywane jawnie do `EngineSettings`; nie zmieniają reguł producenta.
+- Własne interwały są ustawieniami użytkownika. Początkowe pola km/miesięcy są puste. Jedna reguła dotyczy jednej pary czynność/operacja jednego auta. Wymagany jest co najmniej jeden dodatni próg; miesiące 1–1200. Nie ma predefiniowanych liczb ani etykiety zalecenia producenta.
+- Własny interwał jest **kolejnym** terminem od ostatniej potwierdzonej zgodnej czynności. Bez niej wynik to `NEEDS_DATA`, bez fikcyjnego pierwszego terminu od rejestracji/0 km.
+- `IndicatorReading` pozostaje w API modułu. Ten przyrost nie dodaje ekranu ani tabeli wskaźnika; aplikacja nie przekazuje fikcyjnych odczytów. Plan zmienny bez wskaźnika wymaga danych; ewentualna górna granica ma odrębną etykietę. Sprzeczne wcześniejsze zapisy zakresu wskaźnika pozostają tematem osobnej decyzji przed jego UI.
+- UI obsługuje jedno auto. Dane konfiguracji są opcjonalne, ręczne i nie są uznawane za zweryfikowane. Katalog marek/modeli, VIN i serwer rejestru nie są podłączone do aplikacji.
 
-Zalecany punkt integracji to jawnie wstrzyknięty słownik `DocumentExtractor(...)` oparty na kontrakcie. Nazwy tymczasowe nie stają się kodami historii produkcyjnej. `brakes:inspect`, `brake_pads:replace` i `brake_discs:replace` pozostają trzema różnymi pozycjami. Zmiana słownika nie zastępuje walidacji klasyfikacji PERFORMED, dopasowania pojazdu i potwierdzenia przez użytkownika.
+## 4. Baza, jednostki i zapis
 
-## 3. Decyzje właściciela
+**Room v3** dodaje do v2 tabelę `user_intervals` z ID, właścicielem, parą kodów, opcjonalnym km/miesiącami, rewizją i metadanymi UTC. Unikalny indeks obejmuje `(vehicle_id, action_code, operation_code)`. Migracja **2→3** jest wyłącznie dodająca; pozostaje ścieżka **1→2→3**. Archiwalne `1.json` i `2.json` nie zostały zmienione. Test urządzenia buduje bazę ze schematu v2 i sprawdza zachowanie całego profilu, konfiguracji, kosztu, kolejności prac, własnego opisu, powiązania/uwag odczytu i świadomie starszej selekcji; dopiero potem dodaje interwał i ponownie otwiera bazę.
 
-- **Zatwierdzone:** zbliżający się termin = **1500 km lub 30 dni**, nieaktualny przebieg = **90 dni**. To progi prezentacji/przypomnień aplikacji; nie zmieniają terminu serwisu wynikającego ze źródła. Stała `AppPolicy` przechowuje te wartości. W Etapie 3 tylko próg 90 dni oznacza nieaktualny odczyt na pulpicie; 1500 km / 30 dni czekają na podłączenie reguł.
-- **Decyzja w ramach pozostawionego wyboru:** opcjonalny `IndicatorReading` zostaje w API silnika, ale ekran i tabela ręcznego odczytu wskaźnika są **poza MVP**. Bez potrzebnego odczytu plan zmienny pokazuje „wymaga danych”. Nie dodajemy fikcyjnego odczytu ani stałego interwału zastępczego.
-- Data pierwszej rejestracji jest osobna od roku modelowego; Etap 3 dodaje ją z migracją 1→2. Żaden rok nie jest automatycznie zamieniany na datę.
+Dotychczasowe tabele: `vehicles`, `service_events`, uporządkowane `service_actions`, `odometer_readings`, jawny `current_odometer`. `GarageSnapshot` jest transakcyjnym odczytem relacji wraz z interwałami. Tabele usług zawierają **wyłącznie potwierdzone wykonanie**; szkice OCR muszą mieć osobny magazyn.
 
-**Do synchronizacji opisu PR #2:** jego aktualizacja odnotowuje ekran wskaźnika jako przewidziany w aplikacji. W bieżącej rozmowie właściciel pozostawił wybór i przyjęto odłożenie tego ekranu poza MVP. Opcjonalny typ w silniku pozostaje zgodny; opis zakresu i przyszłe zadania UI wymagają dostosowania do tej decyzji.
+`performed_day`, `observed_day`, `first_registration_day`: `Long` epoch-day → `LocalDate`. Metadane to milisekundy UTC. Km są `Long` w zakresie 0..Int.MAX_VALUE; konwersja sprawdza zakres. Brak km to `null`, nie 0. Koszt to opcjonalne całkowite øre i NOK, bez `Double`. Rok modelowy nie jest datą pierwszej rejestracji.
 
-Katalog `vehicle-catalog/` i pomocnicze VIN/tablice z PR #2 pozostają do osobnej integracji. Etap 3 zapisuje dane ręcznie, bez deklaracji ich weryfikacji lub dekodowania VIN. Dane `firstYear`/`lastYear` są latami pierwszych rejestracji w źródle, a nie rokiem modelowym i nie mogą go automatycznie uzupełniać. Ręczny wpis pozostaje dostępny dla aut spoza listy. Lista marek/modeli nie przypisuje harmonogramu ani nie zamyka bramki źródła.
+Zapis/edycja/usuwanie są transakcyjne. UUID chroni ponowienie zapisu; oczekiwana rewizja zapobiega nadpisaniu nieaktualnej wersji. Własność odczytów i selekcji jest wymuszana także kluczami obcymi. Usunięcie interwału nie usuwa historii. Dane pozostają lokalne, bez kont, sieci, analityki i kopii chmurowej.
 
-## 4. Różnice wymagające rozwiązania przed adapterem
+## 5. Jawny bieżący przebieg
 
-### A. Bieżący przebieg
+`EngineFactsMapper` przygotowuje fakty, a produkcyjny `EngineAdapter` zawsze ustawia **`CurrentOdometer.Selected` albo `NotSelected`**. `LatestKnown` jest poza ścieżką aplikacji. Historia służy do wykrywania niespójności i prognozy, a nie do zastępowania brakującej selekcji.
 
-Model logiczny aplikacji zakłada jawne `currentReadingId`. W schemacie Room v2 realizuje to tabela `current_odometer(vehicle_id, reading_id)`. `EngineFactsMapper` zachowuje ten wybór oraz osobną historię. Przy braku wyboru nie rekonstruuje bieżącego odczytu z historii.
+Historyczna usługa nie zmienia wyboru bez jawnego zaznaczenia. Usunięcie wybranego odczytu lub usługi czyści selekcję; zmiana jego wartości/dnia bez ponownego potwierdzenia także ją czyści. Edycja samej notatki zachowuje wybór. `selectCurrent(CurrentReadingInput)` sprawdza istniejący odczyt w transakcji: ostrzeżenie, wyjaśnienie i świeże potwierdzenie są wymagane także przy wyborze z listy. Zmiana wyjaśnienia odczytu usługowego podnosi rewizję odczytu i usługi.
 
-**Rozwiązane w API drugiego modelu przy `525c223…`:** `EvaluationInput.currentOdometer` przyjmuje `Selected`, `NotSelected` albo `LatestKnown`. Binding aplikacji zawsze ustawia pierwszą lub drugą opcję; `LatestKnown` pozostaje poza ścieżką aplikacji. Testy Room → mapowanie → prawdziwy silnik kontrolują jawny wybór oraz brak zastępstwa po usunięciu odczytu. Odczyty historyczne pozostają dostępne do wykrywania niespójności i szacowania.
+## 6. Kategoria silnika a wiarygodność na pulpicie
 
-Po stronie aplikacji `selectCurrent(CurrentReadingInput)` waliduje także istniejący odczyt w transakcji. Wyjaśnienie i potwierdzenie są wymagane dla aktualnego zestawu danych. Zmiana wyjaśnienia przy odczycie usługowym podnosi rewizję odczytu i usługi, aby nieaktualny edytor nie nadpisał tego potwierdzenia.
+`DashboardEvaluator` nie zmienia algorytmów importowanego modułu. Nakłada zasady prezentacji aplikacji, a UI tłumaczy kategorie, powody, źródło, kotwicę i rodzaj interwału na NO/EN.
 
-### B. Wygaśnięcie źródła i licencja
+- Brak potwierdzenia nie staje się zaległością, także przy równoczesnym braku bieżącego przebiegu i minionej dacie.
+- Spadek przebiegu, różne wartości jednego dnia, wyjaśniona anomalia bieżącego odczytu lub nowszy wyższy odczyt w historii blokują pewny wynik zależny od km. Nie pokazujemy wtedy pozornie pewnego progu/pozostałych km ani szacowanego miesiąca.
+- Sama adnotacja przy dawnym odczycie, np. świadomy wcześniejszy wybór, nie zatruwa na zawsze poprawnego późniejszego odczytu; rzeczywista niespójność całej historii nadal ma znaczenie.
+- Odczyt starszy niż 90 dni poniżej progu nie wystarcza do „bez pilnej potrzeby”; potrzebna aktualizacja. Już udokumentowane przekroczenie km pozostaje zaległością z ostrzeżeniem.
+- Niezależnie potwierdzony miniony/zbliżający się termin czasowy od ostatniej czynności może pozostać pilny mimo niepewnego przebiegu. Podstawa wskazuje czas. Brak historii tego nie dopuszcza.
+- Interwał wyłącznie czasowy nie zależy od aktualności km. Szacowany miesiąc przebiegu jest osobnym polem, a nie dokładną datą serwisu.
+- Suma km kotwicy i interwału jest sprawdzana w `Long` przed arytmetyką `Int` silnika. Przekroczenie zakresu daje potrzebę sprawdzenia danych.
 
-Silnik może zwrócić wyliczony termin z `SOURCE_EXPIRED`. Aplikacja wymaga odrębnej bramki uprawnień/aktualności przed prezentacją zalecenia. Wygasły/wycofany plan nie może wyglądać jak nadal zweryfikowany tylko dlatego, że da się policzyć datę. Niepusty tekst `usageRights` nie jest dowodem faktycznej licencji.
+Snapshot i jego wynik trafiają do jednego stanu UI. Zmiany bazy przeliczają pulpit; data odświeża się po wznowieniu i co minutę na aktywnym ekranie. Błąd obliczeń ma komunikat i ponowienie, bez zastępowania go pustą „bezpieczną” listą.
 
-### C. Punkty startowe i niewspierane reguły
+## 7. Bramka producenta
 
-PR #2 wspiera stałe pierwsze/kolejne interwały od startu eksploatacji oraz ostatniej czynności. Model aplikacji dopuszcza szersze rodzaje reguł, ale adapter może przekazać wyłącznie te, które silnik rzeczywiście obsługuje i które mają potwierdzoną podstawę. Czynności jednorazowe, wiek auta, inne kotwice i złożone warunki pozostają „brak obsługi/danych”, nie przybliżonym planem.
+Produkcyjny `InstalledManufacturerCatalog` jest pusty. Żadne liczby z testów ani `testFixtures/demo` nie trafiają do danych aplikacji.
 
-### D. Typy i jednostki
+Przed pokazaniem jakiejkolwiek reguły producenta wymagane są łącznie:
 
-`LocalDate` dla dnia wykonania; UTC dla metadanych technicznych. Km są nieujemne. Przed konwersją do `Int` silnika sprawdzić zakres, bez obcinania i ograniczania po cichu. Brak przebiegu to `null`, nie 0. Data wystawienia faktury nie staje się automatycznie datą usługi.
+1. `CatalogValidator.productionIssues` bez błędów, pochodzenie `VERIFIED_SOURCE` i pełne metadane.
+2. Jedno pełne dopasowanie `PlanResolver` do konfiguracji. Brak pola i niejednoznaczność nie upoważniają do wyboru podobnego planu.
+3. Aktualne, niewycofane `SourceAuthorization` dla **konkretnego ID i wersji** każdego źródła planu/reguł, z niepustym odnośnikiem do dowodu uprawnień oraz okresem ważności.
+4. Aktualność źródła oraz kod czynności zgodny z kontraktem.
 
-### E. Zatwierdzanie OCR
+Niepusty tekst `usageRights` nie jest dowodem licencji. Uprawnienia dostarcza sprawdzona integracja katalogu, nie formularz kierowcy lub OCR. Źródło wygasłe/wycofane/niedopuszczone powoduje usunięcie reguł producenta z wyników i wyjaśnienie braku planu. Własne interwały pozostają osobno, z etykietą „Your interval” / „Ditt intervall”. Ten mechanizm nie dostarcza ani nie weryfikuje samych praw użycia.
 
-Surowy `OcrRun` i `ServiceDraft` nie mają ścieżki do `PerformedTask`. Dopiero atomowe potwierdzenie tworzy wpis i wykonane, wybrane pozycje. Wycena, zalecenie i zakup części nie resetują interwału. Użytkownik może poprawić klasyfikację, lecz musi jawnie potwierdzić wykonanie; samo zaznaczenie pozycji nie jest obejściem blokady dokumentu obcego auta.
+## 8. OCR — następny osobny przyrost
 
-## 5. Trwały kontrakt Etapu 3
+Biblioteka ekstrakcji jest zaimportowana; aplikacja nie odczytuje jeszcze faktur. `OcrRun`/`ServiceDraft` nie mają drogi do historii silnika. Integracja musi dodać oryginał dokumentu i trwały szkic, weryfikację pojazdu, rodzaju dokumentu, daty wykonania, waluty, pełnych kodów i wybranych prac oraz atomowe zatwierdzenie bez duplikatów. Data wystawienia faktury nie staje się automatycznie datą usługi. Wycena, zalecenie i zakup części nie resetują interwału. EUR/GBP lub brak waluty nie mogą zostać zapisane jako NOK. Ogólne „full service” nie potwierdza wymiany każdej części.
 
-- Room v2: `vehicles`, `service_events`, uporządkowane `service_actions`, `odometer_readings` i jawna selekcja `current_odometer`. `GarageSnapshot` jest spójnym odczytem relacji w transakcji; źródłem integracji są `snapshot.currentReading`, `snapshot.readings` i `snapshot.history`. Nie wybierać `MAX(km)` ani najnowszej daty jako zamiennika selekcji.
-- Wpis ręczny to potwierdzone przez użytkownika wykonane prace, bez OCR i szkiców. Para `action_code`/`operation_code` musi przejść `ServiceTask.fromTaskCode`; własny opis ma oba kody `null` i nie resetuje żadnej reguły. Stan potwierdzenia jest znaczeniem tej tabeli w v2; przyszłe szkice muszą mieć odrębny magazyn i atomowe zatwierdzenie.
-- `performed_day`, `observed_day`, `first_registration_day`: `Long` epoch-day → `LocalDate.ofEpochDay`. Metadane utworzenia/zmiany: milisekundy UTC. Kilometry `Long` w zakresie 0..Int.MAX_VALUE; `null` przebiegu oznacza brak odczytu powiązanego z usługą. Koszt: opcjonalne całkowite øre i waluta NOK, bez `Double`.
-- Jedna usługa ma 0 lub 1 powiązany odczyt, wiele prac i własne `revision`. Odczyt usługowy zmieniamy przez usługę. UUID formularza chroni ponowienie zapisu, a oczekiwana rewizja chroni przed nadpisaniem nieaktualnej wersji. Cały zapis/edycja/usunięcie odbywa się w transakcji.
-- Dodanie historycznej usługi/odczytu nie zmienia selekcji bez jawnego wyboru. Usunięcie wybranego odczytu lub jego usługi usuwa selekcję; zmiana jego wartości/dnia bez ponownego potwierdzenia także ją czyści. Edycja samej notatki zachowuje selekcję. UI oznacza odczyt starszy niż 90 dni.
-- Niespójne wartości, różne km tego samego dnia i wybór odczytu starszego od bieżącego wymagają ostrzeżenia, wyjaśnienia i potwierdzenia aktualnego zestawu danych. `exception_reason` nie oznacza przeliczenia skali licznika. Przy anomalii adapter nie może automatycznie prognozować średniego przebiegu ani uznać stanu za bezpieczny; potrzebna osobna obsługa w Etapie 4.
-- Konfiguracja auta jest opcjonalna i ręcznie zadeklarowana. `configuration_revision` rośnie przy zmianie danych dopasowania, w tym roku/rejestracji/VIN/silnika/skrzyni/trybu, a nie przy zmianie samej nazwy. Brak pola i nieznane wartości nie są pełnym dopasowaniem planu. Kodów enum aplikacji nie rzutować bez jawnego mapowania na typy silnika.
-- UI nadal obsługuje jedno auto, zgodnie z MVP. Własność odczytów/usług i selekcji jest wymuszana także kluczami obcymi, co zapobiega podpięciu odczytu innego auta.
+## 9. Eksport i przypomnienia — granice aktualnej zgodności
 
-## 6. Weryfikacja przygotowania i pozostałe prace
+`ExportData` z importu zachowuje pola dawnego schematu Room v2 i dodaje `userRules`, ale **`ExportUserRule` nie ma rewizji i znaczników czasu nowych `user_intervals`**. Format archiwum ma `formatVersion=1`; nie mylić tego z wersją schematu Room. Przed udostępnieniem kopii potrzebne są zgodna ewolucja DTO/walidatora i test **Room v3 → archiwum → nowa baza**, obejmujący także selekcję, własne opisy i metadane interwałów. Nie podłączamy niepełnej kopii do UI.
 
-### Dodatki PR #2 odnotowane podczas Etapu 3
+Test biblioteki archiwum na API 26 potwierdza jej wykonanie oraz zapis/odczyt nagłówka na starszym Androidzie; nie dowodzi bezstratności kopii bazy. `ReminderPlanner` ma własne testy tłumienia niepewnych zaleceń; powiadomienia Androida nie są włączone. Przyszły planer musi uwzględniać także bramkę źródła i wiarygodność wyniku aplikacji, zamiast samodzielnie wywoływać silnik z pominięciem tych zasad.
 
-Przy `7b966d61a9565ad39c2c7c70bcf40de4e0fa904f` PR #2 dodaje planowanie przypomnień, propozycję formatu eksportu z opcjonalnym hasłem i szkielet serwera rejestru. Nie zmienia dotychczasowych plików API reguł/OCR, ale dodaje plugin Kotlin serialization 2.1.21 i bibliotekę JSON. Przy przyszłym scalaniu także plugin serializacji musi korzystać ze wspólnych wersji. Te dodatki nie są podłączone, przetestowane z Room ani przyjęte jako zakończone etapy aplikacji. Nie zmieniają zakresu ani decyzji tego Etapu 3.
+## 10. Weryfikacja i dalsza współpraca
 
-Eksport trzeba uzgodnić z rzeczywistym schematem v2: zachować identyfikatory i jawny wybór bieżącego odczytu, pełne pary czynność/operacja, własne opisy, powiązania i uwagi odczytów, nieznany przebieg, pełny zakres kosztu oraz opcjonalną konfigurację auta. Format, który odtwarza tylko dzień i km, nie wystarcza do bezstratnej kopii tej bazy. Test archiwum w izolacji nie zastępuje testu Room → archiwum → nowa baza.
+[Raport bieżącego przyrostu](stage-4/README.md) przypina kod, wyniki JVM, Androida i restartu. Testy aplikacji obejmują rzeczywisty zapis Room → mapowanie → silnik, edycję interwałów i politykę kategorii. Test UI wpisuje własne interwały przez produkcyjne formularze, więc zrzuty nie wymagają ukrytego katalogu demonstracyjnego.
 
-### Wykonane w przyroście przygotowującym
-
-[Raport](integration/README.md) i [wyniki](integration/verification.json) przypinają obie rewizje. 6 testów rzeczywistego połączenia z Room oraz 7 testów mapowania potwierdzają: wybrany/brakujący przebieg bez zastępstwa z historii, rozróżnienie kontroli i wymiany, pominięcie własnych opisów przy mapowaniu reguł, nieznane km bez 0, niepełną konfigurację, odrzucenie DEMO w bramce katalogu oraz ostrzeżenia i przypomnienia przy wygasłym źródle lub niespójnym liczniku. API 26 wykonuje bibliotekę i odczyt nagłówka archiwum, API 35 sprawdza aplikację i pełny restart procesu.
-
-### Nadal do wykonania przy właściwym podłączeniu
-
-- produkcyjny adapter i pulpit z tłumaczeniami NO/EN wszystkich kategorii i powodów;
-- bramka uprawnień/aktualności źródła przed uznaniem wyniku za zweryfikowane zalecenie, także przy surowym `NO_URGENCY`/`OVERDUE`;
-- ostrożna prezentacja zastrzeżeń licznika oraz szacunku miesiąca, bez normalizacji wymiany licznika;
-- trwałe dokumenty/szkice OCR, dopasowanie pojazdu, klasyfikacja wykonania, jawna waluta i atomowe zatwierdzenie bez duplikatów;
-- pełny obieg Room → kopia → nowa baza, wykraczający poza smoke biblioteki archiwum;
-- katalog z rzeczywistymi prawami użycia i obsługa wyłącznie wspieranych typów reguł;
-- osobne uzgodnienie zakresu ekranu wskaźnika przed jego implementacją.
-
-Zmiana kodu, typu pola, znaczenia statusu albo pochodzenia wymaga aktualizacji tego kontraktu i testów na granicy modułów. Pozostawienie osobnych gałęzi nie zastępuje tej weryfikacji.
+Starsze raporty [Etapu 3](stage-3/README.md), [przygotowania](integration/README.md) i [autora modułów](09-uzgodnienie-z-aplikacja.md) opisują wcześniejsze rewizje. Bieżący zakres rozstrzyga ten dokument. Zmiana kodu, typu pola, źródła albo znaczenia statusu wymaga aktualizacji kontraktu i sprawdzenia przepływu między modułami.

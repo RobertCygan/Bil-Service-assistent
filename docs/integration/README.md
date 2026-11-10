@@ -1,5 +1,7 @@
 # Przyrost integracyjny 1 — Room i rzeczywisty silnik
 
+**Raport historyczny przygotowania, scalonego w PR #6.** Polecenia composite builda poniżej dotyczą jego przypiętej rewizji; bieżący build i podłączenie silnika opisuje [Etap 4](../stage-4/README.md).
+
 Data: **10 listopada 2026**, Europe/Berlin. Zakres zatwierdzony przez właściciela: poprawka Etapu 3 oraz przygotowanie mapowania i testów połączenia. Pulpit pozostaje następnym przyrostem.
 
 ## Cel i zakres
@@ -43,7 +45,7 @@ Wspólny workflow: [engine-integration.yml](../../.github/workflows/engine-integ
 
 ## Weryfikacja
 
-**Wynik: gotowe do odbioru w [PR #6](https://github.com/RobertCygan/Bil-Service-assistent/pull/6)**, opartym na PR #5. Kod aplikacji sprawdzony przy `11e4f82c918e9425334d1d868d5c4cc8c8e12d65`, silnik przy `525c223a9b4377a8490ddb464010fa2128a99ca0`. Późniejszy commit aktualizuje wyłącznie dokumentację.
+**Wynik: scalone w [PR #6](https://github.com/RobertCygan/Bil-Service-assistent/pull/6)**, opartym na PR #5. Kod aplikacji sprawdzony przy `11e4f82c918e9425334d1d868d5c4cc8c8e12d65`, silnik przy `525c223a9b4377a8490ddb464010fa2128a99ca0`. Późniejszy commit aktualizuje wyłącznie dokumentację.
 
 | Sprawdzenie | Wynik |
 | --- | --- |

@@ -1,0 +1,14 @@
+{
+  "process_force_stopped": true,
+  "saved_profile_restored": true,
+  "explicit_current_km_restored": 59000,
+  "user_intervals_restored": 4,
+  "dashboard_counts": {
+    "overdue": 1,
+    "due_soon": 1,
+    "needs_data": 1,
+    "no_urgency": 1
+  },
+  "selected_language_restored": "nb-NO",
+  "manufacturer_schedule_present": false
+}

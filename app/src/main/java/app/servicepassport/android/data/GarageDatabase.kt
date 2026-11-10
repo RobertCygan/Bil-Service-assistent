@@ -91,6 +91,7 @@ data class GarageSnapshot(
     @Relation(parentColumn = "id", entityColumn = "vehicle_id") val readings: List<OdometerReadingEntity>,
     @Relation(parentColumn = "id", entityColumn = "vehicle_id") val selections: List<CurrentOdometerEntity>,
     @Relation(entity = ServiceEventEntity::class, parentColumn = "id", entityColumn = "vehicle_id") val events: List<ServiceRecord>,
+    @Relation(parentColumn = "id", entityColumn = "vehicle_id") val intervals: List<UserIntervalEntity> = emptyList(),
 ) {
     val currentReading: OdometerReadingEntity? get() = readings.firstOrNull { it.id == selections.singleOrNull()?.readingId }
     val history: List<ServiceRecord> get() = events.sortedWith(compareByDescending<ServiceRecord> { it.event.performedDay }.thenByDescending { it.event.createdAtUtc }.thenBy { it.event.id })
@@ -114,6 +115,10 @@ interface VehicleDao {
     @Query("DELETE FROM current_odometer WHERE vehicle_id = :vehicleId") suspend fun clearSelection(vehicleId: String)
     @Query("DELETE FROM odometer_readings WHERE id = :id") suspend fun deleteReading(id: String)
     @Query("DELETE FROM service_events WHERE id = :id") suspend fun deleteEvent(id: String)
+    @Query("SELECT * FROM user_intervals WHERE id = :id") suspend fun interval(id: String): UserIntervalEntity?
+    @Insert suspend fun insertInterval(interval: UserIntervalEntity)
+    @Update suspend fun updateInterval(interval: UserIntervalEntity)
+    @Query("DELETE FROM user_intervals WHERE id = :id") suspend fun deleteInterval(id: String)
 }
 
 object DatabaseMigrations {
@@ -137,10 +142,16 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_current_odometer_reading_id_vehicle_id ON current_odometer(reading_id, vehicle_id)")
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS user_intervals (id TEXT NOT NULL, vehicle_id TEXT NOT NULL, action_code TEXT NOT NULL, operation_code TEXT NOT NULL, distance_km INTEGER, months INTEGER, revision INTEGER NOT NULL, created_at_utc INTEGER NOT NULL, updated_at_utc INTEGER NOT NULL, PRIMARY KEY(id), FOREIGN KEY(vehicle_id) REFERENCES vehicles(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_user_intervals_vehicle_id_action_code_operation_code ON user_intervals(vehicle_id, action_code, operation_code)")
+        }
+    }
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }
 
-@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class], version = 2, exportSchema = true)
+@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class, UserIntervalEntity::class], version = 3, exportSchema = true)
 abstract class GarageDatabase : RoomDatabase() {
     abstract fun vehicles(): VehicleDao
     companion object {

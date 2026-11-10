@@ -1,4 +1,4 @@
-"""Black-box persistence check following the native manual-history test, on a test device."""
+"""Black-box persistence check after the native history/dashboard test, on a test device."""
 from pathlib import Path
 import json
 import re
@@ -29,11 +29,27 @@ def window():
 def wait_for(check, message):
     for _ in range(15):
         root = window()
-        text = [node.get("text", "") for node in root.iter("node")]
+        text = [node.get("text", "") for node in root.iter("node") if node.get("text")]
         if check(text):
             return root
         time.sleep(2)
     raise AssertionError(message)
+
+
+def tap(root, label):
+    node = next(node for node in root.iter("node") if node.get("text") == label)
+    left, top, right, bottom = map(int, re.findall(r"\d+", node.get("bounds")))
+    adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
+
+
+def dashboard_counts(text):
+    # Compose may expose a card's label/value separately or as one merged accessibility node.
+    for label in ["Forfalt", "Snart frist", "Trenger opplysninger", "Ingen hast"]:
+        if not any((value == label and i + 1 < len(text) and text[i + 1] == "1")
+                   or re.fullmatch(re.escape(label) + r"\s+1", value)
+                   for i, value in enumerate(text)):
+            return False
+    return True
 
 
 adb("shell", "am", "force-stop", PACKAGE)
@@ -45,23 +61,18 @@ root = wait_for(
     "Fresh process did not restore the profile, explicit current reading and Bokmål UI",
 )
 (OUT / "overview-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
-# Navigate using the visible NO label; this also checks the persisted language.
-nav = next(node for node in root.iter("node") if node.get("text") == "Historikk")
-left, top, right, bottom = map(int, re.findall(r"\d+", nav.get("bounds")))
-adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
+tap(root, "Serviceoversikt")
 wait_for(
-    lambda text: any("15.12.2025" in value for value in text)
-    and any("Motorolje · Skift" in value for value in text)
-    and any("Bremser · Kontroll" in value for value in text)
-    and any(re.search(r"49[\s\u00a0\u202f]?000 km", value) for value in text),
-    "Fresh process did not restore the service date, edited mileage and both work items",
+    lambda text: "Ingen bekreftet serviceplan" in text and dashboard_counts(text),
+    "Fresh process did not restore all four driver intervals and their separate categories",
 )
-(OUT / "history-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
-(OUT / "history-en.png").write_bytes(adb("exec-out", "run-as", PACKAGE, "cat", "files/history-en.png"))
+(OUT / "dashboard-no-restarted.png").write_bytes(adb("exec-out", "screencap", "-p"))
+for name in ["dashboard-no.png", "dashboard-en.png", "forecast-en.png", "history-en.png", "history-no.png"]:
+    (OUT / name).write_bytes(adb("exec-out", "run-as", PACKAGE, "cat", "files/" + name))
 result = {
     "process_force_stopped": True, "saved_profile_restored": True,
-    "explicit_current_km_restored": 59000, "historical_service_km_restored": 49000,
-    "historical_service_date_restored": "2025-12-15", "work_items_restored": 2,
+    "explicit_current_km_restored": 59000, "user_intervals_restored": 4,
+    "dashboard_counts": {"overdue": 1, "due_soon": 1, "needs_data": 1, "no_urgency": 1},
     "selected_language_restored": "nb-NO", "manufacturer_schedule_present": False,
 }
 (OUT / "process-restart.json").write_text(json.dumps(result, indent=2) + "\n")
