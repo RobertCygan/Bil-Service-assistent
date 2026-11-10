@@ -3,8 +3,8 @@ package app.servicepassport.android.integration
 import app.servicepassport.engine.*
 import java.time.LocalDate
 
-/** Test-only binding to pinned PR #2. Move into the application only in the separately accepted engine integration stage. */
-internal object EngineBinding {
+/** Explicit application binding. Historical mileage never substitutes a missing selected reading. */
+object EngineAdapter {
     fun input(facts: PreparedEngineFacts, today: LocalDate, rules: List<ServiceRule>) = EvaluationInput(
         today = today,
         inServiceDate = facts.inServiceDate,

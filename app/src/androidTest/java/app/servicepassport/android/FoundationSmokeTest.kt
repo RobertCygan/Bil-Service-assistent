@@ -40,7 +40,7 @@ class FoundationSmokeTest {
         image.recycle()
     }
 
-    @Test fun manualHistorySurvivesEditingRecreationAndLanguageChange() {
+    @Test fun manualHistoryAndOwnIntervalsSurviveEditingRecreationAndLanguageChange() {
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("loading").fetchSemanticsNodes().isEmpty() }
         compose.onNodeWithTag("nav_settings").performClick()
         click("language_en")
@@ -155,6 +155,78 @@ class FoundationSmokeTest {
         compose.onNodeWithTag("back").performClick()
         compose.onAllNodesWithTag("history_entry").assertCountEquals(1)
 
+        // Dashboard rules are entered through the same production forms as a driver's own settings.
+        click("add_service")
+        input("service_date", "2025-12-14")
+        input("service_km", "48000")
+        click("add_work")
+        pick("work_action_0", "air_filter")
+        pick("work_operation_0", "replace")
+        click("save_service")
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("history_entry").fetchSemanticsNodes().size == 2 }
+        compose.onNodeWithTag("nav_overview").performClick()
+        click("open_dashboard")
+        awaitTag("dashboard_title")
+        compose.onNodeWithText("No verified service schedule").assertExists()
+        click("manage_intervals")
+        fun addInterval(action: String, operation: String, km: String) {
+            click("add_interval")
+            pick("interval_action", action)
+            pick("interval_operation", operation)
+            input("interval_km", km)
+            click("save_interval")
+            awaitTag("add_interval")
+        }
+        fun editOil(km: String) {
+            val card = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Engine oil · Replace"))
+            compose.onNode(hasText("Edit") and hasAnyAncestor(card)).performScrollTo().performClick()
+            input("interval_km", km)
+            click("save_interval")
+            awaitTag("add_interval")
+        }
+        fun count(category: String, expected: String) {
+            compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("count_$category") and hasText(expected)).fetchSemanticsNodes().size == 1 }
+        }
+        addInterval("engine_oil", "replace", "20000")
+        click("view_dashboard"); count("NO_URGENCY", "1")
+        click("manage_intervals"); editOil("10000")
+        click("view_dashboard"); count("DUE_SOON", "1")
+        click("manage_intervals"); editOil("9000")
+        addInterval("brakes", "inspect", "10000")
+        addInterval("air_filter", "replace", "30000")
+        addInterval("oil_filter", "replace", "5000")
+        // The saved editor must not reappear with its previous UUID or values.
+        click("add_interval")
+        compose.onNodeWithTag("interval_km").assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+        click("save_interval")
+        compose.onNodeWithTag("input_error").performScrollTo().assertExists()
+        compose.onNodeWithTag("back").performClick()
+        compose.onAllNodesWithTag("interval_entry").assertCountEquals(4)
+        // Removing a temporary rule must not remove any confirmed service history.
+        addInterval("cabin_filter", "replace", "15000")
+        val cabin = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Cabin filter · Replace"))
+        compose.onNode(hasText("Delete") and hasAnyAncestor(cabin)).performScrollTo().performClick()
+        compose.onNodeWithTag("confirm_delete_interval").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("interval_entry").fetchSemanticsNodes().size == 4 }
+        click("view_dashboard")
+        listOf("OVERDUE", "DUE_SOON", "NEEDS_DATA", "NO_URGENCY").forEach { count(it, "1") }
+        compose.onNodeWithTag("dashboard_title").performScrollTo()
+        screenshot("dashboard-en.png")
+        compose.onNode(hasText("Engine oil · Replace") and hasClickAction()).performScrollTo().performClick()
+        awaitTag("forecast_category")
+        compose.onNodeWithTag("forecast_category").assertTextEquals("Overdue")
+        compose.onNodeWithText("Your interval").assertExists()
+        compose.onNodeWithText("Repeat interval").performScrollTo().assertExists()
+        compose.onNodeWithText("49,000 km", substring = true).assertExists()
+        compose.onNodeWithTag("forecast_category").performScrollTo()
+        screenshot("forecast-en.png")
+        compose.onNodeWithTag("back").performClick()
+        compose.activityRule.scenario.recreate()
+        awaitTag("dashboard_title")
+        listOf("OVERDUE", "DUE_SOON", "NEEDS_DATA", "NO_URGENCY").forEach { count(it, "1") }
+        compose.onNodeWithTag("nav_history").performClick()
+        compose.onAllNodesWithTag("history_entry").assertCountEquals(2)
+
         compose.onNodeWithTag("nav_settings").performClick()
         click("language_nb")
         compose.waitForIdle()
@@ -164,6 +236,12 @@ class FoundationSmokeTest {
         screenshot("history-no.png")
         compose.onNodeWithTag("nav_overview").performClick()
         compose.onNodeWithTag("current_km").assertTextContains("59", substring = true)
-        // The external test now starts a fresh process and verifies the persisted NO UI and records.
+        click("open_dashboard")
+        awaitTag("dashboard_title")
+        compose.onNodeWithText("Ingen bekreftet serviceplan").assertExists()
+        listOf("OVERDUE", "DUE_SOON", "NEEDS_DATA", "NO_URGENCY").forEach { count(it, "1") }
+        compose.onNodeWithTag("dashboard_title").performScrollTo()
+        screenshot("dashboard-no.png")
+        // The external test now starts a fresh process and checks the same saved NO dashboard.
     }
 }

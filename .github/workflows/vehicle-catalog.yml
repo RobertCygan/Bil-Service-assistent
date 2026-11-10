@@ -1,0 +1,24 @@
+name: vehicle-catalog
+
+on:
+  push:
+    paths: ["vehicle-catalog/**", ".github/workflows/vehicle-catalog.yml"]
+  pull_request:
+    paths: ["vehicle-catalog/**", ".github/workflows/vehicle-catalog.yml"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vehicle-catalog
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python3 -m unittest
+      - run: python3 -c "import json; d = json.load(open('vehicle-list.json')); assert d['meta']['licence'] == 'CC0 1.0' and len(d['makes']) > 50"

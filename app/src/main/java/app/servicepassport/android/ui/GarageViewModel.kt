@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import app.servicepassport.android.data.*
+import app.servicepassport.android.dashboard.DashboardEvaluator
+import app.servicepassport.android.dashboard.DashboardState
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 enum class StorageProblem { READ, WRITE }
 data class GarageState(
@@ -16,24 +20,34 @@ data class GarageState(
     val saving: Boolean = false,
     val problem: StorageProblem? = null,
     val inputProblem: InputProblem? = null,
+    val dashboard: DashboardState? = null,
 ) { val profile: VehicleEntity? get() = snapshot?.vehicle }
 
-class GarageViewModel(private val repository: ProfileRepository) : ViewModel() {
+class GarageViewModel(private val repository: ProfileRepository, private val evaluator: DashboardEvaluator = DashboardEvaluator()) : ViewModel() {
     private val mutableState = MutableStateFlow(GarageState())
     val state: StateFlow<GarageState> = mutableState.asStateFlow()
     val today get() = repository.today
     private var observer: Job? = null
+    private val day = MutableStateFlow(repository.today)
     init { reload() }
     fun clearProblem() { mutableState.update { it.copy(problem = it.problem?.takeIf { problem -> problem == StorageProblem.READ }, inputProblem = null) } }
     fun reload() {
         observer?.cancel()
         mutableState.update { it.copy(loading = true, problem = null, inputProblem = null) }
         observer = viewModelScope.launch {
-            repository.observeGarage()
+            combine(repository.observeGarage(), day) { snapshot, date ->
+                val dashboard = snapshot?.let {
+                    try { withContext(Dispatchers.Default) { evaluator.evaluate(it, date) } }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (_: RuntimeException) { DashboardState(date, calculationUnavailable = true) }
+                }
+                snapshot to dashboard
+            }
                 .catch { mutableState.update { it.copy(loading = false, problem = StorageProblem.READ) } }
-                .collect { snapshot -> mutableState.update { it.copy(loading = false, snapshot = snapshot) } }
+                .collect { (snapshot, dashboard) -> mutableState.update { it.copy(loading = false, snapshot = snapshot, dashboard = dashboard) } }
         }
     }
+    fun refreshDate() { day.value = repository.today }
     private fun mutate(onSaved: () -> Unit, work: suspend () -> Unit) {
         if (state.value.saving) return
         mutableState.update { it.copy(saving = true, problem = null, inputProblem = null) }
@@ -58,6 +72,11 @@ class GarageViewModel(private val repository: ProfileRepository) : ViewModel() {
     }
     fun selectReading(input: CurrentReadingInput, onSaved: () -> Unit) =
         mutate(onSaved) { repository.selectCurrent(input) }
+    fun saveInterval(input: UserIntervalInput, onSaved: () -> Unit) = mutate(onSaved) { repository.saveInterval(input) }
+    fun deleteInterval(id: String, revision: Long, onSaved: () -> Unit) {
+        val car = state.value.profile?.id ?: return
+        mutate(onSaved) { repository.deleteInterval(car, id, revision) }
+    }
     class Factory(private val repository: ProfileRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(GarageViewModel::class.java))

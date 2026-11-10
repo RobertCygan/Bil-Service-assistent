@@ -149,4 +149,27 @@ class ProfileRepository(private val database: GarageDatabase, private val clock:
         if (record.event.revision != expectedRevision) reject(InputProblem.CONFLICT)
         dao.deleteEvent(id)
     }
+
+    suspend fun saveInterval(input: UserIntervalInput) = transaction {
+        UserIntervalValidation.validate(input)
+        val snapshot = garage(input.vehicleId)
+        val old = dao.interval(input.id)
+        if (old != null && old.vehicleId != input.vehicleId) reject(InputProblem.NOT_FOUND)
+        if (old == null && input.expectedRevision != null) reject(InputProblem.NOT_FOUND)
+        if (old != null && old.revision != input.expectedRevision) {
+            if (input.expectedRevision == null && old.actionCode == input.actionCode && old.operationCode == input.operationCode && old.distanceKm == input.distanceKm && old.months == input.months) return@transaction
+            reject(InputProblem.CONFLICT)
+        }
+        if (snapshot.intervals.any { it.id != input.id && it.actionCode == input.actionCode && it.operationCode == input.operationCode }) reject(InputProblem.DUPLICATE_INTERVAL)
+        val now = clock.millis()
+        val interval = UserIntervalEntity(input.id, input.vehicleId, requireNotNull(input.actionCode), requireNotNull(input.operationCode), input.distanceKm, input.months, (old?.revision ?: 0) + 1, old?.createdAtUtc ?: now, now)
+        if (old == null) dao.insertInterval(interval) else dao.updateInterval(interval)
+    }
+
+    suspend fun deleteInterval(vehicleId: String, id: String, expectedRevision: Long) = transaction {
+        val interval = dao.interval(id) ?: reject(InputProblem.NOT_FOUND)
+        if (interval.vehicleId != vehicleId) reject(InputProblem.NOT_FOUND)
+        if (interval.revision != expectedRevision) reject(InputProblem.CONFLICT)
+        dao.deleteInterval(id)
+    }
 }

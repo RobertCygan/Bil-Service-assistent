@@ -1,0 +1,577 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 3,
+    "identityHash": "31b058671ddc710b6d6c213134dace48",
+    "entities": [
+      {
+        "tableName": "vehicles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `display_name` TEXT NOT NULL, `model_year` INTEGER, `created_at_utc` INTEGER NOT NULL, `updated_at_utc` INTEGER NOT NULL, `first_registration_day` INTEGER, `make` TEXT, `model` TEXT, `generation` TEXT, `vin` TEXT, `registration_number` TEXT, `engine_code` TEXT, `gearbox_type` TEXT, `gearbox_code` TEXT, `powertrain` TEXT, `market` TEXT, `service_regime` TEXT, `usage_profile` TEXT, `configuration_revision` INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelYear",
+            "columnName": "model_year",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firstRegistrationDay",
+            "columnName": "first_registration_day",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "make",
+            "columnName": "make",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "generation",
+            "columnName": "generation",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "vin",
+            "columnName": "vin",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "registrationNumber",
+            "columnName": "registration_number",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "engineCode",
+            "columnName": "engine_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gearboxType",
+            "columnName": "gearbox_type",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "gearboxCode",
+            "columnName": "gearbox_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "powertrain",
+            "columnName": "powertrain",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "market",
+            "columnName": "market",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "serviceRegime",
+            "columnName": "service_regime",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "usageProfile",
+            "columnName": "usage_profile",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "configurationRevision",
+            "columnName": "configuration_revision",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "service_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `vehicle_id` TEXT NOT NULL, `performed_day` INTEGER NOT NULL, `cost_minor` INTEGER, `currency` TEXT, `note` TEXT NOT NULL, `revision` INTEGER NOT NULL, `created_at_utc` INTEGER NOT NULL, `updated_at_utc` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "performedDay",
+            "columnName": "performed_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "costMinor",
+            "columnName": "cost_minor",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currency",
+            "columnName": "currency",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_service_events_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_service_events_vehicle_id` ON `${TABLE_NAME}` (`vehicle_id`)"
+          },
+          {
+            "name": "index_service_events_id_vehicle_id",
+            "unique": true,
+            "columnNames": [
+              "id",
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_service_events_id_vehicle_id` ON `${TABLE_NAME}` (`id`, `vehicle_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "service_actions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `event_id` TEXT NOT NULL, `position` INTEGER NOT NULL, `action_code` TEXT, `operation_code` TEXT, `custom_label` TEXT, PRIMARY KEY(`id`), FOREIGN KEY(`event_id`) REFERENCES `service_events`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionCode",
+            "columnName": "action_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "operationCode",
+            "columnName": "operation_code",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "customLabel",
+            "columnName": "custom_label",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_service_actions_event_id_position",
+            "unique": true,
+            "columnNames": [
+              "event_id",
+              "position"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_service_actions_event_id_position` ON `${TABLE_NAME}` (`event_id`, `position`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "service_events",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "odometer_readings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `vehicle_id` TEXT NOT NULL, `event_id` TEXT, `observed_day` INTEGER NOT NULL, `km` INTEGER NOT NULL, `exception_reason` TEXT NOT NULL, `revision` INTEGER NOT NULL, `created_at_utc` INTEGER NOT NULL, `updated_at_utc` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`event_id`, `vehicle_id`) REFERENCES `service_events`(`id`, `vehicle_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eventId",
+            "columnName": "event_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "observedDay",
+            "columnName": "observed_day",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "km",
+            "columnName": "km",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exceptionReason",
+            "columnName": "exception_reason",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_odometer_readings_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_odometer_readings_vehicle_id` ON `${TABLE_NAME}` (`vehicle_id`)"
+          },
+          {
+            "name": "index_odometer_readings_event_id",
+            "unique": true,
+            "columnNames": [
+              "event_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_odometer_readings_event_id` ON `${TABLE_NAME}` (`event_id`)"
+          },
+          {
+            "name": "index_odometer_readings_event_id_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "event_id",
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_odometer_readings_event_id_vehicle_id` ON `${TABLE_NAME}` (`event_id`, `vehicle_id`)"
+          },
+          {
+            "name": "index_odometer_readings_id_vehicle_id",
+            "unique": true,
+            "columnNames": [
+              "id",
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_odometer_readings_id_vehicle_id` ON `${TABLE_NAME}` (`id`, `vehicle_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "service_events",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "event_id",
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id",
+              "vehicle_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "current_odometer",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`vehicle_id` TEXT NOT NULL, `reading_id` TEXT NOT NULL, PRIMARY KEY(`vehicle_id`), FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`reading_id`, `vehicle_id`) REFERENCES `odometer_readings`(`id`, `vehicle_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "readingId",
+            "columnName": "reading_id",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "vehicle_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_current_odometer_reading_id_vehicle_id",
+            "unique": false,
+            "columnNames": [
+              "reading_id",
+              "vehicle_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_current_odometer_reading_id_vehicle_id` ON `${TABLE_NAME}` (`reading_id`, `vehicle_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "odometer_readings",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "reading_id",
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id",
+              "vehicle_id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "user_intervals",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `vehicle_id` TEXT NOT NULL, `action_code` TEXT NOT NULL, `operation_code` TEXT NOT NULL, `distance_km` INTEGER, `months` INTEGER, `revision` INTEGER NOT NULL, `created_at_utc` INTEGER NOT NULL, `updated_at_utc` INTEGER NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`vehicle_id`) REFERENCES `vehicles`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vehicleId",
+            "columnName": "vehicle_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "actionCode",
+            "columnName": "action_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operationCode",
+            "columnName": "operation_code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distanceKm",
+            "columnName": "distance_km",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "months",
+            "columnName": "months",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "revision",
+            "columnName": "revision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtUtc",
+            "columnName": "created_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtUtc",
+            "columnName": "updated_at_utc",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_user_intervals_vehicle_id_action_code_operation_code",
+            "unique": true,
+            "columnNames": [
+              "vehicle_id",
+              "action_code",
+              "operation_code"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_user_intervals_vehicle_id_action_code_operation_code` ON `${TABLE_NAME}` (`vehicle_id`, `action_code`, `operation_code`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "vehicles",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "vehicle_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '31b058671ddc710b6d6c213134dace48')"
+    ]
+  }
+}

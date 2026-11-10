@@ -14,8 +14,8 @@ android {
         applicationId = "app.servicepassport.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
@@ -40,10 +40,8 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
     sourceSets["test"].resources.srcDir("schemas")
     sourceSets["androidTest"].assets.srcDir("schemas")
-    if (providers.gradleProperty("engineIntegrationRoot").isPresent) {
-        sourceSets["test"].java.srcDir("src/engineIntegrationTest/java")
-        sourceSets["androidTest"].java.srcDir("src/engineIntegrationAndroidTest/java")
-    }
+    sourceSets["test"].java.srcDir("src/engineIntegrationTest/java")
+    sourceSets["androidTest"].java.srcDir("src/engineIntegrationAndroidTest/java")
     lint { abortOnError = true }
 }
 
@@ -52,6 +50,7 @@ ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 dependencies {
     implementation(project(":service-contract"))
+    implementation(project(":service-engine"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.navigation.compose)
@@ -70,10 +69,6 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
-    if (providers.gradleProperty("engineIntegrationRoot").isPresent) {
-        testImplementation("app.servicepassport:service-engine:0.1.0")
-        androidTestImplementation("app.servicepassport:service-engine:0.1.0")
-    }
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)

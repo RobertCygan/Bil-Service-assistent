@@ -43,11 +43,10 @@ import java.time.LocalDate
                     TextButton(onClick = { go("readings") }, modifier = Modifier.testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
                 }
             }
+            Button(onClick = { go("dashboard") }, modifier = Modifier.fillMaxWidth().testTag("open_dashboard")) { Text(stringResource(R.string.service_overview)) }
+            state.dashboard?.let { if (it.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else DashboardCounts(it) }
             Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
-            OutlinedCard(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.no_verified_schedule), style = MaterialTheme.typography.titleMedium)
-                Text(stringResource(R.string.no_schedule_body))
-            } }
+            state.dashboard?.let { if (!it.calculationUnavailable) CatalogNotice(it, go) }
             OutlinedButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
         }
     }

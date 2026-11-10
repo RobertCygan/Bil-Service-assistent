@@ -32,7 +32,7 @@ class RoomEngineIntegrationTest {
     private fun oil(source: SourceRef = this.source) = ServiceRule("demo-oil", "engine_oil:replace", Schedule.Fixed(Interval(km = 20000)), source)
     private suspend fun snapshot() = requireNotNull(db.vehicles().garage(car))
     private suspend fun facts() = EngineFactsMapper.prepare(snapshot())
-    private suspend fun evaluate(rule: ServiceRule = oil()) = ServiceEngine.evaluate(EngineBinding.input(facts(), today, listOf(rule))).single()
+    private suspend fun evaluate(rule: ServiceRule = oil()) = ServiceEngine.evaluate(EngineAdapter.input(facts(), today, listOf(rule))).single()
     private suspend fun service(task: WorkInput, daysAgo: Long, km: Long?) {
         repository.saveService(ServiceInput(id(), car, null, today.minusDays(daysAgo).toEpochDay(), km, listOf(task)))
     }
@@ -115,7 +115,7 @@ class RoomEngineIntegrationTest {
     @Test fun incompleteConfigurationDoesNotAcquireAVerifiedPlanAndDemoIsRejectedForProduction() = runBlocking {
         repository.save(ProfileInput("Integration test car", 2022, make = "Example Make", model = "Example Model", powertrain = "OTHER"))
         val plan = ServicePlan("demo-plan", source, mapOf(ConfigAttribute.MAKE to setOf("Example Make"), ConfigAttribute.MODEL to setOf("Example Model"), ConfigAttribute.ENGINE_CODE to setOf("EX123"), ConfigAttribute.POWERTRAIN to setOf("PETROL")), listOf(oil()))
-        val resolution = PlanResolver.resolve(EngineBinding.configuration(facts()), listOf(plan))
+        val resolution = PlanResolver.resolve(EngineAdapter.configuration(facts()), listOf(plan))
         assertTrue(resolution is PlanResolution.NoVerifiedSchedule)
         assertEquals(setOf(ConfigAttribute.ENGINE_CODE, ConfigAttribute.POWERTRAIN), (resolution as PlanResolution.NoVerifiedSchedule).missingAttributes)
         assertTrue(CatalogValidator.productionIssues(listOf(plan), today).any { it.code == CatalogIssueCode.NOT_VERIFIED_ORIGIN })
