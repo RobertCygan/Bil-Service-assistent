@@ -19,17 +19,34 @@ class ExportArchiveTest {
     private val photo = "fake-jpeg".toByteArray()
 
     private val data = ExportData(
-        vehicles = listOf(ExportVehicle("v1", "Demo Motors", "Example", vin = "XXDEMA0000000T123", plate = "AB12345", inServiceDate = "2022-03-01", attributes = mapOf("MARKET" to "NO"))),
-        odometerReadings = listOf(ExportOdometerReading("v1", "2026-11-01", 84_512)),
-        serviceEntries = listOf(
-            ExportServiceEntry("e1", "v1", "2025-03-12", 70_000, listOf(ExportTask("ENGINE_OIL", "Oljeskift inkl. arbeid"), ExportTask("BRAKE_FLUID")), 371_700, "NOK", "Blåbær æøå", listOf("d1")),
+        vehicles = listOf(
+            ExportVehicle(
+                "v1", "Familiebilen", modelYear = 2022, firstRegistrationDate = "2022-03-01", make = "Demo Motors", model = "Example",
+                vin = "XXDEMA0000000T123", registrationNumber = "AB12345", market = "NO", configurationRevision = 3,
+                createdAtUtc = 1_700_000_000_000, updatedAtUtc = 1_700_000_500_000, currentReadingId = "o2",
+            ),
+        ),
+        odometerReadings = listOf(
+            ExportOdometerReading("o1", "v1", eventId = "e1", date = "2025-03-12", km = 70_000, revision = 2, createdAtUtc = 1, updatedAtUtc = 2),
+            ExportOdometerReading("o2", "v1", date = "2026-11-01", km = 84_512, exceptionReason = "Byttet instrumentpanel"),
+        ),
+        serviceEvents = listOf(
+            ExportServiceEvent(
+                "e1", "v1", "2025-03-12", 371_700, "NOK", "Blåbær æøå", revision = 4, createdAtUtc = 5, updatedAtUtc = 6,
+                actions = listOf(
+                    ExportAction("a1", "engine_oil", "replace"),
+                    ExportAction("a2", "brake_fluid", "inspect"),
+                    ExportAction("a3", customLabel = "Byttet vindusviskere"),
+                ),
+                documentIds = listOf("d1"),
+            ),
         ),
         documents = listOf(
             ExportDocument("d1", "v1", "documents/d1.pdf", "application/pdf", "2025-03-14"),
             ExportDocument("d2", "v1", "documents/d2.jpg", "image/jpeg", "2025-03-14"),
         ),
-        userRules = listOf(ExportUserRule("r1", "v1", "WIPERS", months = 12)),
-        indicatorReadings = listOf(ExportIndicatorReading("v1", "INSPECTION", "2026-10-01", 84_000, remainingKm = 4_000)),
+        userRules = listOf(ExportUserRule("r1", "v1", "air_filter:replace", months = 12)),
+        indicatorReadings = listOf(ExportIndicatorReading("v1", "inspection_service:inspect", "2026-10-01", 84_000, remainingKm = 4_000)),
         settings = mapOf("language" to "nb-NO"),
     )
     private val sources = listOf(
@@ -74,9 +91,9 @@ class ExportArchiveTest {
     @Test
     fun `inconsistent data is refused before anything is written`() {
         val out = ByteArrayOutputStream()
-        val broken = data.copy(serviceEntries = data.serviceEntries.map { it.copy(vehicleId = "ghost", documentIds = listOf("nope")) })
+        val broken = data.copy(serviceEvents = data.serviceEvents.map { it.copy(vehicleId = "ghost", documentIds = listOf("nope")) })
         val e = assertFailsWith<ExportException> { ExportArchive.write(out, broken, sources, "t", "1", today) }
-        assertEquals(setOf(ExportIssueCode.UNKNOWN_VEHICLE, ExportIssueCode.UNKNOWN_DOCUMENT), e.issues.map { it.code }.toSet())
+        assertEquals(setOf(ExportIssueCode.UNKNOWN_VEHICLE, ExportIssueCode.UNKNOWN_DOCUMENT, ExportIssueCode.UNKNOWN_EVENT), e.issues.map { it.code }.toSet())
         assertEquals(0, out.size())
 
         assertFailsWith<ExportException> { export(s = sources.take(1)) } // brak pliku dokumentu d2
@@ -87,23 +104,74 @@ class ExportArchiveTest {
     fun `validator reports each kind of problem`() {
         fun codes(d: ExportData, paths: Set<String> = setOf("documents/d1.pdf", "documents/d2.jpg")) =
             ExportValidator.validate(d, today, paths).map { it.code }.toSet()
+        fun readings(change: (ExportOdometerReading) -> ExportOdometerReading) = data.copy(odometerReadings = data.odometerReadings.map(change))
+        fun events(change: (ExportServiceEvent) -> ExportServiceEvent) = data.copy(serviceEvents = data.serviceEvents.map(change))
+        fun actions(vararg a: ExportAction) = events { it.copy(actions = a.toList()) }
+
         assertTrue(codes(data).isEmpty())
         assertEquals(setOf(ExportIssueCode.DUPLICATE_ID), codes(data.copy(vehicles = data.vehicles + data.vehicles)))
-        assertEquals(setOf(ExportIssueCode.INVALID_DATE), codes(data.copy(odometerReadings = listOf(ExportOdometerReading("v1", "12.03.2025", 1)))))
-        assertEquals(setOf(ExportIssueCode.DATE_IN_FUTURE), codes(data.copy(odometerReadings = listOf(ExportOdometerReading("v1", "2026-11-11", 1)))))
-        assertEquals(setOf(ExportIssueCode.NEGATIVE_VALUE), codes(data.copy(odometerReadings = listOf(ExportOdometerReading("v1", "2026-01-01", -1)))))
-        assertEquals(setOf(ExportIssueCode.ENTRY_WITHOUT_TASKS), codes(data.copy(serviceEntries = data.serviceEntries.map { it.copy(tasks = emptyList()) })))
-        assertEquals(setOf(ExportIssueCode.RULE_WITHOUT_INTERVAL), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "X")))))
-        assertEquals(setOf(ExportIssueCode.NEGATIVE_VALUE), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "X", km = 0)))))
-        assertEquals(setOf(ExportIssueCode.INDICATOR_WITHOUT_VALUE), codes(data.copy(indicatorReadings = listOf(ExportIndicatorReading("v1", "X", "2026-01-01", 1)))))
-        assertEquals(setOf(ExportIssueCode.EMPTY_FIELD), codes(data.copy(vehicles = listOf(data.vehicles[0].copy(make = " ")))))
+        assertEquals(setOf(ExportIssueCode.INVALID_DATE), codes(readings { it.copy(date = "12.03.2025") }))
+        assertEquals(setOf(ExportIssueCode.DATE_IN_FUTURE), codes(readings { it.copy(date = "2026-11-11") }))
+        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(readings { it.copy(km = -1) }))
+        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(readings { it.copy(km = Int.MAX_VALUE + 1L) }))
+        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(events { it.copy(costMinor = -1) }))
+        assertEquals(setOf(ExportIssueCode.EVENT_WITHOUT_ACTIONS), codes(actions()))
+        assertEquals(setOf(ExportIssueCode.RULE_WITHOUT_INTERVAL), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x:replace")))))
+        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x:replace", km = 0)))))
+        assertEquals(setOf(ExportIssueCode.INDICATOR_WITHOUT_VALUE), codes(data.copy(indicatorReadings = listOf(ExportIndicatorReading("v1", "x:inspect", "2026-01-01", 1)))))
+        assertEquals(setOf(ExportIssueCode.EMPTY_FIELD), codes(data.copy(vehicles = listOf(data.vehicles[0].copy(displayName = " ")))))
         assertEquals(setOf(ExportIssueCode.DOCUMENT_FILE_MISSING), codes(data, setOf("documents/d1.pdf")))
         assertEquals(
             setOf(ExportIssueCode.DOCUMENT_PATH_INVALID),
-            codes(data.copy(documents = listOf(data.documents[0].copy(path = "documents/../x")), serviceEntries = emptyList())),
+            codes(data.copy(documents = listOf(data.documents[0].copy(path = "documents/../x")), serviceEvents = events { it.copy(documentIds = emptyList()) }.serviceEvents)),
         )
-        val samePath = data.copy(documents = data.documents.map { it.copy(path = "documents/d1.pdf") })
-        assertEquals(setOf(ExportIssueCode.DUPLICATE_DOCUMENT_PATH), codes(samePath))
+        assertEquals(setOf(ExportIssueCode.DUPLICATE_DOCUMENT_PATH), codes(data.copy(documents = data.documents.map { it.copy(path = "documents/d1.pdf") })))
+    }
+
+    @Test
+    fun `vehicle saved with only a name is a valid export`() {
+        // Aplikacja pozwala zapisać auto z samą nazwą — kopia nie może tego odrzucić.
+        val minimal = ExportData(vehicles = listOf(ExportVehicle("v1", "Min bil")))
+        assertTrue(ExportValidator.validate(minimal, today, emptySet()).isEmpty())
+        assertEquals(minimal, assertIs<ImportResult.Success>(import(export(minimal, emptyList()))).data)
+    }
+
+    @Test
+    fun `current reading selection and reading-event links follow the database rules`() {
+        fun codes(d: ExportData) = ExportValidator.validate(d, today, setOf("documents/d1.pdf", "documents/d2.jpg")).map { it.code }.toSet()
+        val other = ExportVehicle("v2", "Andre bil")
+        val foreign = ExportOdometerReading("o9", "v2", date = "2026-01-01", km = 5)
+
+        assertTrue(codes(data.copy(vehicles = listOf(data.vehicles[0].copy(currentReadingId = null)))).isEmpty(), "no selection is a valid state")
+        assertEquals(setOf(ExportIssueCode.UNKNOWN_READING), codes(data.copy(vehicles = listOf(data.vehicles[0].copy(currentReadingId = "missing")))))
+        assertEquals(
+            setOf(ExportIssueCode.UNKNOWN_READING),
+            codes(data.copy(vehicles = listOf(data.vehicles[0].copy(currentReadingId = "o9"), other), odometerReadings = data.odometerReadings + foreign)),
+            "a reading of another vehicle cannot be the current one",
+        )
+        assertEquals(setOf(ExportIssueCode.UNKNOWN_EVENT), codes(data.copy(odometerReadings = data.odometerReadings.map { if (it.id == "o1") it.copy(eventId = "nope") else it })))
+        assertEquals(
+            setOf(ExportIssueCode.UNKNOWN_EVENT),
+            codes(data.copy(vehicles = data.vehicles + other, odometerReadings = data.odometerReadings.map { it.copy(eventId = null) } + foreign.copy(eventId = "e1"))),
+            "a reading cannot belong to another vehicle's service",
+        )
+        assertEquals(
+            setOf(ExportIssueCode.EVENT_WITH_SEVERAL_READINGS),
+            codes(data.copy(odometerReadings = data.odometerReadings.map { it.copy(eventId = "e1") })),
+        )
+    }
+
+    @Test
+    fun `an action is either a coded pair or a custom label`() {
+        fun codes(vararg a: ExportAction) = ExportValidator.validate(
+            data.copy(serviceEvents = data.serviceEvents.map { it.copy(actions = a.toList()) }), today, setOf("documents/d1.pdf", "documents/d2.jpg"),
+        ).map { it.code }.toSet()
+        assertTrue(codes(ExportAction("a", "engine_oil", "replace"), ExportAction("b", customLabel = "Vask")).isEmpty())
+        for (bad in listOf(
+            ExportAction("a"), ExportAction("a", "engine_oil"), ExportAction("a", operationCode = "replace"),
+            ExportAction("a", "engine_oil", "replace", "also a label"), ExportAction("a", customLabel = " "),
+        )) assertEquals(setOf(ExportIssueCode.ACTION_INVALID), codes(bad), bad.toString())
+        assertEquals(setOf(ExportIssueCode.DUPLICATE_ID), codes(ExportAction("a", customLabel = "x"), ExportAction("a", customLabel = "y")))
     }
 
     @Test
@@ -140,7 +208,7 @@ class ExportArchiveTest {
     @Test
     fun `archive with valid hashes but inconsistent content is rejected with details`() {
         // Poprawne technicznie archiwum zbudowane poza aplikacją: wpis wskazuje nieistniejący pojazd.
-        val bad = data.copy(serviceEntries = data.serviceEntries.map { it.copy(vehicleId = "ghost") })
+        val bad = data.copy(odometerReadings = data.odometerReadings.map { it.copy(vehicleId = "ghost", eventId = null) }, vehicles = data.vehicles.map { it.copy(currentReadingId = null) })
         val json = kotlinx.serialization.json.Json.encodeToString(ExportData.serializer(), bad).toByteArray()
         val sha = java.security.MessageDigest.getInstance("SHA-256").digest(json).joinToString("") { "%02x".format(it) }
         val forged = rewrite(export()) {
@@ -150,7 +218,7 @@ class ExportArchiveTest {
         }
         val f = assertIs<ImportResult.Failure>(import(forged))
         assertEquals(ImportFailure.CONTENT_INCONSISTENT, f.reason)
-        assertEquals(listOf(ExportIssueCode.UNKNOWN_VEHICLE), f.issues.map { it.code })
+        assertEquals(setOf(ExportIssueCode.UNKNOWN_VEHICLE), f.issues.map { it.code }.toSet())
     }
 
     @Test

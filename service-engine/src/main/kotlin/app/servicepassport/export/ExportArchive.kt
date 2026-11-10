@@ -112,7 +112,14 @@ public object ExportArchive {
     ): ImportResult {
         val buffered = java.io.BufferedInputStream(input)
         buffered.mark(16)
-        val start = buffered.readNBytes(8)
+        // Bez InputStream.readNBytes: na Androidzie jest dopiero od API 33, a aplikacja wspiera API 26.
+        val start = ByteArray(8)
+        var got = 0
+        while (got < start.size) {
+            val n = buffered.read(start, got, start.size - got)
+            if (n < 0) break
+            got += n
+        }
         buffered.reset()
         val encrypted = ExportEncryption.isEncrypted(start)
         if (encrypted && password == null) return ImportResult.Failure(ImportFailure.PASSWORD_REQUIRED)

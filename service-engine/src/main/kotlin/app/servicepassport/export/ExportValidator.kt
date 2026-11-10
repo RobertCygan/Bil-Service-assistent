@@ -4,8 +4,10 @@ import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
 public enum class ExportIssueCode {
-    DUPLICATE_ID, UNKNOWN_VEHICLE, UNKNOWN_DOCUMENT, INVALID_DATE, DATE_IN_FUTURE, NEGATIVE_VALUE,
-    EMPTY_FIELD, ENTRY_WITHOUT_TASKS, RULE_WITHOUT_INTERVAL, INDICATOR_WITHOUT_VALUE,
+    DUPLICATE_ID, UNKNOWN_VEHICLE, UNKNOWN_DOCUMENT, UNKNOWN_EVENT, UNKNOWN_READING,
+    INVALID_DATE, DATE_IN_FUTURE, VALUE_OUT_OF_RANGE, EMPTY_FIELD,
+    EVENT_WITHOUT_ACTIONS, ACTION_INVALID, EVENT_WITH_SEVERAL_READINGS,
+    RULE_WITHOUT_INTERVAL, INDICATOR_WITHOUT_VALUE,
     DOCUMENT_PATH_INVALID, DOCUMENT_FILE_MISSING, DUPLICATE_DOCUMENT_PATH,
 }
 
@@ -28,30 +30,48 @@ public object ExportValidator {
             }
         }
         fun blank(value: String, where: String) { if (value.isBlank()) add(ExportIssueCode.EMPTY_FIELD, where) }
-        fun negative(value: Number?, where: String) { if (value != null && value.toLong() < 0) add(ExportIssueCode.NEGATIVE_VALUE, where) }
+
+        fun range(value: Long?, where: String) { if (value != null && value !in 0..Int.MAX_VALUE.toLong()) add(ExportIssueCode.VALUE_OUT_OF_RANGE, where) }
 
         val vehicles = data.vehicles.map { it.id }.toSet()
         val documents = data.documents.map { it.id }.toSet()
+        val eventOwner = data.serviceEvents.associate { it.id to it.vehicleId }
+        val readingOwner = data.odometerReadings.associate { it.id to it.vehicleId }
         fun vehicle(id: String, where: String) { if (id !in vehicles) add(ExportIssueCode.UNKNOWN_VEHICLE, where) }
 
         unique(data.vehicles.map { it.id }, "vehicle")
-        unique(data.serviceEntries.map { it.id }, "entry")
+        unique(data.odometerReadings.map { it.id }, "reading")
+        unique(data.serviceEvents.map { it.id }, "event")
+        unique(data.serviceEvents.flatMap { e -> e.actions.map { it.id } }, "action")
         unique(data.documents.map { it.id }, "document")
         unique(data.userRules.map { it.id }, "rule")
 
         for (v in data.vehicles) {
-            blank(v.id, "vehicle.id"); blank(v.make, "vehicle:${v.id}.make"); blank(v.model, "vehicle:${v.id}.model")
-            date(v.inServiceDate, "vehicle:${v.id}.inServiceDate")
+            val where = "vehicle:${v.id}"
+            blank(v.id, "vehicle.id"); blank(v.displayName, "$where.displayName")
+            date(v.firstRegistrationDate, "$where.firstRegistrationDate")
+            if (v.modelYear != null && v.modelYear !in 1900..today.year + 1) add(ExportIssueCode.VALUE_OUT_OF_RANGE, "$where.modelYear")
+            // Wybór bieżącego odczytu musi wskazywać odczyt tego samego auta (jak klucz obcy w bazie).
+            if (v.currentReadingId != null && readingOwner[v.currentReadingId] != v.id) add(ExportIssueCode.UNKNOWN_READING, "$where.currentReadingId")
         }
-        data.odometerReadings.forEachIndexed { i, r ->
-            vehicle(r.vehicleId, "odometer[$i]"); date(r.date, "odometer[$i].date"); negative(r.km, "odometer[$i].km")
+        for (r in data.odometerReadings) {
+            val where = "reading:${r.id}"
+            blank(r.id, "reading.id"); vehicle(r.vehicleId, where); date(r.date, "$where.date"); range(r.km, "$where.km")
+            if (r.eventId != null && eventOwner[r.eventId] != r.vehicleId) add(ExportIssueCode.UNKNOWN_EVENT, where)
         }
-        for (e in data.serviceEntries) {
-            val where = "entry:${e.id}"
-            blank(e.id, "entry.id"); vehicle(e.vehicleId, where); date(e.date, "$where.date")
-            negative(e.odometerKm, "$where.odometerKm"); negative(e.costMinor, "$where.costMinor")
-            if (e.tasks.isEmpty()) add(ExportIssueCode.ENTRY_WITHOUT_TASKS, where)
-            e.tasks.forEach { blank(it.taskCode, "$where.taskCode") }
+        data.odometerReadings.mapNotNull { it.eventId }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+            .forEach { add(ExportIssueCode.EVENT_WITH_SEVERAL_READINGS, "event:$it") }
+        for (e in data.serviceEvents) {
+            val where = "event:${e.id}"
+            blank(e.id, "event.id"); vehicle(e.vehicleId, where); date(e.date, "$where.date")
+            if (e.costMinor != null && e.costMinor < 0) add(ExportIssueCode.VALUE_OUT_OF_RANGE, "$where.costMinor")
+            if (e.actions.isEmpty()) add(ExportIssueCode.EVENT_WITHOUT_ACTIONS, where)
+            for (a in e.actions) {
+                blank(a.id, "$where.action.id")
+                val coded = !a.actionCode.isNullOrBlank() && !a.operationCode.isNullOrBlank() && a.customLabel == null
+                val custom = a.actionCode == null && a.operationCode == null && !a.customLabel.isNullOrBlank()
+                if (!coded && !custom) add(ExportIssueCode.ACTION_INVALID, "$where.action:${a.id}")
+            }
             e.documentIds.filter { it !in documents }.forEach { add(ExportIssueCode.UNKNOWN_DOCUMENT, "$where:$it") }
         }
         data.documents.groupingBy { it.path }.eachCount().filterValues { it > 1 }.keys
@@ -68,11 +88,11 @@ public object ExportValidator {
             val where = "rule:${r.id}"
             blank(r.id, "rule.id"); vehicle(r.vehicleId, where); blank(r.taskCode, "$where.taskCode")
             if (r.km == null && r.months == null) add(ExportIssueCode.RULE_WITHOUT_INTERVAL, where)
-            if ((r.km ?: 1) <= 0 || (r.months ?: 1) <= 0) add(ExportIssueCode.NEGATIVE_VALUE, where)
+            if ((r.km ?: 1) <= 0 || (r.months ?: 1) <= 0) add(ExportIssueCode.VALUE_OUT_OF_RANGE, where)
         }
         data.indicatorReadings.forEachIndexed { i, r ->
             val where = "indicator[$i]"
-            vehicle(r.vehicleId, where); date(r.date, "$where.date"); blank(r.taskCode, "$where.taskCode"); negative(r.odometerKm, "$where.odometerKm")
+            vehicle(r.vehicleId, where); date(r.date, "$where.date"); blank(r.taskCode, "$where.taskCode"); range(r.odometerKm.toLong(), "$where.odometerKm")
             if (r.remainingKm == null && r.remainingDays == null) add(ExportIssueCode.INDICATOR_WITHOUT_VALUE, where)
         }
         return issues
