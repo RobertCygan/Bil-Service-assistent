@@ -1,5 +1,6 @@
 package app.servicepassport.android.ui
 
+import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.reminders.ReminderStore
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -157,10 +158,11 @@ import java.time.LocalDate
     )
 }
 
-@Composable internal fun Settings(reminderStore: ReminderStore? = null, onRemindersChanged: () -> Unit = {}) = Page {
+@Composable internal fun Settings(reminderStore: ReminderStore? = null, onRemindersChanged: () -> Unit = {}, dataFiles: DataFiles? = null, hasVehicle: Boolean = false) = Page {
     Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
     LanguageSelector(); HorizontalDivider()
     if (reminderStore != null) { ReminderSettingsSection(reminderStore, onRemindersChanged); HorizontalDivider() }
     Text(stringResource(R.string.your_data), style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.local_storage_note))
+    if (dataFiles != null) DataSection(dataFiles, hasVehicle)
 }

@@ -8,9 +8,10 @@ Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `servi
 | --- | --- |
 | Format archiwum, zapis, odczyt z pełną weryfikacją, opcjonalne hasło | **Zaimplementowane i przetestowane** (moduł `service-engine`, 19 testów) |
 | Mapowanie bazy aplikacji (Room v3) ↔ format, zapis i odtworzenie całej bazy | **Zaimplementowane i przetestowane**: `app/.../backup/GarageBackup.kt`, 5 testów obiegu baza → kopia → nowa baza |
-| Ekran eksportu/importu, wybór miejsca zapisu i pola hasła | **Nie ma** |
+| Ekran w Ustawieniach: zapis kopii z opcjonalnym hasłem, odtworzenie, usunięcie wszystkich danych | **Zaimplementowane**; logika przetestowana na prawdziwych plikach (5 testów). Sam ekran i systemowe okno wyboru pliku **nie były oglądane ani klikane na urządzeniu** |
 | Sprawdzenie na urządzeniu z Androidem 8–12 | **Nie wykonano** dla pełnego odtworzenia bazy (test biblioteki archiwum na API 26 istnieje) |
-| Usuwanie danych, audyt SDK i logów, polityka prywatności | **Nie ma** — pozostała część Etapu 7 |
+| Usuwanie danych | **Zaimplementowane**: usuwa auto, historię, odczyty, interwały, ustawienia przypomnień i pokazane powiadomienia; kopii zapisanych poza aplikacją nie dotyka |
+| Audyt SDK i logów, polityka prywatności | **Nie ma** — pozostała część Etapu 7 |
 
 ### Co potwierdza test obiegu
 
@@ -44,7 +45,7 @@ Domyślnie kopia jest jawna. Gdy użytkownik poda hasło, cała kopia jest szyfr
 - Zaszyfrowany plik nie ujawnia nazw plików, VIN ani treści; każda zmiana, obcięcie lub zamiana kolejności fragmentów jest wykrywana.
 - Złe hasło i uszkodzony plik dają ten sam komunikat — nie da się ich rozróżnić.
 - **Zapomnianego hasła nie da się odzyskać.** Aplikacja musi to powiedzieć przed eksportem.
-- Minimalną długość hasła i jego powtórzenie na ekranie zapewnia aplikacja; ten kod odrzuca tylko puste hasło.
+- Ekran wymaga co najmniej 8 znaków i powtórzenia hasła oraz ostrzega, że zapomnianego hasła nie da się odzyskać; bez hasła informuje, że plik jest czytelny dla każdego.
 - Szyfrowanie nie było sprawdzane przez niezależnego specjalistę; warto to zrobić w ramach przeglądu bezpieczeństwa Etapu 7.
 
 ## Ograniczenia
