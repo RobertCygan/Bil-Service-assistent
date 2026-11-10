@@ -1,0 +1,35 @@
+{
+  "prototype_only": true,
+  "translation_keys_per_language": 166,
+  "results": [
+    "nb-NO: 11 screens and 16 scenarios render",
+    "nb-NO: manual path, older reading does not replace current reading",
+    "nb-NO: OCR review gate, recheck after correction, one simulated save",
+    "nb-NO: quote does not create a service; wrong-car confirmation blocked",
+    "nb-NO: offline scenario still permits local mock read",
+    "nb-NO: dialog focus and explicit export simulation",
+    "en: 11 screens and 16 scenarios render",
+    "en: manual path, older reading does not replace current reading",
+    "en: OCR review gate, recheck after correction, one simulated save",
+    "en: quote does not create a service; wrong-car confirmation blocked",
+    "en: offline scenario still permits local mock read",
+    "en: dialog focus and explicit export simulation",
+    "language switch retains screen and draft fields",
+    "brake inspection stays distinct from oil replacement",
+    "390 px viewport and enlarged text: content remains scrollable without page overflow"
+  ],
+  "browser_errors": [],
+  "external_http_requests": [],
+  "not_tested": [
+    "Android app",
+    "real OCR",
+    "manufacturer rules",
+    "Room database",
+    "OS permissions",
+    "real exports or deletion",
+    "native TalkBack"
+  ],
+  "checked_on": "2026-11-10",
+  "method": "Chromium via Playwright against temporary loopback HTTP server; no public deployment",
+  "file_url_navigation": "Blocked by managed browser policy; not used for automated review"
+}

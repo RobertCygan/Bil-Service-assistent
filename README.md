@@ -6,11 +6,18 @@ Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazd
 
 ## Status
 
-**Etap 0 — dokumentacja przygotowana do przeglądu, oczekuje na akceptację właściciela.** Nie ma jeszcze kodu aplikacji, działającego OCR ani zatwierdzonych harmonogramów. Nie rozpoczęto Etapu 1.
+**Etap 0 zaakceptowany przez właściciela. Etap 1 — UX i model danych przygotowane do odbioru.** Nie ma jeszcze kodu aplikacji Android, działającego OCR ani zatwierdzonych harmonogramów. Etap 2 nie został rozpoczęty.
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
 
-## Dokumentacja
+## Makiety i model danych — Etap 1
+
+- [Raport i instrukcja przeglądu](docs/stage-1/README.md)
+- [Plansza ekranów NO](docs/stage-1/preview-no.png) · [Plansza EN](docs/stage-1/preview-en.png)
+- [Klikalne makiety do pobrania](docs/stage-1/wireframes.html)
+- [Model danych i relacje](docs/stage-1/data-model.md)
+
+## Dokumentacja Etapu 0
 
 - [Etap 0: produkt, MVP i decyzje do odbioru](docs/00-etap-0.md)
 - [Źródła danych, licencje i plan pilota](docs/01-dane-i-zrodla.md)

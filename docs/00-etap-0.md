@@ -2,7 +2,7 @@
 
 Data opracowania i weryfikacji źródeł: **10 listopada 2026**, Europe/Oslo.
 
-Status: **gotowe do przeglądu; rekomendacje nie są jeszcze zatwierdzonymi decyzjami**. Zakres tego etapu to analiza i dokumentacja, bez kodu aplikacji i bez makiet całego produktu.
+Status: **zakres i kierunek techniczny zaakceptowane przez właściciela 10 listopada 2026; Etap 1 rozpoczęty na jego polecenie**. Zakres tego etapu to analiza i dokumentacja, bez kodu aplikacji i bez makiet całego produktu.
 
 ## 1. Cel
 
@@ -85,12 +85,12 @@ Nie zakupiono usług, nie utworzono kont u dostawców i nie wysłano zapytań do
 
 | ID | Propozycja | Stan |
 | --- | --- | --- |
-| D-01 | Android natywnie: Kotlin + Compose | Propozycja |
-| D-02 | MVP bez kont i synchronizacji; historia i dokumenty lokalne | Propozycja |
-| D-03 | Lokalny OCR; chmura tylko po wykazaniu potrzeby i osobnej decyzji | Propozycja |
+| D-01 | Android natywnie: Kotlin + Compose | Zaakceptowane |
+| D-02 | MVP bez kont i synchronizacji; historia i dokumenty lokalne | Zaakceptowane |
+| D-03 | Lokalny OCR; chmura tylko po wykazaniu potrzeby i osobnej decyzji | Zaakceptowane |
 | D-04 | Jedna dokładna konfiguracja pilota; Passat B8 GTE 2022 jako pierwszy kandydat | Warunkowa, zależy od danych |
 | D-05 | TecRMI jako pierwszy dostawca do oceny, Autodata jako alternatywa | Do uzyskania pokrycia, warunków i ceny |
-| D-06 | Etap 1 ograniczony do makiet UX, stanów i modelu danych | Oczekuje na zgodę |
+| D-06 | Etap 1 ograniczony do makiet UX, stanów i modelu danych | Rozpoczęty za zgodą właściciela |
 
 Nie ma pytania blokującego przygotowanie tego raportu. Przed zakupem źródła potrzebny będzie zaakceptowany budżet licencyjny. Przed audytem pilota potrzebne będą potwierdzone parametry pojazdu i dokumenty możliwe do legalnego użycia; nie umieszczamy ich w publicznym repo.
 
@@ -101,11 +101,11 @@ Nie ma pytania blokującego przygotowanie tego raportu. Przed zakupem źródła 
 - [x] Technologia, OCR i wariant bez kont uzasadnione.
 - [x] Koszty mają jawne założenia; niewiadome nie są przedstawione jako cena zero.
 - [x] Plan do Google Play ma wyniki i kryteria dla każdego etapu.
-- [ ] Właściciel zatwierdził MVP i kierunek techniczny.
-- [ ] Właściciel zaakceptował warunkową ścieżkę źródła danych; umowa, pokrycie i cena pozostają otwartą bramką przed Etapem 4.
+- [x] Właściciel zatwierdził MVP i kierunek techniczny w rozmowie („TAk Zaczynaj”).
+- [x] Warunkowa ścieżka danych uwzględniona w zaakceptowanym kierunku. Umowa, pokrycie i cena nadal są otwartą bramką przed Etapem 4; nie zatwierdzono zakupu usług.
 
-Etap 0 jest **przygotowany do odbioru**, nie zatwierdzony automatycznie. Nie potwierdzamy jeszcze pełnej wykonalności komercyjnej.
+Etap 0 został odebrany w zakresie produktu i kierunku technicznego. Nie potwierdzamy jeszcze pełnej wykonalności komercyjnej; status licencji i pokrycia danych nie zmienił się.
 
 ## 8. Następny krok
 
-Po akceptacji: Etap 1 — proste makiety i model danych, uwzględniające zarówno zweryfikowany plan, jak i brak planu. Następnie osobny odbiór przed pisaniem fundamentu aplikacji. Równolegle do dalszych etapów należy zamknąć warunki źródła harmonogramów; nie zakładamy ich powodzenia z góry.
+Na polecenie właściciela rozpoczęto [Etap 1 — proste makiety i model danych](stage-1/README.md), uwzględniający zarówno zweryfikowany plan, jak i brak planu. Następnie osobny odbiór przed pisaniem fundamentu aplikacji. Równolegle do dalszych etapów należy zamknąć warunki źródła harmonogramów; nie zakładamy ich powodzenia z góry.
