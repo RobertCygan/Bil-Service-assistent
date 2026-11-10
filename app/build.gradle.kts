@@ -46,6 +46,17 @@ android {
 }
 
 kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
+
+// The make/model selection list is built in vehicle-catalog/ (open data). Only the JSON is shipped.
+abstract class CopyVehicleCatalog : DefaultTask() {
+    @get:InputFile abstract val source: RegularFileProperty
+    @get:OutputDirectory abstract val output: DirectoryProperty
+    @TaskAction fun copy() { source.get().asFile.copyTo(output.get().file("vehicle-list.json").asFile, overwrite = true) }
+}
+val vehicleCatalogAssets = tasks.register<CopyVehicleCatalog>("vehicleCatalogAssets") {
+    source.set(rootProject.file("vehicle-catalog/vehicle-list.json"))
+}
+androidComponents { onVariants { variant -> variant.sources.assets?.addGeneratedSourceDirectory(vehicleCatalogAssets, CopyVehicleCatalog::output) } }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 dependencies {

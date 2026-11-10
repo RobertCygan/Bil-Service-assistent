@@ -314,4 +314,15 @@
     <string name="import_continue">Continue to the entry</string>
     <string name="import_continue_help">The next screen is the ordinary service entry, filled in with your choices. Nothing is saved until you save it there.</string>
     <string name="import_prefilled_note">Filled in from a document. Check every field before you save.</string>
+    <string name="catalog_make_suggestions">Did you mean</string>
+    <string name="catalog_model_suggestions">Common %1$s models</string>
+    <string name="catalog_note">Suggestions come from open registration data and only save typing. They do not select a service schedule. You can type any make or model.</string>
+    <string name="vin_wrong_length">A VIN has exactly 17 characters.</string>
+    <string name="vin_forbidden_letter">A VIN never contains the letters I, O or Q. Check for 1 or 0 instead.</string>
+    <string name="vin_invalid_character">A VIN contains only letters and digits.</string>
+    <string name="vin_well_formed">The VIN has the right form. This does not confirm the car or its equipment.</string>
+    <string name="vin_make_hint">The VIN looks like %1$s — use this make</string>
+    <string name="plate_looks_wrong">This does not look like a Norwegian registration number. You can still save it.</string>
+    <string name="data_sources_title">Data sources</string>
+    <string name="data_sources_note">Make and model suggestions: RDW Open Data, Netherlands (CC0 1.0), checked against “CO2 emissions from new passenger cars”, European Environment Agency (CC BY 4.0). The list contains no service schedules.</string>
 </resources>

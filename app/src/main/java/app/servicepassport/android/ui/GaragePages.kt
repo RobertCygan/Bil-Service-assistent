@@ -166,4 +166,7 @@ import java.time.LocalDate
     Text(stringResource(R.string.your_data), style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.local_storage_note))
     if (dataFiles != null) DataSection(dataFiles, hasVehicle)
+    HorizontalDivider()
+    Text(stringResource(R.string.data_sources_title), style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.data_sources_note), style = MaterialTheme.typography.bodySmall)
 }

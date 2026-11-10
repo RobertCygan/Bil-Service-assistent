@@ -311,4 +311,15 @@
     <string name="import_continue">Fortsett til oppføringen</string>
     <string name="import_continue_help">Neste skjerm er den vanlige serviceoppføringen, fylt ut med valgene dine. Ingenting lagres før du lagrer der.</string>
     <string name="import_prefilled_note">Fylt ut fra et dokument. Kontroller hvert felt før du lagrer.</string>
+    <string name="catalog_make_suggestions">Mente du</string>
+    <string name="catalog_model_suggestions">Vanlige %1$s-modeller</string>
+    <string name="catalog_note">Forslagene kommer fra åpne registreringsdata og sparer bare skriving. De velger ikke en serviceplan. Du kan skrive inn hvilket som helst merke eller modell.</string>
+    <string name="vin_wrong_length">Et VIN har nøyaktig 17 tegn.</string>
+    <string name="vin_forbidden_letter">Et VIN inneholder aldri bokstavene I, O eller Q. Sjekk om det skal være 1 eller 0.</string>
+    <string name="vin_invalid_character">Et VIN inneholder bare bokstaver og tall.</string>
+    <string name="vin_well_formed">VIN har riktig form. Dette bekrefter ikke bilen eller utstyret.</string>
+    <string name="vin_make_hint">VIN ser ut som %1$s – bruk dette merket</string>
+    <string name="plate_looks_wrong">Dette ser ikke ut som et norsk registreringsnummer. Du kan lagre det likevel.</string>
+    <string name="data_sources_title">Datakilder</string>
+    <string name="data_sources_note">Forslag til merke og modell: RDW Open Data, Nederland (CC0 1.0), kontrollert mot «CO2 emissions from new passenger cars», Det europeiske miljøbyrået (CC BY 4.0). Listen inneholder ingen serviceplaner.</string>
 </resources>
