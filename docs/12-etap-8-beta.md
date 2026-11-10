@@ -46,7 +46,9 @@ Zmierzone na `assembleRelease` (niepodpisany, wszystkie architektury w jednym pl
 
 Szacunek „na telefon” to suma składników dla jednej architektury; dokładną wartość poda Google Play po wgraniu pakietu AAB.
 
-**Decyzja:** R8 zostaje wyłączone do czasu, gdy zmniejszony pakiet da się uruchomić i sprawdzić (telefon albo osobne zadanie CI). Zmniejszanie kodu potrafi usunąć coś potrzebnego bibliotekom (baza, zapis kopii, ML Kit), a taki błąd wychodzi dopiero w działaniu.
+**Decyzja:** R8 zostaje wyłączone do czasu, gdy zmniejszony pakiet da się uruchomić i sprawdzić na telefonie. Zmniejszanie kodu potrafi usunąć coś potrzebnego bibliotekom (baza, zapis kopii, ML Kit), a taki błąd wychodzi dopiero w działaniu.
+
+**Próba automatycznego sprawdzenia (PR #16) — nieudana.** Testy urządzeniowe uruchomione na zmniejszonym pakiecie nie wystartowały: biblioteki testowe korzystają z klas, które R8 usuwa z aplikacji jako nieużywane (pierwsza brakująca: `androidx.tracing.Trace`). Obejście wymagałoby zachowania w wariancie testowym dużej części bibliotek, a wtedy test sprawdzałby inny pakiet niż ten, który trafia do użytkownika. Zmiana została wycofana. Właściwa droga: zbudować zmniejszone wydanie, zainstalować na telefonie i przejść listę kontrolną poniżej.
 
 ## Lista kontrolna do testu na telefonie
 
