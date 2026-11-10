@@ -1,6 +1,6 @@
 # Etap 3 — przebiegi i ręczna historia serwisowa
 
-Data: **10 listopada 2026**, Europe/Oslo. Etap 2 zaakceptowany przez właściciela i scalony w PR #4. Etap 3 autoryzowany w tej samej rozmowie. **Status: gotowy do odbioru w PR #5; jeszcze niescalony.**
+Data: **10 listopada 2026**, Europe/Oslo. Etap 2 zaakceptowany przez właściciela i scalony w PR #4. Etap 3 autoryzowany w tej samej rozmowie. **Status: zaakceptowany do kontynuacji i scalony w PR #5.** Ten raport zachowuje wyniki rewizji Etapu 3; [bieżący przyrost](../stage-4/README.md) dodaje silnik, pulpit i Room v3.
 
 ## 1. Cel
 
@@ -70,7 +70,7 @@ Potwierdzenie ręczne oznacza deklarację użytkownika, nie weryfikację przez w
 
 [INTEGRATION.md](../INTEGRATION.md) opisuje fizyczny model Room, jednostki, selekcję przebiegu i mapowanie czynności. Sprawdzono PR #2 do `7e405ff43ab83d3527745310b558a7d291f2e686`. Odnotowano też nowsze dodatki PR #2 przy `7b966d61a9565ad39c2c7c70bcf40de4e0fa904f`: przypomnienia, eksport i serwer rejestru. Nie zmieniono jego gałęzi ani nie dodano zależności od silnika; rozbieżności formatu eksportu zapisano we wspólnym kontrakcie. Integracja musi rozwiązać jawny bieżący odczyt, anomalie licznika, wygasłe źródła i tymczasowe kody ekstraktora.
 
-Progi zaakceptowane przez właściciela to 1500 km / 30 dni oraz 90 dni. W Etapie 3 używane jest wyłącznie oznaczenie nieaktualnego odczytu po 90 dniach; pozostałe progi czekają na reguły. Ekran ręcznego wskaźnika serwisowego pozostaje poza MVP. Do właściciela pozostaje odbiór Etapu 3; nie ma nowych decyzji funkcjonalnych blokujących ten przyrost.
+Progi zaakceptowane przez właściciela to 1500 km / 30 dni oraz 90 dni. W Etapie 3 używane jest wyłącznie oznaczenie nieaktualnego odczytu po 90 dniach; pozostałe progi czekają na reguły. Ekran ręcznego wskaźnika serwisowego pozostaje poza MVP. Etap 3 scalono po upoważnieniu do kontynuacji. Ten opis pozostaje zapisem zakresu ówczesnej rewizji.
 
 ## 7. Odbiór
 
@@ -79,7 +79,7 @@ Progi zaakceptowane przez właściciela to 1500 km / 30 dni oraz 90 dni. W Etapi
 - [x] Ostrzeżenia i brakujące dane mają jednoznaczne znaczenie.
 - [x] Migracja zachowuje profil z Etapu 2 w teście plikowej bazy.
 - [x] Testy Androida, NO/EN i pełny restart procesu potwierdzone w CI.
-- [ ] Właściciel odebrał Etap 3.
+- [x] Właściciel upoważnił do kontynuacji; PR #5 scalony.
 
 ## 8. Następny krok
 

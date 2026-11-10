@@ -1,5 +1,6 @@
 # Uzgodnienie modułów z aplikacją (po audycie obu gałęzi)
 
+> Raport autora modułów dla rewizji `525c223…`, zachowany jako zapis audytu. PR #7 podłącza silnik i wspólne wersje, dodaje testy pulpitu oraz zmienia bazę na v3. Aktualny status: [INTEGRATION.md](INTEGRATION.md), w tym nowa różnica eksportu interwałów. Poniższe „otwarte” odnoszą się do stanu przed integracją.
 Data: **10 listopada 2026**. Punktem odniesienia jest [INTEGRATION.md](INTEGRATION.md) prowadzony przez autora etapów 1–3 oraz wspólny kontrakt `service-contract/`. Ten dokument opisuje, co zmieniono po stronie modułów `service-engine`, `lookup-server` i `vehicle-catalog`. Gałąź zawiera teraz `main` (etapy 0–2); Etap 3 nie jest jeszcze w `main`, więc porównanie ze schematem bazy v2 opiera się na odczycie gałęzi `codex/etap-3-manual-history`.
 
 ## Rozbieżności i ich stan

@@ -1,12 +1,16 @@
-# Bil Service Assistent
+# CarServiceAssistent
 
-Robocza nazwa produktu: **AI Service Passport**. Planowana aplikacja Android dla kierowców w Norwegii, w językach norweskim Bokmål (`nb-NO`) i angielskim (`en`).
+Aplikacja Android **CarServiceAssistent** dla kierowców w Norwegii, w językach norweskim Bokmål (`nb-NO`) i angielskim (`en`).
 
 Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazdu oraz wiarygodnego harmonogramu.
 
 ## Status
 
-**Etapy 0–2 zaakceptowane. Etap 3 — przebiegi i ręczna historia gotowe do odbioru (PR #5).** Aplikacja Kotlin/Compose obsługuje NO/EN, lokalny profil, odczyty licznika i wpisy z kilkoma czynnościami. OCR i silnik harmonogramów czekają na osobną integrację.
+**Etapy 0–3 i przygotowanie integracji są w `main`. Pulpit Etapu 4 i własne interwały są w PR #7.** Aplikacja Kotlin/Compose w NO/EN łączy lokalną historię z rzeczywistym silnikiem. Katalog producentów pozostaje pusty do czasu uzyskania praw i zweryfikowanych danych.
+
+- [Bieżący przyrost: zakres, uruchomienie, APK i wyniki](docs/stage-4/README.md)
+- [PR #7: wspólny silnik, pulpit i interwały](https://github.com/RobertCygan/Bil-Service-assistent/pull/7)
+- [Aktualny kontrakt obu części](docs/INTEGRATION.md)
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
 
@@ -19,14 +23,14 @@ Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowni
 ## Przygotowanie integracji — przyrost 1
 
 - [Mapowanie Room, testy rzeczywistego silnika i ograniczenia](docs/integration/README.md)
-- Silnik PR #2 jest przypięty do konkretnej rewizji i używany wyłącznie przez dodatkowy zestaw testów. Zwykły APK zachowuje zakres Etapu 3.
+- Raport historyczny PR #6. W PR #7 silnik jest już zależnością aplikacji, z zachowaniem rewizji importu i historii autora.
 
 ## Aplikacja Android — Etap 2
 
 - [Uruchomienie, APK do pobrania, zakres i weryfikacja](docs/stage-2/README.md)
 - Rzeczywiste ekrany Androida: [NO](docs/stage-2/android-no.png) · [EN](docs/stage-2/android-en.png)
 - [Wspólny kontrakt z silnikiem i OCR](docs/INTEGRATION.md)
-- Build: `./gradlew :service-contract:test :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`
+- Wspólny build: `./gradlew :service-contract:test :service-engine:check :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`
 
 ## Makiety i model danych — Etap 1
 
