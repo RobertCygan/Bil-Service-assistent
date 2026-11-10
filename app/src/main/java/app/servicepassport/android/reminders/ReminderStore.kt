@@ -35,6 +35,9 @@ class ReminderStore(context: Context) {
         prefs.edit().putStringSet(DELIVERED, all.map { listOf(it.key, it.fingerprint, it.lastNotifiedOn.toString()).joinToString(SEPARATOR) }.toSet()).apply()
     }
 
+    /** Back to the state of a fresh installation. Shown notifications are cancelled by the coordinator. */
+    fun reset() { prefs.edit().clear().apply() }
+
     /** Preferences that belong in a backup. The delivery record is deliberately absent. */
     fun exportSettings(): Map<String, String> = settings.let {
         mapOf(ENABLED to it.enabled.toString(), REPEAT to (it.repeatEveryDays ?: 0).toString(), ODOMETER to it.odometerReminders.toString())

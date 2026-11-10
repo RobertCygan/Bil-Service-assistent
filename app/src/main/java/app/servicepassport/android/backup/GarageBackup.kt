@@ -135,6 +135,12 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
         ExportArchive.write(out, data, emptyList(), Instant.now(clock).toString(), appVersion, LocalDate.now(clock), password)
     }
 
+    /** Removes every vehicle with its history, readings and intervals, and resets reminder preferences. */
+    suspend fun deleteAll() = withContext(Dispatchers.IO) {
+        database.withTransaction { dao.deleteAllVehicles() }
+        settings?.reset()
+    }
+
     suspend fun restore(input: InputStream, password: CharArray? = null): RestoreOutcome = withContext(Dispatchers.IO) {
         // The whole archive is verified before the first row changes. Documents are not supported yet and are discarded.
         val data = when (val result = ExportArchive.read(input, LocalDate.now(clock), password = password) { Discard }) {
