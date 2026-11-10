@@ -1,6 +1,6 @@
 # Etap 2 — fundament Android
 
-Data: **10 listopada 2026**, Europe/Oslo. Etap 1 zaakceptowany przez właściciela; PR #3 włączono do `main`. **Status: gotowy do odbioru.** To osobny przyrost fundamentu, bez rozpoczęcia Etapu 3 i bez scalania PR #2.
+Data: **10 listopada 2026**, Europe/Oslo. Etap 1 zaakceptowany przez właściciela; PR #3 włączono do `main`. **Status: zaakceptowany przez właściciela; PR #4 scalony.** To osobny przyrost fundamentu, bez rozpoczęcia Etapu 3 i bez scalania PR #2.
 
 ## 1. Cel
 
@@ -90,7 +90,7 @@ Obecny plik bazy jest w prywatnym katalogu aplikacji; Room samo nie szyfruje baz
 - [x] Schemat eksportowany, brak kasującego fallbacku, proces migracji określony.
 - [x] Środowiska debug/release i podstawowa obsługa błędów gotowe.
 - [x] Wynik uruchomienia aplikacji i zmiany języka na Androidzie potwierdzony w CI; pełny restart procesu także sprawdzony.
-- [ ] Właściciel odebrał Etap 2.
+- [x] Właściciel odebrał Etap 2 i zatwierdził rozpoczęcie Etapu 3.
 
 ## 8. Następny krok
 

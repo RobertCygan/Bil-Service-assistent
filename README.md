@@ -6,9 +6,14 @@ Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazd
 
 ## Status
 
-**Etapy 0 i 1 zaakceptowane. Etap 2 — fundament Android gotowy do odbioru.** Jest aplikacja Kotlin/Compose z NO/EN i lokalnym profilem auta. Pełna historia, OCR i harmonogramy nie są jeszcze podłączone.
+**Etapy 0–2 zaakceptowane. Etap 3 — przebiegi i ręczna historia w weryfikacji.** Aplikacja Kotlin/Compose obsługuje NO/EN, lokalny profil, odczyty licznika i wpisy z kilkoma czynnościami. OCR i silnik harmonogramów czekają na osobną integrację.
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
+
+## Przebiegi i ręczna historia — Etap 3
+
+- [Zakres, uruchomienie i weryfikacja](docs/stage-3/README.md)
+- [Kontrakt z równoległym silnikiem i OCR](docs/INTEGRATION.md)
 
 ## Aplikacja Android — Etap 2
 
