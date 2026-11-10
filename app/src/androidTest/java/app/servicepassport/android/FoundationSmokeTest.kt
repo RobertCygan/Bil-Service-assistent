@@ -5,6 +5,9 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.core.os.LocaleListCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import android.graphics.Bitmap
+import java.io.File
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,5 +46,18 @@ class FoundationSmokeTest {
         compose.waitForIdle()
         compose.onNodeWithTag("nav_overview").performClick()
         compose.onNodeWithTag("profile_name").assertTextEquals("Foundation test car")
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val screenshot = requireNotNull(instrumentation.uiAutomation.takeScreenshot())
+        File(instrumentation.targetContext.filesDir, "foundation-en.png").outputStream().use {
+            screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        screenshot.recycle()
+        // Finish in a language different from the emulator default; the external process test
+        // then force-stops the app and checks that both this choice and the database survived.
+        compose.onNodeWithTag("nav_settings").performClick()
+        compose.onNodeWithTag("language_nb").performClick()
+        compose.waitForIdle()
+        compose.onAllNodesWithText("Innstillinger").onFirst().assertExists()
     }
 }

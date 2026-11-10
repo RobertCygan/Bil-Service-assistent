@@ -82,7 +82,7 @@ fun CarServiceApp(repository: ProfileRepository) {
 @Composable
 private fun Page(content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        modifier = Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
         content = content,
     )

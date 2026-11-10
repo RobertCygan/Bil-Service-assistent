@@ -2,9 +2,9 @@ name: Android foundation
 
 on:
   push:
-    paths: ['app/**', 'service-contract/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+    paths: ['app/**', 'service-contract/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
   pull_request:
-    paths: ['app/**', 'service-contract/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+    paths: ['app/**', 'service-contract/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
 
 permissions:
   contents: read
@@ -60,10 +60,14 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew :app:connectedDebugAndroidTest
+          script: |
+            ./gradlew :app:connectedDebugAndroidTest
+            python3 scripts/check_process_restart.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-device-tests
-          path: app/build/reports/androidTests/
+          path: |
+            app/build/reports/androidTests/
+            app/build/reports/device-smoke/
           retention-days: 7
