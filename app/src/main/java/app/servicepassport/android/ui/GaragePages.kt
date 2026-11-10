@@ -47,7 +47,8 @@ import java.time.LocalDate
             }
             Button(onClick = { go("dashboard") }, modifier = Modifier.fillMaxWidth().testTag("open_dashboard")) { Text(stringResource(R.string.service_overview)) }
             state.dashboard?.let { if (it.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else DashboardCounts(it) }
-            Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
+            OutlinedButton(onClick = { go("import") }, modifier = Modifier.fillMaxWidth().testTag("import_document")) { Text(stringResource(R.string.import_document)) }
+    Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
             state.dashboard?.let { if (!it.calculationUnavailable) CatalogNotice(it, go) }
             OutlinedButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
         }

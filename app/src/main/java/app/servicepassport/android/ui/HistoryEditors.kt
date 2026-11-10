@@ -1,5 +1,6 @@
 package app.servicepassport.android.ui
 
+import app.servicepassport.android.documents.ServicePrefill
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -26,17 +27,18 @@ private fun decodeWork(raw: String): List<WorkInput> {
     }
 }
 
-@Composable internal fun ServiceEditor(state: GarageState, record: ServiceRecord?, today: LocalDate, onDirty: (Boolean) -> Unit, save: (ServiceInput) -> Unit) = Page {
+@Composable internal fun ServiceEditor(state: GarageState, record: ServiceRecord?, today: LocalDate, onDirty: (Boolean) -> Unit, prefill: ServicePrefill? = null, save: (ServiceInput) -> Unit) = Page {
     val snapshot = state.snapshot ?: return@Page; val locale = uiLocale()
     val id = rememberSaveable { record?.event?.id ?: UUID.randomUUID().toString() }
     val expectedRevision = rememberSaveable { record?.event?.revision ?: -1L }.takeIf { it >= 0 }
-    val initialWork = remember { encodeWork(record?.orderedActions?.map { WorkInput(it.actionCode, it.operationCode, it.customLabel) }.orEmpty()) }
+    val initialWork = remember { encodeWork(record?.orderedActions?.map { WorkInput(it.actionCode, it.operationCode, it.customLabel) } ?: prefill?.work.orEmpty()) }
     var workJson by rememberSaveable { mutableStateOf(initialWork) }
     val work = remember(workJson) { decodeWork(workJson) }
     var sourceLocale by rememberSaveable { mutableStateOf(locale) }
-    var date by rememberSaveable { mutableStateOf(LocalDates.text(record?.event?.performedDay ?: today.toEpochDay(), locale)) }
-    var km by rememberSaveable { mutableStateOf(record?.reading?.km?.toString().orEmpty()) }
-    var cost by rememberSaveable { mutableStateOf(amountInput(record?.event?.costMinor, locale)) }
+    // A document without a recognised date leaves the field empty: the driver must enter it, today is never assumed.
+    var date by rememberSaveable { mutableStateOf(if (record == null && prefill != null) prefill.day?.let { LocalDates.text(it, locale) }.orEmpty() else LocalDates.text(record?.event?.performedDay ?: today.toEpochDay(), locale)) }
+    var km by rememberSaveable { mutableStateOf((record?.reading?.km ?: prefill?.km)?.toString().orEmpty()) }
+    var cost by rememberSaveable { mutableStateOf(amountInput(record?.event?.costMinor ?: prefill?.costMinor, locale)) }
     var note by rememberSaveable { mutableStateOf(record?.event?.note.orEmpty()) }
     var reason by rememberSaveable { mutableStateOf(record?.reading?.exceptionReason.orEmpty()) }
     var current by rememberSaveable { mutableStateOf(false) }
@@ -57,6 +59,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     val dirty = date != LocalDates.text(record?.event?.performedDay ?: today.toEpochDay(), locale) || km != record?.reading?.km?.toString().orEmpty() || cost != amountInput(record?.event?.costMinor, locale) || note != record?.event?.note.orEmpty() || workJson != initialWork || current || reason != record?.reading?.exceptionReason.orEmpty()
     LaunchedEffect(dirty) { onDirty(dirty) }; DisposableEffect(Unit) { onDispose { onDirty(false) } }
     Text(stringResource(if (record == null) R.string.add_service else R.string.edit_service), style = MaterialTheme.typography.headlineMedium)
+    if (record == null && prefill != null) NoteCard(stringResource(R.string.import_prefilled_note))
     Text(snapshot.vehicle.displayName)
     DateField(stringResource(R.string.service_date), date, "service_date", today) { date = it; reviewedToken = null; issue = null }
     OutlinedTextField(value = km, onValueChange = { km = it; reviewedToken = null; issue = null }, singleLine = true, label = { Text(stringResource(R.string.optional_odometer)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().testTag("service_km"))
