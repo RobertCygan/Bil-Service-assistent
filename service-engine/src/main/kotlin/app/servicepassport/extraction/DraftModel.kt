@@ -38,10 +38,16 @@ public enum class ItemKind {
 public data class DraftItem(
     /** Oryginalny tekst linii, nigdy nie tłumaczony ani nie poprawiany. */
     val originalText: String,
-    val taskCode: String,
+    /** Kod czynności ze wspólnego kontraktu, np. `engine_oil`. */
+    val action: String,
+    /** Operacja: `replace`, `inspect` albo `test`. Kontrola nie jest wymianą. */
+    val operation: String,
     val kind: ItemKind,
     val evidence: Evidence,
 ) {
+    /** Pełna para `czynność:operacja` — ten sam klucz co w regułach i w historii. */
+    public val taskCode: String get() = "$action:$operation"
+
     public val selectedByDefault: Boolean get() = kind == ItemKind.PERFORMED
 }
 
@@ -68,11 +74,21 @@ public data class DraftProposal(
 public data class VehicleIdentity(val vin: String? = null, val plate: String? = null)
 
 /**
- * Jedna czynność słownika. [servicePhrases] same oznaczają wykonanie pracy („oljeskift”),
- * [partPhrases] to nazwa części/materiału — wykonanie wymaga dodatkowo czasownika w linii.
+ * Jedna czynność słownika.
+ *
+ * [operationPhrases]: frazy, które same oznaczają wykonanie danej operacji („oljeskift” → replace,
+ * „bremsekontroll” → inspect). [partPhrases]: nazwa części lub materiału — operację wskazuje dopiero
+ * czasownik w tej samej linii („skiftet”, „kontrollert”, „testet”); sama nazwa to tylko zakup części.
  */
 public data class TaskTerm(
-    val taskCode: String,
-    val servicePhrases: List<String>,
+    val action: String,
+    /** Operacje dozwolone dla tej czynności, w kolejności od domyślnej. */
+    val operations: List<String>,
+    val operationPhrases: Map<String, List<String>> = emptyMap(),
     val partPhrases: List<String> = emptyList(),
-)
+) {
+    init {
+        require(operations.isNotEmpty()) { "Task needs at least one operation" }
+        require(operationPhrases.keys.all { it in operations }) { "Phrases for an operation the task does not allow" }
+    }
+}

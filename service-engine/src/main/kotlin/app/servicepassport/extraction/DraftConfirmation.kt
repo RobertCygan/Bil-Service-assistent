@@ -4,21 +4,51 @@ import app.servicepassport.engine.PerformedTask
 import java.time.LocalDate
 
 /** Dane po sprawdzeniu i poprawkach użytkownika — jedyne wejście, z którego powstaje historia. */
-public data class ReviewedDraft(val serviceDate: LocalDate?, val odometerKm: Int?, val taskCodes: List<String>)
+public data class ReviewedDraft(
+    val serviceDate: LocalDate?,
+    val odometerKm: Int?,
+    /** Pełne pary `czynność:operacja` wybrane przez użytkownika. */
+    val taskCodes: List<String>,
+    /** Koszt do zapisania; null = bez kosztu. */
+    val cost: Money? = null,
+)
 
-public enum class ConfirmationError { DATE_MISSING, DATE_IN_FUTURE, ODOMETER_NEGATIVE, NO_TASKS }
+public enum class ConfirmationError {
+    DATE_MISSING, DATE_IN_FUTURE, ODOMETER_NEGATIVE, NO_TASKS,
+    /** Kod nie ma postaci `czynność:operacja`. Zgodność z kontraktem sprawdza dodatkowo aplikacja. */
+    INVALID_TASK_CODE,
+    /** Szkic ma ostrzeżenie blokujące (inny pojazd, wycena), a użytkownik go osobno nie potwierdził. */
+    WARNING_NOT_ACKNOWLEDGED,
+    /** Kwota w walucie, której historia nie zapisuje (lub bez rozpoznanej waluty) — nie wolno jej przepisać jako NOK. */
+    CURRENCY_NOT_SUPPORTED,
+    COST_NEGATIVE,
+}
 
 public sealed interface ConfirmationResult {
-    public data class Accepted(val tasks: List<PerformedTask>) : ConfirmationResult
+    public data class Accepted(val tasks: List<PerformedTask>, val cost: Money?) : ConfirmationResult
     public data class Rejected(val errors: Set<ConfirmationError>) : ConfirmationResult
 }
 
 public object DraftConfirmation {
+    /** Ostrzeżenia, których nie omija samo zaznaczenie pozycji — wymagają osobnego, jawnego potwierdzenia. */
+    public val BLOCKING_WARNINGS: Set<DraftWarning> = setOf(DraftWarning.VEHICLE_MISMATCH, DraftWarning.DOCUMENT_IS_QUOTE)
+
+    private val TASK_CODE = Regex("[a-z0-9_]+:[a-z0-9_]+")
+
     /**
      * Zamienia zatwierdzony szkic na czynności dla silnika terminów. Zapis do bazy (jedna transakcja,
      * ochrona przed podwójnym zatwierdzeniem) należy do warstwy danych aplikacji.
+     *
+     * @param warnings ostrzeżenia ze szkicu ([DraftProposal.warnings])
+     * @param acknowledged ostrzeżenia, które użytkownik osobno i świadomie potwierdził
      */
-    public fun confirm(reviewed: ReviewedDraft, today: LocalDate): ConfirmationResult {
+    public fun confirm(
+        reviewed: ReviewedDraft,
+        today: LocalDate,
+        warnings: Set<DraftWarning> = emptySet(),
+        acknowledged: Set<DraftWarning> = emptySet(),
+        supportedCurrencies: Set<String> = setOf("NOK"),
+    ): ConfirmationResult {
         val errors = sortedSetOf<ConfirmationError>()
         val date = reviewed.serviceDate
         if (date == null) errors += ConfirmationError.DATE_MISSING
@@ -26,8 +56,14 @@ public object DraftConfirmation {
         if (reviewed.odometerKm != null && reviewed.odometerKm < 0) errors += ConfirmationError.ODOMETER_NEGATIVE
         val codes = reviewed.taskCodes.filter { it.isNotBlank() }.distinct()
         if (codes.isEmpty()) errors += ConfirmationError.NO_TASKS
+        if (codes.any { !TASK_CODE.matches(it) }) errors += ConfirmationError.INVALID_TASK_CODE
+        if ((warnings intersect BLOCKING_WARNINGS).any { it !in acknowledged }) errors += ConfirmationError.WARNING_NOT_ACKNOWLEDGED
+        reviewed.cost?.let {
+            if (it.minor < 0) errors += ConfirmationError.COST_NEGATIVE
+            if (it.currency == null || it.currency !in supportedCurrencies) errors += ConfirmationError.CURRENCY_NOT_SUPPORTED
+        }
         if (errors.isNotEmpty() || date == null) return ConfirmationResult.Rejected(errors)
-        return ConfirmationResult.Accepted(codes.map { PerformedTask(it, date, reviewed.odometerKm) })
+        return ConfirmationResult.Accepted(codes.map { PerformedTask(it, date, reviewed.odometerKm) }, reviewed.cost)
     }
 }
 

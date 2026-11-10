@@ -12,10 +12,12 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
 
     private class Line(val evidence: Evidence, val norm: String)
 
-    private class Matcher(val taskCode: String, val service: List<Regex>, val part: List<Regex>)
+    private class Matcher(val term: TaskTerm, val operations: List<Pair<String, List<Regex>>>, val part: List<Regex>)
 
     private val matchers = dictionary.map { term ->
-        Matcher(term.taskCode, term.servicePhrases.map(::phrase), term.partPhrases.map(::phrase))
+        // „replace” sprawdzamy pierwsze: fraza wymiany wygrywa z frazą kontroli w tej samej linii
+        val ordered = term.operationPhrases.entries.sortedBy { if (it.key == "replace") 0 else 1 }
+        Matcher(term, ordered.map { it.key to it.value.map(::phrase) }, term.partPhrases.map(::phrase))
     }
 
     public fun extract(pages: List<OcrPage>, vehicle: VehicleIdentity, today: LocalDate): DraftProposal {
@@ -170,12 +172,14 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
     // --- pozycje ---
 
     private fun items(lines: List<Line>, isQuote: Boolean): List<DraftItem> {
+        class Match(val term: TaskTerm, val phraseOperation: String?)
+
         val items = mutableListOf<DraftItem>()
         var recommendedSection = false
         for (line in lines) {
             val matched = matchers.mapNotNull { m ->
-                val service = m.service.any { it.containsMatchIn(line.norm) }
-                if (service || m.part.any { it.containsMatchIn(line.norm) }) m.taskCode to service else null
+                val byPhrase = m.operations.firstOrNull { (_, phrases) -> phrases.any { it.containsMatchIn(line.norm) } }?.first
+                if (byPhrase != null || m.part.any { it.containsMatchIn(line.norm) }) Match(m.term, byPhrase) else null
             }
             if (matched.isEmpty()) {
                 val heading = line.norm.none(Char::isDigit) && line.norm.split(' ').size <= MAX_HEADING_WORDS
@@ -183,18 +187,31 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
                 if (heading && PERFORMED_HEADING.containsMatchIn(line.norm)) recommendedSection = false
                 continue
             }
-            val action = ACTION.containsMatchIn(line.norm)
-            // „Oljeskift” wygrywa z częścią „olje” w tej samej linii; części liczą się tylko bez frazy usługowej.
-            val anyService = matched.any { it.second }
-            for ((code, service) in matched) {
+            // Czasownik w linii wskazuje operację dla samych nazw części; wymiana wygrywa z kontrolą.
+            val verbOperation = when {
+                REPLACE_VERB.containsMatchIn(line.norm) || matched.any { it.phraseOperation == "replace" } -> "replace"
+                TEST_VERB.containsMatchIn(line.norm) -> "test"
+                INSPECT_VERB.containsMatchIn(line.norm) -> "inspect"
+                else -> null
+            }
+            for (match in matched) {
+                val allowed = match.term.operations
+                // Sprawdzenie akumulatora to w kontrakcie „test”, nie „inspect”.
+                val fromVerb = when {
+                    verbOperation == null || verbOperation in allowed -> verbOperation
+                    verbOperation == "inspect" && "test" in allowed -> "test"
+                    else -> null
+                }
+                val operation = match.phraseOperation ?: fromVerb
                 val kind = when {
                     isQuote -> ItemKind.QUOTE
                     NOT_DONE.containsMatchIn(line.norm) -> ItemKind.UNCLEAR
                     recommendedSection || RECOMMENDED.containsMatchIn(line.norm) -> ItemKind.RECOMMENDED
-                    service || action || anyService -> ItemKind.PERFORMED
+                    operation != null -> ItemKind.PERFORMED
+                    verbOperation != null -> ItemKind.UNCLEAR // czasownik jest, ale ta czynność nie ma takiej operacji
                     else -> ItemKind.PARTS_ONLY
                 }
-                items += DraftItem(line.evidence.text, code, kind, line.evidence)
+                items += DraftItem(line.evidence.text, match.term.action, operation ?: allowed.first(), kind, line.evidence)
             }
         }
         return items
@@ -275,7 +292,11 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
         val PLATE = Regex("(?<![A-Z0-9])[A-Z]{2}[ -]?\\d{5}(?![A-Z0-9])")
         val NOT_PLATE_PREFIX = setOf("KR", "NO", "NR", "PB", "TL", "ID")
 
-        val ACTION = words(
+        val INSPECT_VERB = words(
+            "kontroll|kontrollert|kontrollere|kontrolleres|sjekk|sjekket|sjekke|inspisert|inspeksjon|check|checked|inspect|inspected|inspection",
+        )
+        val TEST_VERB = words("test|testet|testing|tested|målt|measured")
+        val REPLACE_VERB = words(
             "skift|skifte|skiftet|bytt|bytte|byttet|utskiftet|utskifting|erstattet|fornyet|" +
                 "replaced|changed|renewed|replace|change|replacement|renewal",
         )

@@ -66,18 +66,18 @@ class DocumentExtractorTest {
         val d = extract(norwegianInvoice)
         assertEquals(
             mapOf(
-                "ENGINE_OIL" to ItemKind.PERFORMED,
-                "OIL_FILTER" to ItemKind.PARTS_ONLY,
-                "BRAKE_FLUID" to ItemKind.PERFORMED,
-                "CABIN_FILTER" to ItemKind.PARTS_ONLY,
-                "BRAKE_PADS" to ItemKind.RECOMMENDED,
+                "engine_oil:replace" to ItemKind.PERFORMED,
+                "oil_filter:replace" to ItemKind.PARTS_ONLY,
+                "brake_fluid:replace" to ItemKind.PERFORMED,
+                "cabin_filter:replace" to ItemKind.PARTS_ONLY,
+                "brake_pads:replace" to ItemKind.RECOMMENDED,
             ),
-            d.items.filter { it.taskCode != "ENGINE_OIL" || it.kind == ItemKind.PERFORMED }.associate { it.taskCode to it.kind },
+            d.items.filter { it.taskCode != "engine_oil:replace" || it.kind == ItemKind.PERFORMED }.associate { it.taskCode to it.kind },
         )
         val oilPart = d.items.single { it.originalText.contains("5W-30") }
         assertEquals(ItemKind.PARTS_ONLY, oilPart.kind, "an oil line item alone is not an oil change")
         assertFalse(oilPart.selectedByDefault)
-        assertEquals(setOf("ENGINE_OIL", "BRAKE_FLUID"), d.items.filter { it.selectedByDefault }.map { it.taskCode }.toSet())
+        assertEquals(setOf("engine_oil:replace", "brake_fluid:replace"), d.items.filter { it.selectedByDefault }.map { it.taskCode }.toSet())
         assertEquals(8, d.items.first().evidence.line)
     }
 
@@ -108,8 +108,8 @@ class DocumentExtractorTest {
         assertEquals(Money(36_000, "GBP"), d.total.value)
         assertEquals(
             mapOf(
-                "INSPECTION_SERVICE" to ItemKind.PERFORMED, "ENGINE_OIL" to ItemKind.PERFORMED, "OIL_FILTER" to ItemKind.PERFORMED,
-                "BRAKE_FLUID" to ItemKind.PERFORMED, "AIR_FILTER" to ItemKind.PARTS_ONLY, "BRAKE_DISCS" to ItemKind.RECOMMENDED,
+                "inspection_service:inspect" to ItemKind.PERFORMED, "engine_oil:replace" to ItemKind.PERFORMED, "oil_filter:replace" to ItemKind.PERFORMED,
+                "brake_fluid:replace" to ItemKind.PERFORMED, "air_filter:replace" to ItemKind.PARTS_ONLY, "brake_discs:replace" to ItemKind.RECOMMENDED,
             ),
             d.kinds(),
         )
@@ -257,8 +257,8 @@ class DocumentExtractorTest {
         )
         assertEquals(
             mapOf(
-                "AIR_FILTER" to ItemKind.RECOMMENDED, "COOLANT" to ItemKind.UNCLEAR, "BRAKE_FLUID" to ItemKind.PERFORMED,
-                "TIMING_BELT" to ItemKind.RECOMMENDED, "SPARK_PLUGS" to ItemKind.PERFORMED,
+                "air_filter:replace" to ItemKind.RECOMMENDED, "coolant:replace" to ItemKind.UNCLEAR, "brake_fluid:replace" to ItemKind.PERFORMED,
+                "timing_belt:replace" to ItemKind.RECOMMENDED, "spark_plugs:replace" to ItemKind.PERFORMED,
             ),
             d.kinds(),
         )
@@ -267,15 +267,15 @@ class DocumentExtractorTest {
     @Test
     fun `dictionary matches whole words only and keeps original text`() {
         val d = extract("Faktura\nSKIFT AV BREMSEVÆSKEN (DOT 4)\nOljefilterhus kontrollert\nSolje AS")
-        assertEquals(listOf("BRAKE_FLUID"), d.items.map { it.taskCode })
+        assertEquals(listOf("brake_fluid:replace"), d.items.map { it.taskCode })
         assertEquals("SKIFT AV BREMSEVÆSKEN (DOT 4)", d.items.single().originalText)
     }
 
     @Test
     fun `custom dictionary replaces the default one`() {
-        val custom = DocumentExtractor(listOf(TaskTerm("X1", listOf("dekkskift"))))
+        val custom = DocumentExtractor(listOf(TaskTerm("tyres", listOf("replace"), mapOf("replace" to listOf("dekkskift")))))
         val d = custom.extract(listOf(page(0, "Faktura\nDekkskift\nOljeskift")), car, today)
-        assertEquals(listOf("X1"), d.items.map { it.taskCode })
+        assertEquals(listOf("tyres:replace"), d.items.map { it.taskCode })
     }
 
     @Test
@@ -312,25 +312,100 @@ class DocumentExtractorTest {
 
     @Test
     fun `confirmation produces engine tasks only from reviewed data`() {
-        val ok = DraftConfirmation.confirm(ReviewedDraft(LocalDate.parse("2025-03-12"), 84_512, listOf("ENGINE_OIL", "BRAKE_FLUID", "ENGINE_OIL", " ")), today)
+        val ok = DraftConfirmation.confirm(ReviewedDraft(LocalDate.parse("2025-03-12"), 84_512, listOf("engine_oil:replace", "brake_fluid:replace", "engine_oil:replace", " ")), today)
         assertEquals(
             ConfirmationResult.Accepted(
                 listOf(
-                    PerformedTask("ENGINE_OIL", LocalDate.parse("2025-03-12"), 84_512),
-                    PerformedTask("BRAKE_FLUID", LocalDate.parse("2025-03-12"), 84_512),
+                    PerformedTask("engine_oil:replace", LocalDate.parse("2025-03-12"), 84_512),
+                    PerformedTask("brake_fluid:replace", LocalDate.parse("2025-03-12"), 84_512),
                 ),
+                null,
             ),
             ok,
         )
-        assertTrue(DraftConfirmation.confirm(ReviewedDraft(today, null, listOf("X")), today) is ConfirmationResult.Accepted)
+        assertTrue(DraftConfirmation.confirm(ReviewedDraft(today, null, listOf("x:replace")), today) is ConfirmationResult.Accepted)
     }
 
     @Test
     fun `confirmation rejects incomplete or impossible data`() {
         fun errors(r: ReviewedDraft) = (DraftConfirmation.confirm(r, today) as ConfirmationResult.Rejected).errors
         assertEquals(setOf(ConfirmationError.DATE_MISSING, ConfirmationError.NO_TASKS), errors(ReviewedDraft(null, null, emptyList())))
-        assertEquals(setOf(ConfirmationError.DATE_IN_FUTURE), errors(ReviewedDraft(today.plusDays(1), 10, listOf("X"))))
-        assertEquals(setOf(ConfirmationError.ODOMETER_NEGATIVE), errors(ReviewedDraft(today, -1, listOf("X"))))
+        assertEquals(setOf(ConfirmationError.DATE_IN_FUTURE), errors(ReviewedDraft(today.plusDays(1), 10, listOf("x:replace"))))
+        assertEquals(setOf(ConfirmationError.ODOMETER_NEGATIVE), errors(ReviewedDraft(today, -1, listOf("x:replace"))))
+    }
+
+    @Test
+    fun `inspection is not replacement`() {
+        val d = extract(
+            """
+            Faktura
+            Utført arbeid
+            Kontroll av bremsevæske
+            Oljenivå kontrollert
+            Bremseklosser sjekket, 6 mm igjen
+            Luftfilter kontrollert og skiftet
+            Bremsekontroll
+            Startbatteri testet
+            Startbatteri kontrollert
+            Batteribytte
+            Brake discs inspected
+            Coolant checked
+            """,
+        )
+        assertEquals(
+            listOf(
+                "brake_fluid:inspect", "engine_oil:inspect", "brake_pads:inspect", "air_filter:replace", "brakes:inspect",
+                "battery_12v:test", "battery_12v:test", "battery_12v:replace", "brake_discs:inspect", "coolant:inspect",
+            ),
+            d.items.map { it.taskCode },
+        )
+        assertTrue(d.items.all { it.kind == ItemKind.PERFORMED })
+        assertEquals("brake_fluid", d.items.first().action)
+        assertEquals("inspect", d.items.first().operation)
+    }
+
+    @Test
+    fun `operation a task does not allow is never guessed`() {
+        // Kontrakt: inspection_service ma tylko „inspect”, więc „skiftet” nie tworzy wymiany.
+        val custom = DocumentExtractor(listOf(TaskTerm("wipers", listOf("inspect"), partPhrases = listOf("viskerblad"))))
+        val item = custom.extract(listOf(page(0, "Faktura\nViskerblad skiftet")), car, today).items.single()
+        assertEquals("wipers:inspect", item.taskCode)
+        assertEquals(ItemKind.UNCLEAR, item.kind)
+        assertFalse(item.selectedByDefault)
+    }
+
+    @Test
+    fun `default dictionary matches the shared service contract`() {
+        // Kontrakt jest własnością aplikacji; czytamy go jako tekst, żeby moduł pozostał samodzielnym buildem.
+        val contract = java.io.File("../service-contract/src/main/kotlin/app/servicepassport/contract/ServiceTask.kt")
+        assertTrue(contract.isFile, "shared contract not found at ${contract.path}")
+        val expected = Regex("""[A-Z0-9_]+\("([a-z0-9_]+)", setOf\(([^)]*)\)\)""").findAll(contract.readText())
+            .associate { m -> m.groupValues[1] to Regex("Operation\\.([A-Z]+)").findAll(m.groupValues[2]).map { it.groupValues[1].lowercase() }.toSet() }
+        assertTrue(expected.size >= 15, "contract parsing found only ${expected.size} actions")
+        assertEquals(expected, DefaultTaskDictionary.terms.associate { it.action to it.operations.toSet() })
+    }
+
+    @Test
+    fun `confirmation gates - task code format, blocking warnings and currency`() {
+        val day = LocalDate.parse("2025-03-12")
+        fun errors(r: ReviewedDraft, warnings: Set<DraftWarning> = emptySet(), ack: Set<DraftWarning> = emptySet()) =
+            (DraftConfirmation.confirm(r, today, warnings, ack) as? ConfirmationResult.Rejected)?.errors ?: emptySet()
+
+        assertEquals(setOf(ConfirmationError.INVALID_TASK_CODE), errors(ReviewedDraft(day, 1, listOf("ENGINE_OIL"))))
+        assertEquals(setOf(ConfirmationError.INVALID_TASK_CODE), errors(ReviewedDraft(day, 1, listOf("engine_oil"))))
+
+        val ok = ReviewedDraft(day, 1, listOf("engine_oil:replace"))
+        val other = setOf(DraftWarning.VEHICLE_MISMATCH, DraftWarning.MILEAGE_IN_MILES)
+        assertEquals(setOf(ConfirmationError.WARNING_NOT_ACKNOWLEDGED), errors(ok, other))
+        assertEquals(setOf(ConfirmationError.WARNING_NOT_ACKNOWLEDGED), errors(ok, setOf(DraftWarning.DOCUMENT_IS_QUOTE)))
+        assertTrue(errors(ok, other, setOf(DraftWarning.VEHICLE_MISMATCH)).isEmpty(), "explicit acknowledgement unblocks")
+        assertTrue(errors(ok, setOf(DraftWarning.MILEAGE_IN_MILES)).isEmpty(), "non-blocking warnings need no acknowledgement")
+
+        assertEquals(setOf(ConfirmationError.CURRENCY_NOT_SUPPORTED), errors(ok.copy(cost = Money(36_000, "GBP"))))
+        assertEquals(setOf(ConfirmationError.CURRENCY_NOT_SUPPORTED), errors(ok.copy(cost = Money(36_000, null))))
+        assertEquals(setOf(ConfirmationError.COST_NEGATIVE), errors(ok.copy(cost = Money(-1, "NOK"))))
+        val accepted = DraftConfirmation.confirm(ok.copy(cost = Money(371_700, "NOK")), today) as ConfirmationResult.Accepted
+        assertEquals(Money(371_700, "NOK"), accepted.cost)
     }
 
     @Test
