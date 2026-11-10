@@ -166,6 +166,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
         DateField(stringResource(R.string.first_registration), registrationDate, "first_registration", today, true) { registrationDate = it; issue = null }
         Text(stringResource(R.string.first_registration_help), style = MaterialTheme.typography.bodySmall)
         listOf(R.string.make, R.string.model, R.string.generation, R.string.vin, R.string.registration_number, R.string.engine_code).forEachIndexed { index, label -> OutlinedTextField(value = details[index], onValueChange = { detail(index, it) }, label = { Text(stringResource(label)) }, singleLine = true, modifier = Modifier.fillMaxWidth()) }
+        VehicleHints(details[0], details[1], details[3], details[4]) { index, value -> detail(index, value) }
         val unknown = "" to stringResource(R.string.unknown_value)
         Choice(stringResource(R.string.gearbox_type), details[6], listOf(unknown, "MANUAL" to stringResource(R.string.gearbox_manual), "AUTOMATIC" to stringResource(R.string.gearbox_automatic), "CVT" to stringResource(R.string.gearbox_cvt), "DCT" to stringResource(R.string.gearbox_dct), "OTHER" to stringResource(R.string.other_value)), "gearbox_type") { detail(6, it) }
         OutlinedTextField(value = details[7], onValueChange = { detail(7, it) }, label = { Text(stringResource(R.string.gearbox_code)) }, singleLine = true, modifier = Modifier.fillMaxWidth())

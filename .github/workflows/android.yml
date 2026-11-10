@@ -2,9 +2,9 @@ name: Android application
 
 on:
   push:
-    paths: ['app/**', 'service-contract/**', 'service-engine/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+    paths: ['app/**', 'service-contract/**', 'vehicle-catalog/vehicle-list.json', 'service-engine/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
   pull_request:
-    paths: ['app/**', 'service-contract/**', 'service-engine/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
+    paths: ['app/**', 'service-contract/**', 'vehicle-catalog/vehicle-list.json', 'service-engine/**', 'scripts/**', 'gradle/**', 'gradlew*', '*.gradle.kts', 'gradle.properties', '.github/workflows/android.yml']
 
 permissions:
   contents: read

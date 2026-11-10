@@ -63,6 +63,10 @@ Pole `nordic` to lista krajów (`NO`, `SE`, `FI`, `DK`, `IS`), w których model 
 - Pozostał szum w nazwach; nazwy są wielkimi literami, jak w rejestrze.
 - W aplikacji musi zostać ręczne wpisanie marki i modelu spoza listy.
 
+## Użycie w aplikacji
+
+Plik jest dołączany do aplikacji przy budowaniu (`app/build.gradle.kts`, zadanie `vehicleCatalogAssets`). W formularzu auta podpowiada marki i modele; wpisanie dowolnej innej marki lub modelu nadal jest możliwe. Źródła i licencje są wymienione w Ustawieniach aplikacji (wymóg CC BY dla danych EEA).
+
 ## Odtworzenie
 
 ```bash
