@@ -16,11 +16,12 @@ Prowadzenie rzeczywistej historii jednego auta bez OCR: zapis, edycja i usuwanie
 - Trwała baza Room v2, migracja 1→2 zachowująca profil z Etapu 2, transakcje, UUID formularzy i rewizje chroniące przed nadpisaniem nieaktualnego wpisu.
 - Ręczne, opcjonalne dane konfiguracji auta; data pierwszej rejestracji osobno od roku modelowego. Nieznane pola pozostają puste; nie ma dekodowania VIN ani przypisania planu z samego modelu.
 - NO/EN: ścisłe formaty dat, grupowanie kilometrów, koszt bez zaokrąglania ponad dwa miejsca, lokalny kalendarz i komunikaty. Formularze zachowują dane przy odtworzeniu Activity; wyjście z niezapisanymi zmianami wymaga decyzji.
+- Poprawka po audycie: wybór istniejącego odczytu stosuje tę samą walidację co formularz. Starszy/niespójny odczyt wymaga wyjaśnienia i świeżego potwierdzenia; anulowanie lub odrzucenie pozostawia poprzedni wybór. Zmiana wyjaśnienia odczytu usługowego chroni także rewizję usługi.
 
 ## 3. Jak uruchomić i sprawdzić
 
 - [PR #5 — cały kod Etapu 3](https://github.com/RobertCygan/Bil-Service-assistent/pull/5).
-- [APK 0.2.0-dev i raporty](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42844862596/artifacts/13777736986): rozpakuj ZIP; APK jest w `app/build/outputs/apk/debug/app-debug.apk`. Wymagane logowanie na GitHubie, retencja 7 dni (do 17 listopada 2026).
+- [APK 0.2.0-dev i raporty](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42859784413/artifacts/13784722889): rozpakuj ZIP; APK jest w `app/build/outputs/apk/debug/app-debug.apk`. Wymagane logowanie na GitHubie, retencja 7 dni (do 17 listopada 2026).
 - Rzeczywiste ekrany Androida: [historia NO](android-no.png), [historia EN](android-en.png), [bieżący przebieg NO](overview-no.png). Dane „Foundation test car” są fikcyjnym scenariuszem testu, nie danymi startowymi aplikacji.
 - [Raport weryfikacji](verification.json) i [wynik pełnego restartu procesu](process-restart.json).
 
@@ -49,15 +50,15 @@ Scenariusz ręczny:
 | Kontrola | Wynik |
 | --- | --- |
 | Root wrapper, APK debug i APK testowe | Przeszło lokalnie i w CI, JDK 17 / Gradle 8.13 |
-| Testy aplikacji: walidacja, dokładne kwoty, daty NO/EN, plikowy Room, konflikty, selekcja i migracja | 24 testy, 0 błędów |
+| Testy aplikacji: walidacja, dokładne kwoty, daty NO/EN, plikowy Room, konflikty, selekcja i migracja | 29 testów, 0 błędów |
 | Kontrakt kodów czynności i operacji | 3 testy, 0 błędów |
 | Android Lint | 0 błędów, 23 ostrzeżenia: 20 o aktualizacjach narzędzi/zależności, 1 localeConfig od API 33, 2 nieużywane zasoby |
-| Test Compose na Androidzie 15 / API 35 | Przeszło: aktualizacja przebiegu, starszy serwis z dwiema pracami i kosztem, edycja, usunięcie wpisu bez km, odtworzenie Activity, porzucenie formularza i NO/EN |
+| Test Compose na Androidzie 15 / API 35 | Przeszło: aktualizacja przebiegu, starszy serwis z dwiema pracami i kosztem, edycja, usunięcie wpisu bez km, odtworzenie Activity, porzucenie formularza, NO/EN oraz anulowanie/odrzucenie/potwierdzenie wyboru istniejącego starszego odczytu |
 | Migracja 1→2 na Androidzie | Przeszło: rzeczywisty archiwalny schemat v1, zachowane ID/nazwa/rok/metadane, nowe dane pozostają puste |
 | Pełne zatrzymanie procesu i ponowny start | Przeszło: profil, bieżące 59 000 km, starszy serwis po edycji 49 000 km, dwie prace i nb-NO |
-| GitHub CI dla kodu `e450c5139bbeace067e29084ab1f4afb031b9d05` | Oba zadania `build` i `device` zielone w obu przebiegach: [PR](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42844862596) i [push](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42844849007) |
+| GitHub CI dla kodu `e1c44e0521d503a6bb91a87e700a503842939e06` | Oba zadania `build` i `device` zielone w obu przebiegach: [PR](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42859784413) i [push](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42859770643) |
 
-Pierwszy przebieg wykrył zbyt ścisłą asercję tekstu w teście NO; poprawiony test oraz rozszerzony scenariusz usuwania przeszły w powyższych przebiegach. Wynik końcowy dotyczy wskazanej rewizji kodu. Następny commit dodaje tylko dokumentację i rzeczywiste zrzuty. APK pobrany z CI sprawdzono po SHA-256; oba archiwa i suma APK są zapisane w raporcie. Nie dodano uprawnień sieci, aparatu ani powiadomień. Testów na fizycznym telefonie ani na wszystkich wersjach Androida jeszcze nie wykonano.
+Po audycie dodano 5 testów wyboru istniejącego odczytu oraz rozszerzono test urządzenia. Poprawka jest w kodzie `e1c44e0…`; powyższe przebiegi potwierdzają ją na Androidzie. Wcześniej pierwszy przebieg wykrył zbyt ścisłą asercję tekstu w teście NO; poprawiony test oraz rozszerzony scenariusz usuwania przeszły w powyższych przebiegach. Wynik końcowy dotyczy wskazanej rewizji kodu. Następny commit dodaje tylko dokumentację i rzeczywiste zrzuty. APK pobrany z CI sprawdzono po SHA-256; oba archiwa i suma APK są zapisane w raporcie. Nie dodano uprawnień sieci, aparatu ani powiadomień. Testów na fizycznym telefonie ani na wszystkich wersjach Androida jeszcze nie wykonano.
 
 ## 5. Ograniczenia
 
