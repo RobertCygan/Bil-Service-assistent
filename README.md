@@ -1,7 +1,31 @@
 # Bil Service Assistent
 
-Planowana aplikacja Android dla kierowców w Norwegii, w językach norweskim Bokmål i angielskim.
+Robocza nazwa produktu: **AI Service Passport**. Planowana aplikacja Android dla kierowców w Norwegii, w językach norweskim Bokmål (`nb-NO`) i angielskim (`en`).
 
-Repozytorium rozpoczyna się od Etapu 0: analizy produktu i wykonalności. Dokumentacja zostanie przedstawiona w osobnym pull requeście do przeglądu zgodnie z briefem właściciela.
+Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazdu oraz wiarygodnego harmonogramu.
 
-Nie ma jeszcze kodu aplikacji ani zatwierdzonych harmonogramów serwisowych.
+## Status
+
+**Etap 0 — dokumentacja przygotowana do przeglądu, oczekuje na akceptację właściciela.** Nie ma jeszcze kodu aplikacji, działającego OCR ani zatwierdzonych harmonogramów. Nie rozpoczęto Etapu 1.
+
+Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
+
+## Dokumentacja
+
+- [Etap 0: produkt, MVP i decyzje do odbioru](docs/00-etap-0.md)
+- [Źródła danych, licencje i plan pilota](docs/01-dane-i-zrodla.md)
+- [Architektura, OCR i prywatność](docs/02-architektura-i-ocr.md)
+- [Koszty, ryzyka i etapy do Google Play](docs/03-koszty-i-plan.md)
+- [Prompt dostarczony przez właściciela](docs/brief/BUILD_PROMPT_PL.md)
+
+Dokumentacja projektu i rozmowa: po polsku. Interfejs i materiały dla użytkowników: NO/EN.
+
+## Zasady produktu
+
+- Nie generujemy zaleceń producenta z AI.
+- Każda reguła wymaga źródła, wersji, zakresu zastosowania i prawa użycia.
+- OCR proponuje wpis; dopiero potwierdzenie użytkownika zmienia historię.
+- Brak dokumentu oznacza brak potwierdzenia, a nie dowód niewykonania usługi.
+- Zmiany zakresu i rozpoczęcie kolejnego etapu wymagają odbioru poprzedniego etapu zgodnie z briefem.
+
+Nie dodano licencji projektu. Publiczna widoczność repozytorium nie określa licencji kodu ani praw do danych zewnętrznych. Nie umieszczamy tu prawdziwych VIN, faktur, danych osobowych ani sekretów.
