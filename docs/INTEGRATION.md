@@ -108,3 +108,17 @@ Od tego miejsca całość prowadzi jeden autor (decyzja właściciela). Zmiany w
 - **Ekran wskaźnika serwisowego jest w MVP** (decyzja właściciela) — do zrobienia w osobnym przyroście.
 
 Rozbieżność kategorii między pulpitem a przypomnieniami jest usunięta: `ReminderPlanner` przyjmuje `ReminderSubject`, który aplikacja buduje z końcowego wyniku pulpitu (`ReminderCoordinator`). Szczegóły: [07-etap-6-przypomnienia.md](07-etap-6-przypomnienia.md).
+
+## Wskaźnik serwisowy z auta (Room v4)
+
+Decyzja właściciela: ekran jest w MVP. Stan po tym przyroście:
+
+- Tabela `indicator_readings` (migracja 3→4): dzień odczytu, przebieg w tej chwili, pozostałe km i/lub dni tak, jak pokazuje auto; wartości ujemne oznaczają, że auto samo pokazuje zaległość. Odczyt jest dodawany lub usuwany, nie edytowany.
+- Odczyt jest **własnym źródłem** na pulpicie (`TaskOrigin.VEHICLE_DISPLAY`, czynność `inspection_service:inspect`): termin to dokładnie wpisane wartości, bez żadnego założonego interwału. Liczy się tylko najnowszy odczyt.
+- Potwierdzony późniejszy przegląd serwisowy unieważnia starszy odczyt: pozycja przechodzi do „wymaga danych” i prosi o nowy odczyt.
+- Gdy kiedyś pojawi się zweryfikowany plan zmienny producenta dla tej samej czynności, te same odczyty zasilą jego regułę, a osobna pozycja z wyświetlacza nie jest dublowana.
+- Odczyty są w kopii danych (`ExportIndicatorReading` z identyfikatorem, rewizją i znacznikami czasu) i w teście obiegu baza → kopia → nowa baza.
+- Przypomnienia działają dla tej pozycji tak samo jak dla pozostałych, bo czytają wynik pulpitu.
+
+Niesprawdzone: ekran na urządzeniu; migracja 3→4 na fizycznym telefonie (jest test na archiwalnym schemacie v3 w środowisku testowym i sprawdzenie aktualizacji v1/v2 w CI).
+

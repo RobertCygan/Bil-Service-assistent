@@ -77,6 +77,11 @@ class GarageViewModel(private val repository: ProfileRepository, private val eva
         val car = state.value.profile?.id ?: return
         mutate(onSaved) { repository.deleteInterval(car, id, revision) }
     }
+    fun saveIndicator(input: IndicatorInput, onSaved: () -> Unit) = mutate(onSaved) { repository.saveIndicator(input) }
+    fun deleteIndicator(id: String, onSaved: () -> Unit) {
+        val car = state.value.profile?.id ?: return
+        mutate(onSaved) { repository.deleteIndicator(car, id) }
+    }
     class Factory(private val repository: ProfileRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(GarageViewModel::class.java))

@@ -48,6 +48,7 @@ internal fun inputMessage(problem: InputProblem): Int = when (problem) {
     InputProblem.NOTE_TOO_LONG -> R.string.note_too_long; InputProblem.WARNINGS_NEED_REVIEW -> R.string.warning_needs_review
     InputProblem.NOT_FOUND -> R.string.entry_not_found; InputProblem.CONFLICT -> R.string.entry_conflict
     InputProblem.INVALID_INTERVAL -> R.string.invalid_interval; InputProblem.DUPLICATE_INTERVAL -> R.string.duplicate_interval
+    InputProblem.INVALID_INDICATOR -> R.string.invalid_indicator
 }
 
 @Composable internal fun Page(content: @Composable ColumnScope.() -> Unit) {

@@ -166,6 +166,25 @@ class ProfileRepository(private val database: GarageDatabase, private val clock:
         if (old == null) dao.insertInterval(interval) else dao.updateInterval(interval)
     }
 
+    /** A display reading is a new fact each time; it is added, never edited. Saving the same id twice is a no-op. */
+    suspend fun saveIndicator(input: IndicatorInput) = transaction {
+        IndicatorValidation.validate(input, today)
+        garage(input.vehicleId)
+        val old = dao.indicator(input.id)
+        if (old != null) {
+            if (old.vehicleId == input.vehicleId && old.observedDay == input.observedDay && old.odometerKm == input.odometerKm && old.remainingKm == input.remainingKm && old.remainingDays == input.remainingDays) return@transaction
+            reject(InputProblem.CONFLICT)
+        }
+        val now = clock.millis()
+        dao.insertIndicator(IndicatorReadingEntity(input.id, input.vehicleId, input.observedDay, input.odometerKm, input.remainingKm, input.remainingDays, 1, now, now))
+    }
+
+    suspend fun deleteIndicator(vehicleId: String, id: String) = transaction {
+        val reading = dao.indicator(id) ?: reject(InputProblem.NOT_FOUND)
+        if (reading.vehicleId != vehicleId) reject(InputProblem.NOT_FOUND)
+        dao.deleteIndicator(id)
+    }
+
     suspend fun deleteInterval(vehicleId: String, id: String, expectedRevision: Long) = transaction {
         val interval = dao.interval(id) ?: reject(InputProblem.NOT_FOUND)
         if (interval.vehicleId != vehicleId) reject(InputProblem.NOT_FOUND)

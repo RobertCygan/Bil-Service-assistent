@@ -85,6 +85,12 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     }
 }
 
+private fun originResource(origin: TaskOrigin): Int = when (origin) {
+    TaskOrigin.USER -> R.string.user_interval_source
+    TaskOrigin.MANUFACTURER -> R.string.manufacturer_interval_source
+    TaskOrigin.VEHICLE_DISPLAY -> R.string.indicator_source
+}
+
 @Composable internal fun DashboardPage(state: GarageState, go: (String) -> Unit, retry: () -> Unit) = Page {
     Text(stringResource(R.string.service_overview), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("dashboard_title"))
     val dashboard = state.dashboard
@@ -103,6 +109,7 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     }
     CatalogNotice(dashboard, go)
     Button(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
+    OutlinedButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
     DashboardCounts(dashboard)
     if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
     Category.entries.forEach { category ->
@@ -113,7 +120,7 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
                 OutlinedCard(onClick = { go("forecast/${Uri.encode(task.id)}") }, modifier = Modifier.fillMaxWidth().testTag("forecast_${task.id}")) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(if (task.origin == TaskOrigin.USER) R.string.user_interval_source else R.string.manufacturer_interval_source), style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.labelMedium)
                         DueValues(task)
                         task.reasons.forEach { Text(stringResource(reasonResource(it)), style = MaterialTheme.typography.bodySmall) }
                     }
@@ -138,9 +145,12 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     val locale = uiLocale()
     Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.headlineMedium)
     Text(stringResource(categoryResource(task.category)), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("forecast_category"))
-    Text(stringResource(if (task.origin == TaskOrigin.USER) R.string.user_interval_source else R.string.manufacturer_interval_source))
-    if (task.origin == TaskOrigin.USER) NoteCard(stringResource(R.string.user_interval_explanation))
-    else Text(stringResource(R.string.source_version, task.source.title, task.source.version, LocalDates.text(task.source.verifiedOn.toEpochDay(), locale)))
+    Text(stringResource(originResource(task.origin)))
+    when (task.origin) {
+        TaskOrigin.USER -> NoteCard(stringResource(R.string.user_interval_explanation))
+        TaskOrigin.VEHICLE_DISPLAY -> NoteCard(stringResource(R.string.indicator_explanation))
+        TaskOrigin.MANUFACTURER -> Text(stringResource(R.string.source_version, task.source.title, task.source.version, LocalDates.text(task.source.verifiedOn.toEpochDay(), locale)))
+    }
     DueValues(task)
     task.remainingKm?.let { Text(stringResource(R.string.distance_to_due, formattedKm(it.toLong(), locale))) }
     task.remainingDays?.let { Text(stringResource(R.string.days_to_due, it.toString())) }
@@ -170,4 +180,5 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_service)) }
     OutlinedButton(onClick = { go("reading/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.update_odometer)) }
     if (task.origin == TaskOrigin.USER) TextButton(onClick = { go("interval/edit/${task.id.removePrefix("user:")}") }) { Text(stringResource(R.string.edit_interval)) }
+    if (task.origin == TaskOrigin.VEHICLE_DISPLAY || task.task.taskCode == "inspection_service:inspect") TextButton(onClick = { go("indicator") }) { Text(stringResource(R.string.indicator_title)) }
 }
