@@ -27,6 +27,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
 import app.servicepassport.android.R
 import app.servicepassport.android.backup.DataFiles
+import app.servicepassport.android.documents.DocumentAnalyzer
 import app.servicepassport.android.data.ProfileRepository
 import app.servicepassport.android.reminders.ReminderStore
 import kotlinx.coroutines.delay
@@ -34,7 +35,7 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? = null, onDataChanged: () -> Unit = {}, dataFiles: DataFiles? = null) {
+fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? = null, onDataChanged: () -> Unit = {}, dataFiles: DataFiles? = null, documents: DocumentAnalyzer? = null) {
     val model: GarageViewModel = viewModel(factory = GarageViewModel.Factory(repository))
     val state by model.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -44,6 +45,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
         }
     }
     LaunchedEffect(state.dashboard) { if (state.dashboard != null) onDataChanged() }
+    val imports = remember { ImportSession() }
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -53,6 +55,8 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
     val tabs = setOf("overview", "history", "settings")
     fun navigate(target: String) {
         model.clearProblem()
+        // A prefill from a document belongs to one visit of the service form only.
+        if (target != "service/new" && route == "service/new") imports.clear()
         nav.navigate(target) {
             if (target in tabs) popUpTo(nav.graph.findStartDestination().id)
             launchSingleTop = true
@@ -91,7 +95,8 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                     else IntervalEditor(state, interval, { dirty = it }) { input -> model.saveInterval(input, ::intervalSaved) }
                 }
                 composable("vehicle") { ProfileEditor(state, model.today, { dirty = it }) { input -> model.save(input) { saved("overview") } } }
-                composable("service/new") { ServiceEditor(state, null, model.today, { dirty = it }) { input -> model.saveService(input) { saved("history") } } }
+                composable("service/new") { ServiceEditor(state, null, model.today, { dirty = it }, imports.prefill) { input -> model.saveService(input) { imports.clear(); saved("history") } } }
+                composable("import") { ImportPage(state, imports, documents, model.today, ::go) }
                 composable("service/edit/{id}") { node ->
                     val record = state.snapshot?.events?.firstOrNull { it.event.id == node.arguments?.getString("id") }
                     if (record == null) Page { Text(stringResource(R.string.entry_not_found)) } else ServiceEditor(state, record, model.today, { dirty = it }) { input -> model.saveService(input) { saved("history") } }

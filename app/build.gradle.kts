@@ -63,6 +63,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.work.runtime)
+    // On-device text recognition with the Latin model bundled in the APK: documents are not uploaded.
+    implementation(libs.mlkit.text.recognition)
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.tooling)
