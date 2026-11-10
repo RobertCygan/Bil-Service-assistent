@@ -1,0 +1,140 @@
+{
+  "checked_on": "2026-11-10",
+  "scope": "Stage 3 odometer readings and manual service history",
+  "source_revision": "e1c44e0521d503a6bb91a87e700a503842939e06",
+  "local": {
+    "jdk": 17,
+    "gradle": "8.13",
+    "assemble_debug": "passed",
+    "assemble_debug_android_test": "passed",
+    "suites": [
+      {
+        "suite": "app.servicepassport.android.ProfilePersistenceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.ProfileValidationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.history.HistoryRepositoryTest",
+        "tests": 17,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.history.HistoryValidationTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.history.LocalDatesTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.history.MigrationTest",
+        "tests": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.contract.ServiceTaskTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0
+      }
+    ],
+    "locale_keys": 151,
+    "lint": {
+      "errors": 0,
+      "warnings": 23
+    }
+  },
+  "android_device_ci": {
+    "status": "passed",
+    "api": 35,
+    "android_version": "15",
+    "compose_flow_tests": 1,
+    "native_migration_tests": 1,
+    "process_restart": {
+      "process_force_stopped": true,
+      "saved_profile_restored": true,
+      "explicit_current_km_restored": 59000,
+      "historical_service_km_restored": 49000,
+      "historical_service_date_restored": "2025-12-15",
+      "work_items_restored": 2,
+      "selected_language_restored": "nb-NO",
+      "manufacturer_schedule_present": false
+    },
+    "runs": [
+      {
+        "id": 42859784413,
+        "event": "pull_request",
+        "conclusion": "success"
+      },
+      {
+        "id": 42859770643,
+        "event": "push",
+        "conclusion": "success"
+      }
+    ],
+    "existing_reading_selection_review": "passed: cancel, reject without review, confirm older reading, restore latest explicitly"
+  },
+  "database": {
+    "version": 2,
+    "migration": "1->2",
+    "destructive_fallback": false,
+    "archived_v1_preserved": true,
+    "explicit_current_selection": true,
+    "current_reading_auto_fallback": false
+  },
+  "integration": {
+    "engine_pr": 2,
+    "engine_reviewed_sha": "7e405ff43ab83d3527745310b558a7d291f2e686",
+    "later_additions_reviewed_sha": "7b966d61a9565ad39c2c7c70bcf40de4e0fa904f",
+    "engine_merged": false,
+    "manufacturer_rules": 0,
+    "canonical_actions": 15,
+    "near_due_km": 1500,
+    "near_due_days": 30,
+    "stale_odometer_days": 90,
+    "indicator_ui_in_mvp": false
+  },
+  "apk_permissions": [
+    "app.servicepassport.android.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "limitations": [
+    "One vehicle in the UI",
+    "Android device checks cover API 35, no physical-phone test yet",
+    "No Android OCR, engine adapter, verified manufacturer rules or notifications",
+    "Room does not encrypt the database; export/backup flow belongs to later stages",
+    "Debug signatures may differ between build machines; release signing remains a later stage",
+    "23 non-blocking Android Lint warnings"
+  ],
+  "artifacts": {
+    "apk_archive": {
+      "run_id": 42859784413,
+      "id": 13784722889,
+      "sha256": "44c1c72cf47af6296961e695152028d19cf0d1539c2ffcd5537a5dad922d882e"
+    },
+    "verified_apk_sha256": "9b732d82fbc71abb98d622c139cf1e0fa444d4acad7ecd8131e869cd517d3417",
+    "verified_apk_bytes": 12526690,
+    "device_proof_archive": {
+      "run_id": 42859784413,
+      "id": 13784463558,
+      "sha256": "754b7e4ba0202f26c9f130f732292694c995c89a3a7ca6a4ae79a35f2762b72f"
+    }
+  },
+  "screenshots_sha256": {
+    "android-en.png": "8f91d4f851c0d11f762c78844b1e22db5e22e17b5e61dd4f08b04c59885ec73c",
+    "overview-no.png": "8eac689985f1cb625acac6c486b0b879cef375752550c85275cd6dd019580960",
+    "android-no.png": "23b53448edb6ef0dc99b3d4a29e8410a80e19354706cfc8336047aba37982d2e"
+  }
+}
