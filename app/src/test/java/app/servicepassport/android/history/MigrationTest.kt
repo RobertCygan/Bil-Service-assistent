@@ -41,7 +41,7 @@ class MigrationTest {
             assertNull(garage.currentReading)
             assertTrue(garage.history.isEmpty())
             assertTrue(garage.indicators.isEmpty())
-            assertEquals(4, upgraded.openHelper.writableDatabase.version)
+            assertEquals(5, upgraded.openHelper.writableDatabase.version)
         } finally { upgraded.close(); context.deleteDatabase(file) }
     }
 }

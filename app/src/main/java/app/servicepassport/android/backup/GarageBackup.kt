@@ -2,6 +2,8 @@ package app.servicepassport.android.backup
 
 import androidx.room.withTransaction
 import app.servicepassport.android.data.*
+import app.servicepassport.android.documents.DocumentStore
+import app.servicepassport.android.documents.DocumentTypes
 import app.servicepassport.android.integration.EngineAdapter
 import app.servicepassport.android.reminders.ReminderStore
 import app.servicepassport.contract.ServiceTask
@@ -20,7 +22,7 @@ enum class RestoreProblem {
     UNKNOWN_TASK,
     /** History stores NOK only; another currency must not be relabelled. */
     UNSUPPORTED_CURRENCY,
-    /** Documents, or a display reading for another task: this app version cannot store them without loss. */
+    /** A document that is not tied to exactly one entry or has an unsupported type, or a display reading for another task. */
     UNSUPPORTED_CONTENT,
     /** The app handles one vehicle. */
     SEVERAL_VEHICLES,
@@ -43,16 +45,20 @@ data class GarageRows(
     val selections: List<CurrentOdometerEntity>,
     val intervals: List<UserIntervalEntity>,
     val indicators: List<IndicatorReadingEntity> = emptyList(),
+    val documents: List<DocumentEntity> = emptyList(),
 )
 
 class BackupRefused(val problem: RestoreProblem) : IllegalArgumentException(problem.name)
 
-/** Lossless mapping between Room v3 rows and the export format. No value is recomputed or guessed. */
+/** Lossless mapping between Room rows and the export format. No value is recomputed or guessed. */
 object BackupMapper {
     private fun date(day: Long): String = LocalDate.ofEpochDay(day).toString()
     private fun day(date: String): Long = LocalDate.parse(date).toEpochDay()
 
-    fun export(snapshots: List<GarageSnapshot>): ExportData = ExportData(
+    private fun path(document: DocumentEntity) = ExportFormat.DOCUMENTS_DIR + document.fileName
+
+    /** @param hasFile a document whose file is gone cannot be copied; it is left out instead of producing a broken archive */
+    fun export(snapshots: List<GarageSnapshot>, hasFile: (DocumentEntity) -> Boolean = { true }): ExportData = ExportData(
         vehicles = snapshots.map { s ->
             val v = s.vehicle
             ExportVehicle(
@@ -73,8 +79,12 @@ object BackupMapper {
                 ExportServiceEvent(
                     e.id, e.vehicleId, date(e.performedDay), e.costMinor, e.currency, e.note, e.revision, e.createdAtUtc, e.updatedAtUtc,
                     record.orderedActions.map { ExportAction(it.id, it.actionCode, it.operationCode, it.customLabel) },
+                    record.documents.filter(hasFile).map { it.id }.sorted(),
                 )
             }
+        },
+        documents = snapshots.flatMap { s ->
+            s.events.flatMap { it.documents }.filter(hasFile).sortedBy { it.id }.map { ExportDocument(it.id, it.vehicleId, path(it), it.mimeType, date(it.addedDay), it.createdAtUtc) }
         },
         userRules = snapshots.flatMap { s ->
             s.intervals.sortedBy { it.id }.map { ExportUserRule(it.id, it.vehicleId, it.actionCode, it.operationCode, it.distanceKm, it.months, it.revision, it.createdAtUtc, it.updatedAtUtc) }
@@ -85,11 +95,11 @@ object BackupMapper {
     )
 
     /** @throws BackupRefused when the content cannot be stored without loss or reinterpretation */
-    fun rows(data: ExportData): GarageRows {
+    fun rows(data: ExportData, files: List<ExportedFile> = emptyList()): GarageRows {
         fun refuse(problem: RestoreProblem): Nothing = throw BackupRefused(problem)
         if (data.vehicles.isEmpty()) refuse(RestoreProblem.EMPTY_BACKUP)
         if (data.vehicles.size > 1) refuse(RestoreProblem.SEVERAL_VEHICLES)
-        if (data.documents.isNotEmpty() || data.indicatorReadings.any { it.taskCode != EngineAdapter.INDICATOR_TASK }) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+        if (data.indicatorReadings.any { it.taskCode != EngineAdapter.INDICATOR_TASK }) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
         fun known(action: String, operation: String) { if (ServiceTask.fromTaskCode("$action:$operation") == null) refuse(RestoreProblem.UNKNOWN_TASK) }
 
         val vehicles = data.vehicles.map { v ->
@@ -103,7 +113,6 @@ object BackupMapper {
         }
         val events = data.serviceEvents.map { e ->
             if (e.costMinor == null && e.currency != null || e.costMinor != null && e.currency != "NOK") refuse(RestoreProblem.UNSUPPORTED_CURRENCY)
-            if (e.documentIds.isNotEmpty()) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
             ServiceEventEntity(e.id, e.vehicleId, day(e.date), e.costMinor, e.currency, e.note, e.revision, e.createdAtUtc, e.updatedAtUtc)
         }
         val actions = data.serviceEvents.flatMap { e ->
@@ -119,7 +128,19 @@ object BackupMapper {
             UserIntervalEntity(it.id, it.vehicleId, it.actionCode, it.operationCode, it.km, it.months, it.revision, it.createdAtUtc, it.updatedAtUtc)
         }
         val indicators = data.indicatorReadings.map { IndicatorReadingEntity(it.id, it.vehicleId, day(it.date), it.odometerKm.toLong(), it.remainingKm, it.remainingDays, it.revision, it.createdAtUtc, it.updatedAtUtc) }
-        return GarageRows(vehicles, events, actions, readings, selections, intervals, indicators)
+        // A document belongs to exactly one entry of the same vehicle; its size and checksum come from the verified manifest.
+        val owners = data.serviceEvents.flatMap { e -> e.documentIds.map { it to e } }
+        if (owners.map { it.first }.distinct().size != owners.size) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+        val ownerOf = owners.toMap()
+        val manifest = files.associateBy { it.path }
+        val documents = data.documents.map { d ->
+            val event = ownerOf[d.id] ?: refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+            val file = manifest[d.path] ?: refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+            val name = d.path.removePrefix(ExportFormat.DOCUMENTS_DIR)
+            if (event.vehicleId != d.vehicleId || !DocumentTypes.safeName(name) || !DocumentTypes.supported(d.mimeType)) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+            DocumentEntity(d.id, d.vehicleId, event.id, name, d.mimeType, file.sha256, file.bytes, day(d.addedOn), d.createdAtUtc)
+        }
+        return GarageRows(vehicles, events, actions, readings, selections, intervals, indicators, documents)
     }
 }
 
@@ -127,7 +148,12 @@ object BackupMapper {
  * Writes and restores a complete copy of the local database.
  * Restore replaces all local data in one transaction; any refusal leaves the database untouched.
  */
-class GarageBackup(private val database: GarageDatabase, private val clock: Clock = Clock.systemDefaultZone(), private val settings: ReminderStore? = null) {
+class GarageBackup(
+    private val database: GarageDatabase,
+    private val clock: Clock = Clock.systemDefaultZone(),
+    private val settings: ReminderStore? = null,
+    private val documents: DocumentStore? = null,
+) {
     private val dao get() = database.vehicles()
 
     private object Discard : OutputStream() {
@@ -136,24 +162,43 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
     }
 
     suspend fun write(out: OutputStream, appVersion: String, password: CharArray? = null): ExportManifest = withContext(Dispatchers.IO) {
-        val data = database.withTransaction { BackupMapper.export(dao.vehicleIds().mapNotNull { dao.garage(it) }) }
-            .copy(settings = settings?.exportSettings().orEmpty())
-        ExportArchive.write(out, data, emptyList(), Instant.now(clock).toString(), appVersion, LocalDate.now(clock), password)
+        val snapshots = database.withTransaction { dao.vehicleIds().mapNotNull { dao.garage(it) } }
+        val stored = snapshots.flatMap { s -> s.events.flatMap { it.documents } }.filter { documents?.exists(it) == true }
+        val ids = stored.map { it.id }.toSet()
+        val data = BackupMapper.export(snapshots) { it.id in ids }.copy(settings = settings?.exportSettings().orEmpty())
+        val sources = stored.map { document -> DocumentSource(ExportFormat.DOCUMENTS_DIR + document.fileName) { requireNotNull(documents).open(document) } }
+        ExportArchive.write(out, data, sources, Instant.now(clock).toString(), appVersion, LocalDate.now(clock), password)
     }
 
-    /** Removes every vehicle with its history, readings and intervals, and resets reminder preferences. */
+    /** Removes every vehicle with its history, readings, intervals and document files, and resets reminder preferences. */
     suspend fun deleteAll() = withContext(Dispatchers.IO) {
         database.withTransaction { dao.deleteAllVehicles() }
+        documents?.deleteAll()
         settings?.reset()
     }
 
     suspend fun restore(input: InputStream, password: CharArray? = null): RestoreOutcome = withContext(Dispatchers.IO) {
-        // The whole archive is verified before the first row changes. Documents are not supported yet and are discarded.
-        val data = when (val result = ExportArchive.read(input, LocalDate.now(clock), password = password) { Discard }) {
-            is ImportResult.Failure -> return@withContext RestoreOutcome.ArchiveRefused(result.reason)
-            is ImportResult.Success -> result.data
+        // The whole archive is verified before the first row changes. Document files wait in a separate directory until then.
+        documents?.abortRestore()
+        val result = try {
+            ExportArchive.read(input, LocalDate.now(clock), password = password) { path ->
+                documents?.restoreSink(path.removePrefix(ExportFormat.DOCUMENTS_DIR)) ?: Discard
+            }
+        } catch (failure: Exception) {
+            documents?.abortRestore()
+            throw failure
         }
-        val rows = try { BackupMapper.rows(data) } catch (refused: BackupRefused) { return@withContext RestoreOutcome.ContentRefused(refused.problem) }
+        val success = when (result) {
+            is ImportResult.Failure -> { documents?.abortRestore(); return@withContext RestoreOutcome.ArchiveRefused(result.reason) }
+            is ImportResult.Success -> result
+        }
+        val data = success.data
+        val rows = try {
+            BackupMapper.rows(data, success.manifest.files).also { if (it.documents.isNotEmpty() && documents == null) throw BackupRefused(RestoreProblem.UNSUPPORTED_CONTENT) }
+        } catch (refused: BackupRefused) {
+            documents?.abortRestore()
+            return@withContext RestoreOutcome.ContentRefused(refused.problem)
+        }
         database.withTransaction {
             dao.deleteAllVehicles()
             rows.vehicles.forEach { dao.save(it) }
@@ -163,7 +208,9 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
             rows.selections.forEach { dao.selectReading(it) }
             rows.intervals.forEach { dao.insertInterval(it) }
             rows.indicators.forEach { dao.insertIndicator(it) }
+            rows.documents.forEach { dao.insertDocument(it) }
         }
+        documents?.commitRestore(rows.documents.map { it.fileName }.toSet())
         settings?.importSettings(data.settings)
         RestoreOutcome.Restored
     }

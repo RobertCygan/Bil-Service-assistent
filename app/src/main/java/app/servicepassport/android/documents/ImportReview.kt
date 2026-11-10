@@ -1,5 +1,6 @@
 package app.servicepassport.android.documents
 
+import app.servicepassport.android.data.ServiceRecord
 import app.servicepassport.android.data.WorkInput
 import app.servicepassport.contract.ServiceTask
 import app.servicepassport.extraction.*
@@ -46,6 +47,19 @@ object ImportReview {
 
     /** Only tasks of the shared contract can be offered; anything else stays visible but cannot be selected. */
     fun contractTask(item: DraftItem): ServiceTask? = ServiceTask.fromTaskCode(item.taskCode)
+
+    /**
+     * Signs that this document may already be in the history. A warning only: two visits on one day are possible,
+     * so the driver decides.
+     */
+    fun duplicates(history: List<ServiceRecord>, sha256: String?, choice: ReviewChoice): Set<DuplicateKind> {
+        val known = history.flatMap { record ->
+            val date = LocalDate.ofEpochDay(record.event.performedDay)
+            val km = record.reading?.km?.toInt()
+            listOf(KnownEntry(record.event.id, null, date, km)) + record.documents.map { KnownEntry(record.event.id, it.sha256, date, km) }
+        }
+        return DuplicateCheck.find(sha256, choice.date, choice.odometerKm, known).map { it.kind }.toSet()
+    }
 
     fun prefill(draft: DraftProposal, choice: ReviewChoice, today: LocalDate): ReviewResult {
         val tasks = choice.selectedItems.sorted().mapNotNull { draft.items.getOrNull(it) }.mapNotNull(::contractTask).distinct()

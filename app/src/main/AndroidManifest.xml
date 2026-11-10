@@ -2,6 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
     <!-- Optional: asked only when the driver turns reminders on. The app works without it. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- The app has no network access at all. The text-recognition library asks for INTERNET to send usage statistics
+         to Google; removing the permission makes that impossible. Recognition itself uses the model shipped in the app.
+         A future online feature (vehicle lookup) must add this back deliberately and update the privacy text. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
     <application
         android:name=".CarServiceApplication"
         android:allowBackup="false"
@@ -26,6 +30,14 @@
             android:exported="false"
             tools:node="merge">
             <meta-data android:name="androidx.work.WorkManagerInitializer" android:value="androidx.startup" tools:node="remove" />
+        </provider>
+        <!-- Private document files: handed to the camera or a viewer app only through a temporary grant. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/document_paths" />
         </provider>
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

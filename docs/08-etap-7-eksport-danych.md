@@ -20,7 +20,7 @@ Baza wypełniona przez zwykłe operacje aplikacji (auto z pełną konfiguracją 
 Zasady odtwarzania:
 
 - zastępuje wszystkie dane lokalne w jednej transakcji; każda odmowa zostawia bazę nietkniętą;
-- odmowa, gdy kopia zawiera coś, czego ta wersja aplikacji nie umie zapisać bez straty: kod czynności spoza kontraktu, walutę inną niż NOK, dokumenty lub odczyty wskaźnika, więcej niż jedno auto.
+- odmowa, gdy kopia zawiera coś, czego ta wersja aplikacji nie umie zapisać bez straty: kod czynności spoza kontraktu, walutę inną niż NOK, dokument nieprzypisany do dokładnie jednego wpisu lub o nieobsługiwanym typie, odczyt wskaźnika dla innej czynności, więcej niż jedno auto. Dokumenty przypisane do wpisów są od schematu 5 zapisywane i przywracane razem z plikami.
 
 ## Format (wersja 1)
 

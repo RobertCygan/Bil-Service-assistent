@@ -6,6 +6,7 @@ import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.backup.GarageBackup
 import app.servicepassport.android.data.GarageDatabase
 import app.servicepassport.android.documents.DocumentAnalyzer
+import app.servicepassport.android.documents.DocumentStore
 import app.servicepassport.android.documents.MlKitOcr
 import app.servicepassport.android.data.ProfileRepository
 import app.servicepassport.android.reminders.AndroidReminderNotifier
@@ -21,7 +22,8 @@ class CarServiceApplication : Application(), Configuration.Provider {
     val repository: ProfileRepository by lazy { ProfileRepository(database) }
     val reminderStore: ReminderStore by lazy { ReminderStore(this) }
     val reminders: ReminderCoordinator by lazy { ReminderCoordinator(database, reminderStore, AndroidReminderNotifier(this)) }
-    val backup: GarageBackup by lazy { GarageBackup(database, settings = reminderStore) }
+    val documentStore: DocumentStore by lazy { DocumentStore(this, database) }
+    val backup: GarageBackup by lazy { GarageBackup(database, settings = reminderStore, documents = documentStore) }
     val documents: DocumentAnalyzer by lazy { DocumentAnalyzer(this, MlKitOcr()) }
     val dataFiles: DataFiles by lazy { DataFiles(this, backup, reminders) }
 

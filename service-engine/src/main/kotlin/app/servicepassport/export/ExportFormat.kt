@@ -43,7 +43,7 @@ public data class ExportData(
     val vehicles: List<ExportVehicle> = emptyList(),
     val odometerReadings: List<ExportOdometerReading> = emptyList(),
     val serviceEvents: List<ExportServiceEvent> = emptyList(),
-    /** Tabela, której aplikacja jeszcze nie ma. */
+    /** Tabela `documents` (schemat 5). Skrót SHA-256 i rozmiar pliku są w manifeście. */
     val documents: List<ExportDocument> = emptyList(),
     val userRules: List<ExportUserRule> = emptyList(),
     val indicatorReadings: List<ExportIndicatorReading> = emptyList(),
@@ -124,6 +124,7 @@ public data class ExportDocument(
     val path: String,
     val mimeType: String,
     val addedOn: String,
+    val createdAtUtc: Long = 0,
 )
 
 /** Własny interwał użytkownika (tabela `user_intervals`). */

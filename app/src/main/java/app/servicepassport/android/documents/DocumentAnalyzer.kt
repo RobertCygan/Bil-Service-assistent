@@ -64,7 +64,7 @@ class DocumentAnalyzer(private val context: Context, private val ocr: TextOcr, p
     suspend fun analyse(uri: Uri, vehicle: VehicleIdentity, today: LocalDate): DocumentAnalysis = withContext(Dispatchers.IO) {
         try {
             val resolver = context.contentResolver
-            val type = resolver.getType(uri) ?: guessType(uri)
+            val type = DocumentTypes.of(context, uri)
             val bytes = size(uri)
             val pdf = type == "application/pdf"
             if (!pdf) {
@@ -112,11 +112,6 @@ class DocumentAnalyzer(private val context: Context, private val ocr: TextOcr, p
             if (cursor.moveToFirst() && !cursor.isNull(0)) return cursor.getLong(0)
         }
         return context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }?.takeIf { it >= 0 } ?: 1L
-    }
-
-    private fun guessType(uri: Uri): String? = when (uri.lastPathSegment?.substringAfterLast('.', "")?.lowercase()) {
-        "pdf" -> "application/pdf"; "jpg", "jpeg" -> "image/jpeg"; "png" -> "image/png"; "webp" -> "image/webp"; "heic" -> "image/heic"
-        else -> null
     }
 
     private companion object { const val RENDER_WIDTH = 1240 }

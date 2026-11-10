@@ -153,7 +153,7 @@ class IndicatorTest {
             assertEquals("Kept car", garage.vehicle.displayName); assertEquals(5L, garage.vehicle.configurationRevision)
             assertEquals(UserIntervalEntity("rule", "v3-car", "engine_oil", "replace", 15000, 12, 3, 4, 5), garage.intervals.single())
             assertTrue(garage.indicators.isEmpty())
-            assertEquals(4, upgraded.openHelper.writableDatabase.version)
+            assertEquals(5, upgraded.openHelper.writableDatabase.version)
             ProfileRepository(upgraded, clock).saveIndicator(IndicatorInput("first", "v3-car", day(0), 60_000, 1_000, null))
             assertEquals(1, requireNotNull(upgraded.vehicles().garage("v3-car")).indicators.size)
         } finally { upgraded.close(); context.deleteDatabase(name) }
