@@ -122,3 +122,8 @@ Decyzja właściciela: ekran jest w MVP. Stan po tym przyroście:
 
 Niesprawdzone: ekran na urządzeniu; migracja 3→4 na fizycznym telefonie (jest test na archiwalnym schemacie v3 w środowisku testowym i sprawdzenie aktualizacji v1/v2 w CI).
 
+## Dokumenty przy wpisach (Room v5)
+
+- Nowa tabela `documents` (migracja 4→5) i pliki w prywatnym katalogu aplikacji; opis w `docs/10-etap-5-import-dokumentu.md`.
+- Format kopii pozostaje w wersji 1: `ExportDocument` dostał opcjonalne pole `createdAtUtc`, a rozmiar i skrót pliku pochodzą z manifestu. Starsze wersje aplikacji odmawiają kopii z dokumentami (jak dotąd), nowsza czyta starsze kopie bez zmian.
+- Dokument nie wpływa na obliczenia silnika: źródłem historii pozostaje wpis zatwierdzony przez użytkownika.

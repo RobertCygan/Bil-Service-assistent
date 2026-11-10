@@ -95,10 +95,35 @@ data class IndicatorReadingEntity(
     @ColumnInfo(name = "updated_at_utc") val updatedAtUtc: Long,
 )
 
+/**
+ * A photo or PDF the driver chose to keep with a service entry. The file lives in private app storage under [fileName];
+ * a row without its file is shown as missing, never silently dropped.
+ */
+@Entity(
+    tableName = "documents",
+    foreignKeys = [
+        ForeignKey(entity = VehicleEntity::class, parentColumns = ["id"], childColumns = ["vehicle_id"], onDelete = ForeignKey.CASCADE),
+        ForeignKey(entity = ServiceEventEntity::class, parentColumns = ["id", "vehicle_id"], childColumns = ["event_id", "vehicle_id"], onDelete = ForeignKey.CASCADE),
+    ],
+    indices = [Index("vehicle_id"), Index(value = ["event_id", "vehicle_id"]), Index(value = ["file_name"], unique = true)],
+)
+data class DocumentEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "vehicle_id") val vehicleId: String,
+    @ColumnInfo(name = "event_id") val eventId: String,
+    @ColumnInfo(name = "file_name") val fileName: String,
+    @ColumnInfo(name = "mime_type") val mimeType: String,
+    val sha256: String,
+    val bytes: Long,
+    @ColumnInfo(name = "added_day") val addedDay: Long,
+    @ColumnInfo(name = "created_at_utc") val createdAtUtc: Long,
+)
+
 data class ServiceRecord(
     @Embedded val event: ServiceEventEntity,
     @Relation(parentColumn = "id", entityColumn = "event_id") val actions: List<ServiceActionEntity>,
     @Relation(parentColumn = "id", entityColumn = "event_id") val readings: List<OdometerReadingEntity>,
+    @Relation(parentColumn = "id", entityColumn = "event_id") val documents: List<DocumentEntity> = emptyList(),
 ) {
     val reading: OdometerReadingEntity? get() = readings.singleOrNull()
     val orderedActions: List<ServiceActionEntity> get() = actions.sortedBy { it.position }
@@ -143,6 +168,10 @@ interface VehicleDao {
     @Query("SELECT * FROM indicator_readings WHERE id = :id") suspend fun indicator(id: String): IndicatorReadingEntity?
     @Insert suspend fun insertIndicator(reading: IndicatorReadingEntity)
     @Query("DELETE FROM indicator_readings WHERE id = :id") suspend fun deleteIndicator(id: String)
+    @Query("SELECT * FROM documents WHERE id = :id") suspend fun document(id: String): DocumentEntity?
+    @Insert suspend fun insertDocument(document: DocumentEntity)
+    @Query("DELETE FROM documents WHERE id = :id") suspend fun deleteDocument(id: String)
+    @Query("SELECT file_name FROM documents") suspend fun documentFileNames(): List<String>
     @Query("SELECT id FROM vehicles ORDER BY created_at_utc, id") suspend fun vehicleIds(): List<String>
     /** Backup restore only: child tables are removed by their foreign-key cascades. */
     @Query("DELETE FROM vehicles") suspend fun deleteAllVehicles()
@@ -181,10 +210,18 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS index_indicator_readings_vehicle_id ON indicator_readings(vehicle_id)")
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS documents (id TEXT NOT NULL, vehicle_id TEXT NOT NULL, event_id TEXT NOT NULL, file_name TEXT NOT NULL, mime_type TEXT NOT NULL, sha256 TEXT NOT NULL, bytes INTEGER NOT NULL, added_day INTEGER NOT NULL, created_at_utc INTEGER NOT NULL, PRIMARY KEY(id), FOREIGN KEY(vehicle_id) REFERENCES vehicles(id) ON UPDATE NO ACTION ON DELETE CASCADE, FOREIGN KEY(event_id, vehicle_id) REFERENCES service_events(id, vehicle_id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_documents_vehicle_id ON documents(vehicle_id)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_documents_event_id_vehicle_id ON documents(event_id, vehicle_id)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_documents_file_name ON documents(file_name)")
+        }
+    }
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 }
 
-@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class, UserIntervalEntity::class, IndicatorReadingEntity::class], version = 4, exportSchema = true)
+@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class, UserIntervalEntity::class, IndicatorReadingEntity::class, DocumentEntity::class], version = 5, exportSchema = true)
 abstract class GarageDatabase : RoomDatabase() {
     abstract fun vehicles(): VehicleDao
     companion object {

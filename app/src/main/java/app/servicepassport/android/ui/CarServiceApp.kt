@@ -28,6 +28,7 @@ import androidx.navigation.compose.*
 import app.servicepassport.android.R
 import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.documents.DocumentAnalyzer
+import app.servicepassport.android.documents.DocumentStore
 import app.servicepassport.android.data.ProfileRepository
 import app.servicepassport.android.reminders.ReminderStore
 import kotlinx.coroutines.delay
@@ -35,8 +36,8 @@ import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? = null, onDataChanged: () -> Unit = {}, dataFiles: DataFiles? = null, documents: DocumentAnalyzer? = null) {
-    val model: GarageViewModel = viewModel(factory = GarageViewModel.Factory(repository))
+fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? = null, onDataChanged: () -> Unit = {}, dataFiles: DataFiles? = null, documents: DocumentAnalyzer? = null, documentStore: DocumentStore? = null) {
+    val model: GarageViewModel = viewModel(factory = GarageViewModel.Factory(repository, documentStore))
     val state by model.state.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
@@ -45,7 +46,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
         }
     }
     LaunchedEffect(state.dashboard) { if (state.dashboard != null) onDataChanged() }
-    val imports = remember { ImportSession() }
+    val imports = remember { ImportSession(documentStore) }
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -95,13 +96,15 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                     else IntervalEditor(state, interval, { dirty = it }) { input -> model.saveInterval(input, ::intervalSaved) }
                 }
                 composable("vehicle") { ProfileEditor(state, model.today, { dirty = it }) { input -> model.save(input) { saved("overview") } } }
-                composable("service/new") { ServiceEditor(state, null, model.today, { dirty = it }, imports.prefill) { input -> model.saveService(input) { imports.clear(); saved("history") } } }
-                composable("import") { ImportPage(state, imports, documents, model.today, ::go) }
+                composable("service/new") {
+                    ServiceEditor(state, null, model.today, { dirty = it }, imports.prefill, imports.attachment != null) { input -> model.saveService(input, imports.attachment) { imports.clear(); saved("history") } }
+                }
+                composable("import") { ImportPage(state, imports, documents, documentStore, model.today, ::go) }
                 composable("service/edit/{id}") { node ->
                     val record = state.snapshot?.events?.firstOrNull { it.event.id == node.arguments?.getString("id") }
                     if (record == null) Page { Text(stringResource(R.string.entry_not_found)) } else ServiceEditor(state, record, model.today, { dirty = it }) { input -> model.saveService(input) { saved("history") } }
                 }
-                composable("service/{id}") { node -> ServiceDetails(state, node.arguments?.getString("id").orEmpty(), ::go) { id, revision -> model.deleteService(id, revision) { saved("history") } } }
+                composable("service/{id}") { node -> ServiceDetails(state, node.arguments?.getString("id").orEmpty(), ::go, documentStore, { id -> model.removeDocument(id) {} }) { id, revision -> model.deleteService(id, revision) { saved("history") } } }
                 composable("readings") { Readings(state, ::go, model::selectReading) { id, revision -> model.deleteReading(id, revision) {} } }
                 composable("reading/new") { ReadingEditor(state, null, model.today, { dirty = it }) { input -> model.saveReading(input) { saved("overview") } } }
                 composable("reading/{id}") { node ->

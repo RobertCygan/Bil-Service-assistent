@@ -76,7 +76,7 @@
     <string name="delete">Delete</string>
     <string name="edit">Edit</string>
     <string name="delete_service_title">Delete this service entry?</string>
-    <string name="delete_service_body">The work items and its odometer reading will be removed. If that reading is current, you will need to select or add a current reading again.</string>
+    <string name="delete_service_body">The work items, its odometer reading and any documents kept with the entry will be removed. If that reading is current, you will need to select or add a current reading again.</string>
     <string name="delete_reading_title">Delete this reading?</string>
     <string name="delete_reading_body">If this is the current reading, no other reading will be selected automatically.</string>
     <string name="open_service">Open service entry</string>
@@ -236,7 +236,7 @@
     <string name="reminder_odometer_text">The saved mileage is %1$d days old. Enter the current reading so the service overview stays reliable.</string>
     <string name="reminder_odometer_missing">Check the saved mileage. The service overview needs a current reading.</string>
     <string name="data_backup_title">Backup</string>
-    <string name="data_backup_help">A backup is one file with your car, mileage readings, service history, your intervals and reminder settings. You choose where it is saved.</string>
+    <string name="data_backup_help">A backup is one file with your car, mileage readings, service history, documents you kept with entries, your intervals and reminder settings. You choose where it is saved.</string>
     <string name="data_password_optional">Password (optional)</string>
     <string name="data_password_repeat">Repeat the password</string>
     <string name="data_password">Password</string>
@@ -252,7 +252,7 @@
     <string name="data_restore_confirm">Restore</string>
     <string name="data_delete_all">Delete all data</string>
     <string name="data_delete_title">Delete everything?</string>
-    <string name="data_delete_body">The car, all mileage readings, the service history and your intervals will be removed from this phone. Backups you saved elsewhere are not affected. This cannot be undone.</string>
+    <string name="data_delete_body">The car, all mileage readings, the service history with its documents and your intervals will be removed from this phone. Backups you saved elsewhere are not affected. This cannot be undone.</string>
     <string name="data_delete_confirm">Delete everything</string>
     <string name="data_backup_saved">The backup was saved.</string>
     <string name="data_backup_failed">The backup could not be saved. Nothing in the app was changed.</string>
@@ -280,7 +280,7 @@
     <string name="indicator_save">Save reading</string>
     <string name="invalid_indicator">Enter the distance or the days to service as a whole number.</string>
     <string name="import_document">Read a document</string>
-    <string name="import_explanation">Choose a photo or PDF of an invoice or a service book entry. The text is read on this phone; the document is not uploaded. Nothing is added to the history until you have checked the result and saved the entry yourself.</string>
+    <string name="import_explanation">Choose a photo or PDF of an invoice, or take a photo or a service book entry. The text is read on this phone; the document is not uploaded. Nothing is added to the history until you have checked the result and saved the entry yourself.</string>
     <string name="import_pick">Choose a photo or PDF</string>
     <string name="import_reading">Reading the document…</string>
     <string name="import_unsupported">This file type cannot be read. Choose a photo or a PDF.</string>
@@ -325,4 +325,20 @@
     <string name="plate_looks_wrong">This does not look like a Norwegian registration number. You can still save it.</string>
     <string name="data_sources_title">Data sources</string>
     <string name="data_sources_note">Make and model suggestions: RDW Open Data, Netherlands (CC0 1.0), checked against “CO2 emissions from new passenger cars”, European Environment Agency (CC BY 4.0). The list contains no service schedules.</string>
+    <string name="import_take_photo">Take a photo</string>
+    <string name="import_no_camera">No camera app could be opened.</string>
+    <string name="import_keep_document">Keep a copy of this document with the entry</string>
+    <string name="import_keep_help">The copy stays on this phone and is included in the backups you make.</string>
+    <string name="import_copy_failed">The document could not be copied into the app, so it will not be kept with the entry. You can still continue.</string>
+    <string name="import_duplicate_file">This exact file is already kept with an entry in your history. Check that you are not adding the same service twice.</string>
+    <string name="import_duplicate_entry">An entry with the same date and mileage already exists. Check that you are not adding the same service twice.</string>
+    <string name="service_document_attached">The document you read will be kept with this entry when you save it.</string>
+    <string name="documents_title">Documents</string>
+    <string name="document_added">Added %1$s</string>
+    <string name="document_open">Open document</string>
+    <string name="document_remove">Remove document</string>
+    <string name="document_missing">The file for this document is missing on this phone.</string>
+    <string name="document_no_viewer">No app on this phone can open this file.</string>
+    <string name="document_remove_title">Remove this document?</string>
+    <string name="document_remove_body">The copy kept in the app is deleted. The service entry stays as it is.</string>
 </resources>

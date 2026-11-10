@@ -27,7 +27,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     }
 }
 
-@Composable internal fun ServiceEditor(state: GarageState, record: ServiceRecord?, today: LocalDate, onDirty: (Boolean) -> Unit, prefill: ServicePrefill? = null, save: (ServiceInput) -> Unit) = Page {
+@Composable internal fun ServiceEditor(state: GarageState, record: ServiceRecord?, today: LocalDate, onDirty: (Boolean) -> Unit, prefill: ServicePrefill? = null, keepsDocument: Boolean = false, save: (ServiceInput) -> Unit) = Page {
     val snapshot = state.snapshot ?: return@Page; val locale = uiLocale()
     val id = rememberSaveable { record?.event?.id ?: UUID.randomUUID().toString() }
     val expectedRevision = rememberSaveable { record?.event?.revision ?: -1L }.takeIf { it >= 0 }
@@ -59,6 +59,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     val dirty = date != LocalDates.text(record?.event?.performedDay ?: today.toEpochDay(), locale) || km != record?.reading?.km?.toString().orEmpty() || cost != amountInput(record?.event?.costMinor, locale) || note != record?.event?.note.orEmpty() || workJson != initialWork || current || reason != record?.reading?.exceptionReason.orEmpty()
     LaunchedEffect(dirty) { onDirty(dirty) }; DisposableEffect(Unit) { onDispose { onDirty(false) } }
     Text(stringResource(if (record == null) R.string.add_service else R.string.edit_service), style = MaterialTheme.typography.headlineMedium)
+    if (keepsDocument) NoteCard(stringResource(R.string.service_document_attached))
     if (record == null && prefill != null) NoteCard(stringResource(R.string.import_prefilled_note))
     Text(snapshot.vehicle.displayName)
     DateField(stringResource(R.string.service_date), date, "service_date", today) { date = it; reviewedToken = null; issue = null }

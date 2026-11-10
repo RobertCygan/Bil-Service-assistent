@@ -73,7 +73,7 @@
     <string name="delete">Slett</string>
     <string name="edit">Rediger</string>
     <string name="delete_service_title">Slette denne serviceoppføringen?</string>
-    <string name="delete_service_body">Arbeidet og den tilknyttede kilometeravlesningen fjernes. Hvis avlesningen er gjeldende, må du velge eller legge til en gjeldende avlesning på nytt.</string>
+    <string name="delete_service_body">Arbeidet, den tilknyttede kilometeravlesningen og dokumenter som er lagret med oppføringen, fjernes. Hvis avlesningen er gjeldende, må du velge eller legge til en gjeldende avlesning på nytt.</string>
     <string name="delete_reading_title">Slette denne avlesningen?</string>
     <string name="delete_reading_body">Hvis dette er gjeldende avlesning, velges ingen annen avlesning automatisk.</string>
     <string name="open_service">Åpne serviceoppføring</string>
@@ -233,7 +233,7 @@
     <string name="reminder_odometer_text">Den lagrede kilometerstanden er %1$d dager gammel. Legg inn dagens stand, så serviceoversikten forblir pålitelig.</string>
     <string name="reminder_odometer_missing">Sjekk den lagrede kilometerstanden. Serviceoversikten trenger en aktuell avlesning.</string>
     <string name="data_backup_title">Sikkerhetskopi</string>
-    <string name="data_backup_help">En sikkerhetskopi er én fil med bilen, kilometerstander, servicehistorikk, intervallene dine og påminnelsesinnstillinger. Du velger hvor den lagres.</string>
+    <string name="data_backup_help">En sikkerhetskopi er én fil med bilen, kilometerstander, servicehistorikk, dokumenter du har lagret med oppføringer, intervallene dine og påminnelsesinnstillinger. Du velger hvor den lagres.</string>
     <string name="data_password_optional">Passord (valgfritt)</string>
     <string name="data_password_repeat">Gjenta passordet</string>
     <string name="data_password">Passord</string>
@@ -249,7 +249,7 @@
     <string name="data_restore_confirm">Gjenopprett</string>
     <string name="data_delete_all">Slett alle data</string>
     <string name="data_delete_title">Slette alt?</string>
-    <string name="data_delete_body">Bilen, alle kilometerstander, servicehistorikken og intervallene dine fjernes fra denne telefonen. Sikkerhetskopier du har lagret andre steder, påvirkes ikke. Dette kan ikke angres.</string>
+    <string name="data_delete_body">Bilen, alle kilometerstander, servicehistorikken med dokumentene og intervallene dine fjernes fra denne telefonen. Sikkerhetskopier du har lagret andre steder, påvirkes ikke. Dette kan ikke angres.</string>
     <string name="data_delete_confirm">Slett alt</string>
     <string name="data_backup_saved">Sikkerhetskopien er lagret.</string>
     <string name="data_backup_failed">Sikkerhetskopien kunne ikke lagres. Ingenting i appen ble endret.</string>
@@ -277,7 +277,7 @@
     <string name="indicator_save">Lagre avlesning</string>
     <string name="invalid_indicator">Skriv avstanden eller antall dager til service som et helt tall.</string>
     <string name="import_document">Les et dokument</string>
-    <string name="import_explanation">Velg et bilde eller en PDF av en faktura eller en oppføring i serviceheftet. Teksten leses på denne telefonen; dokumentet lastes ikke opp. Ingenting legges til i historikken før du har kontrollert resultatet og lagret oppføringen selv.</string>
+    <string name="import_explanation">Velg et bilde eller en PDF av en faktura eller en oppføring i serviceheftet, eller ta et bilde. Teksten leses på denne telefonen; dokumentet lastes ikke opp. Ingenting legges til i historikken før du har kontrollert resultatet og lagret oppføringen selv.</string>
     <string name="import_pick">Velg bilde eller PDF</string>
     <string name="import_reading">Leser dokumentet …</string>
     <string name="import_unsupported">Denne filtypen kan ikke leses. Velg et bilde eller en PDF.</string>
@@ -322,4 +322,20 @@
     <string name="plate_looks_wrong">Dette ser ikke ut som et norsk registreringsnummer. Du kan lagre det likevel.</string>
     <string name="data_sources_title">Datakilder</string>
     <string name="data_sources_note">Forslag til merke og modell: RDW Open Data, Nederland (CC0 1.0), kontrollert mot «CO2 emissions from new passenger cars», Det europeiske miljøbyrået (CC BY 4.0). Listen inneholder ingen serviceplaner.</string>
+    <string name="import_take_photo">Ta bilde</string>
+    <string name="import_no_camera">Kunne ikke åpne en kamera-app.</string>
+    <string name="import_keep_document">Lagre en kopi av dokumentet sammen med oppføringen</string>
+    <string name="import_keep_help">Kopien blir på denne telefonen og tas med i sikkerhetskopiene du lager.</string>
+    <string name="import_copy_failed">Dokumentet kunne ikke kopieres inn i appen, så det lagres ikke med oppføringen. Du kan likevel fortsette.</string>
+    <string name="import_duplicate_file">Akkurat denne filen er allerede lagret med en oppføring i historikken. Sjekk at du ikke legger inn samme service to ganger.</string>
+    <string name="import_duplicate_entry">Det finnes allerede en oppføring med samme dato og kilometerstand. Sjekk at du ikke legger inn samme service to ganger.</string>
+    <string name="service_document_attached">Dokumentet du leste, lagres sammen med denne oppføringen når du lagrer den.</string>
+    <string name="documents_title">Dokumenter</string>
+    <string name="document_added">Lagt til %1$s</string>
+    <string name="document_open">Åpne dokument</string>
+    <string name="document_remove">Fjern dokument</string>
+    <string name="document_missing">Filen til dette dokumentet mangler på denne telefonen.</string>
+    <string name="document_no_viewer">Ingen app på telefonen kan åpne denne filen.</string>
+    <string name="document_remove_title">Fjerne dette dokumentet?</string>
+    <string name="document_remove_body">Kopien i appen slettes. Serviceoppføringen beholdes som den er.</string>
 </resources>

@@ -1,6 +1,7 @@
 package app.servicepassport.android.ui
 
 import app.servicepassport.android.backup.DataFiles
+import app.servicepassport.android.documents.DocumentStore
 import app.servicepassport.android.reminders.ReminderStore
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -75,7 +76,7 @@ import java.time.LocalDate
     }
 }
 
-@Composable internal fun ServiceDetails(state: GarageState, id: String, go: (String) -> Unit, delete: (String, Long) -> Unit) = Page {
+@Composable internal fun ServiceDetails(state: GarageState, id: String, go: (String) -> Unit, store: DocumentStore? = null, removeDocument: (String) -> Unit = {}, delete: (String, Long) -> Unit) = Page {
     val record = state.snapshot?.events?.firstOrNull { it.event.id == id }; val locale = uiLocale()
     if (record == null) { Text(stringResource(R.string.entry_not_found)); return@Page }
     var askDelete by remember { mutableStateOf(false) }
@@ -88,6 +89,26 @@ import java.time.LocalDate
     if (record.event.note.isNotEmpty()) Text(record.event.note, Modifier.testTag("service_note"))
     record.reading?.takeIf { it.exceptionReason.isNotEmpty() }?.let { NoteCard(it.exceptionReason) }
     Text(stringResource(R.string.confirmed_by_you), style = MaterialTheme.typography.bodySmall)
+    if (record.documents.isNotEmpty()) {
+        var removing by remember { mutableStateOf<String?>(null) }
+        var noViewer by remember { mutableStateOf(false) }
+        Text(stringResource(R.string.documents_title), style = MaterialTheme.typography.titleMedium)
+        record.documents.sortedWith(compareBy({ it.createdAtUtc }, { it.id })).forEach { document ->
+            OutlinedCard(Modifier.fillMaxWidth().testTag("service_document")) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.document_added, LocalDates.text(document.addedDay, locale)))
+                    val present = remember(document.id, state.snapshot) { store?.exists(document) == true }
+                    if (present) Button(onClick = { noViewer = store?.view(document) != true }, modifier = Modifier.testTag("open_document")) { Text(stringResource(R.string.document_open)) }
+                    else Text(stringResource(R.string.document_missing), color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { removing = document.id }, enabled = !state.saving, modifier = Modifier.testTag("remove_document")) { Text(stringResource(R.string.document_remove)) }
+                }
+            }
+        }
+        if (noViewer) Text(stringResource(R.string.document_no_viewer), color = MaterialTheme.colorScheme.error)
+        removing?.let { documentId ->
+            AlertDialog(onDismissRequest = { removing = null }, title = { Text(stringResource(R.string.document_remove_title)) }, text = { Text(stringResource(R.string.document_remove_body)) }, confirmButton = { TextButton(onClick = { removing = null; removeDocument(documentId) }, modifier = Modifier.testTag("confirm_remove_document")) { Text(stringResource(R.string.document_remove)) } }, dismissButton = { TextButton(onClick = { removing = null }) { Text(stringResource(R.string.cancel)) } })
+        }
+    }
     ErrorPanel(state)
     Button(onClick = { go("service/edit/$id") }, modifier = Modifier.fillMaxWidth().testTag("edit_service")) { Text(stringResource(R.string.edit_service)) }
     OutlinedButton(onClick = { askDelete = true }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("delete_service")) { Text(stringResource(R.string.delete)) }

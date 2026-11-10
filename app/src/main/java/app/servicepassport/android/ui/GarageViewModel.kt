@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import app.servicepassport.android.data.*
 import app.servicepassport.android.dashboard.DashboardEvaluator
 import app.servicepassport.android.dashboard.DashboardState
+import app.servicepassport.android.documents.DocumentStore
+import app.servicepassport.android.documents.StagedDocument
+import java.io.IOException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
@@ -23,7 +26,7 @@ data class GarageState(
     val dashboard: DashboardState? = null,
 ) { val profile: VehicleEntity? get() = snapshot?.vehicle }
 
-class GarageViewModel(private val repository: ProfileRepository, private val evaluator: DashboardEvaluator = DashboardEvaluator()) : ViewModel() {
+class GarageViewModel(private val repository: ProfileRepository, private val evaluator: DashboardEvaluator = DashboardEvaluator(), private val documents: DocumentStore? = null) : ViewModel() {
     private val mutableState = MutableStateFlow(GarageState())
     val state: StateFlow<GarageState> = mutableState.asStateFlow()
     val today get() = repository.today
@@ -60,11 +63,19 @@ class GarageViewModel(private val repository: ProfileRepository, private val eva
         }
     }
     fun save(input: ProfileInput, onSaved: () -> Unit) = mutate(onSaved) { repository.save(input) }
-    fun saveService(input: ServiceInput, onSaved: () -> Unit) = mutate(onSaved) { repository.saveService(input) }
+    /** @param attachment a reviewed document to keep with the entry; saving the same form again retries a failed copy */
+    fun saveService(input: ServiceInput, attachment: StagedDocument? = null, onSaved: () -> Unit) = mutate(onSaved) {
+        val id = repository.saveService(input)
+        if (attachment != null && documents?.attach(attachment, input.vehicleId, id) != true) throw IOException("document not stored")
+    }
+    fun removeDocument(id: String, onSaved: () -> Unit) {
+        val car = state.value.profile?.id ?: return
+        mutate(onSaved) { if (documents?.remove(car, id) != true) throw InputRejected(InputProblem.NOT_FOUND) }
+    }
     fun saveReading(input: ReadingInput, onSaved: () -> Unit) = mutate(onSaved) { repository.saveReading(input) }
     fun deleteService(id: String, revision: Long, onSaved: () -> Unit) {
         val car = state.value.profile?.id ?: return
-        mutate(onSaved) { repository.deleteService(car, id, revision) }
+        mutate(onSaved) { repository.deleteService(car, id, revision); documents?.sweep() }
     }
     fun deleteReading(id: String, revision: Long, onSaved: () -> Unit) {
         val car = state.value.profile?.id ?: return
@@ -82,10 +93,10 @@ class GarageViewModel(private val repository: ProfileRepository, private val eva
         val car = state.value.profile?.id ?: return
         mutate(onSaved) { repository.deleteIndicator(car, id) }
     }
-    class Factory(private val repository: ProfileRepository) : ViewModelProvider.Factory {
+    class Factory(private val repository: ProfileRepository, private val documents: DocumentStore? = null) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(GarageViewModel::class.java))
-            @Suppress("UNCHECKED_CAST") return GarageViewModel(repository) as T
+            @Suppress("UNCHECKED_CAST") return GarageViewModel(repository, documents = documents) as T
         }
     }
 }
