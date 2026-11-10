@@ -22,8 +22,10 @@ import urllib.request
 
 HERE = pathlib.Path(__file__).parent
 DATASET = "https://opendata.rdw.nl/resource/m9d7-ebf2.json"
-WHERE = "voertuigsoort='Personenauto' AND inrichting!='kampeerwagen'"
-MIN_BRAND_VEHICLES = 100
+FIRST_YEAR = 2000  # starsze auta dodaje się ręcznie
+WHERE = ("voertuigsoort='Personenauto' AND inrichting!='kampeerwagen' "
+         f"AND datum_eerste_toelating_dt >= '{FIRST_YEAR}-01-01T00:00:00'")
+MIN_BRAND_VEHICLES = 500    # poniżej tej liczby aut marka jest niszowa i nie trafia na listę
 MAX_MODEL_THRESHOLD = 250   # duże marki: model musi mieć co najmniej tyle aut w rejestrze
 MIN_MODEL_THRESHOLD = 25    # małe marki: próg to 2% aut marki, ale nie mniej niż tyle
 PAGE = 50000
@@ -58,6 +60,41 @@ def fetch():
         offset += PAGE
 
 
+EEA_SQL = "https://discodata.eea.europa.eu/sql"
+EEA_TABLE = "[CO2Emission].[latest].[co2cars]"  # nowe rejestracje 2010-2022; Norwegia: 2019-2022
+EEA_YEARS = range(2010, 2023)
+MIN_NORWAY_YEARS = 2        # model spoza RDW dopisujemy, gdy był rejestrowany w Norwegii w tylu różnych latach
+
+
+def fetch_eea():
+    """Unikalne (marka, nazwa handlowa, kraj) per rok.
+
+    Zapora serwisu EEA odrzuca GROUP BY, ORDER BY i filtr po części krajów, dlatego pytamy rok po roku.
+    """
+    rows = []
+    for year in EEA_YEARS:
+        page = 1
+        while True:
+            query = f"SELECT DISTINCT Mk, Cn, MS FROM {EEA_TABLE} WHERE Year = {year}"
+            url = EEA_SQL + "?" + urllib.parse.urlencode({"query": query, "p": page, "nrOfHits": 20000})
+            request = urllib.request.Request(url, headers={"User-Agent": "curl/8"})
+            for attempt in range(5):
+                try:
+                    with urllib.request.urlopen(request, timeout=900) as response:
+                        data = json.load(response)["results"]
+                    break
+                except OSError as error:
+                    print(f"EEA {year} retry {attempt}: {error}", file=sys.stderr)
+                    time.sleep(20 * (attempt + 1))
+            else:
+                sys.exit(f"EEA download failed for {year}")
+            rows += [dict(row, Year=year) for row in data]
+            if len(data) < 20000:
+                break
+            page += 1
+    return rows
+
+
 def squash(text):
     return re.sub(r"\s+", " ", (text or "").upper()).strip()
 
@@ -85,6 +122,72 @@ def clean_model(raw, brand_names):
     return name
 
 
+def tokens(name):
+    return tuple(t for t in re.split(r"[^A-Z0-9]+", name) if t)
+
+
+def brand_key(name):
+    return re.sub(r"[^A-Z0-9]", "", name)
+
+
+def index_eea(eea, aliases):
+    """marka -> {tokeny nazwy: {"NO": {lata}, "countries": {kraje poza NO}, "name": zapis}}"""
+    index = collections.defaultdict(dict)
+    for row in eea:
+        country = squash(row.get("MS"))
+        if not re.fullmatch(r"[A-Z]{2}", country):
+            continue
+        raw_brand = squash(row.get("Mk"))
+        brand = aliases.get(raw_brand, raw_brand)
+        model = clean_model(row.get("Cn"), sorted({raw_brand, brand}, key=len, reverse=True))
+        if not brand or model is None or not tokens(model):
+            continue
+        entry = index[brand_key(brand)].setdefault(
+            tokens(model), {"NO": set(), "countries": set(), "name": model})
+        if country == "NO":
+            entry["NO"].add(row.get("Year"))
+        else:
+            entry["countries"].add(country)
+    return index
+
+
+def verify(makes, eea, aliases, display):
+    """Oznacza modele potwierdzone w Norwegii / Europie i dopisuje modele norweskie spoza RDW."""
+    index = index_eea(eea, aliases)
+    stats = {"confirmedNorway": 0, "confirmedEurope": 0, "addedFromNorway": 0}
+    for make in makes:
+        seen = index.get(make["key"], {})
+        listed = set()
+        for model in make["models"]:
+            want = tokens(model["name"])
+            listed.add(want)
+            joined = "".join(want)
+            norway, countries = set(), set()
+            for have, entry in seen.items():
+                # ten sam model, jeśli nazwa EEA zaczyna się od naszych słów ("GOLF" ~ "GOLF VARIANT")
+                if have[:len(want)] == want or "".join(have) == joined:
+                    norway |= entry["NO"]
+                    countries |= entry["countries"]
+            if norway:
+                model["norway"] = True
+                stats["confirmedNorway"] += 1
+            if countries:
+                model["europeCountries"] = len(countries)
+                stats["confirmedEurope"] += 1
+        for have, entry in sorted(seen.items()):
+            covered = any(have[:len(want)] == want for want in listed)
+            if covered or len(entry["NO"]) < MIN_NORWAY_YEARS:
+                continue
+            make["models"].append({
+                "name": entry["name"], "firstYear": min(entry["NO"]), "lastYear": max(entry["NO"]),
+                "vehicles": 0, "norway": True, "addedFrom": "EEA",
+                **({"europeCountries": len(entry["countries"])} if entry["countries"] else {}),
+            })
+            listed.add(have)
+            stats["addedFromNorway"] += 1
+    return stats
+
+
 def display_brand(brand, display):
     if brand in display:
         return display[brand]
@@ -96,7 +199,7 @@ def year(value, pick):
     return pick(years) if years else None
 
 
-def build(rows):
+def build(rows, eea=None):
     rules = json.loads((HERE / "brand_rules.json").read_text(encoding="utf-8"))
     aliases, dropped, display = rules["aliases"], set(rules["dropped"]), rules["display"]
 
@@ -141,8 +244,12 @@ def build(rows):
                 "vehicles": m["n"],
             })
         kept.sort(key=lambda m: (-m["vehicles"], m["name"]))
-        makes.append({"name": display_brand(brand, display), "vehicles": brand_total, "models": kept})
+        makes.append({"name": display_brand(brand, display), "key": brand_key(brand),
+                      "vehicles": brand_total, "models": kept})
     makes.sort(key=lambda m: m["name"].casefold())
+    verification = verify(makes, eea, aliases, display) if eea else None
+    for make in makes:
+        del make["key"]
 
     return {
         "meta": {
@@ -152,11 +259,21 @@ def build(rows):
             "retrieved": datetime.date.today().isoformat(),
             "filter": WHERE,
             "minBrandVehicles": MIN_BRAND_VEHICLES,
+            "firstYear": FIRST_YEAR,
             "modelThreshold": f"min({MAX_MODEL_THRESHOLD}, max({MIN_MODEL_THRESHOLD}, 2% of make))",
             "sourceVehicles": total,
             "listedVehicles": listed,
             "makes": len(makes),
             "models": sum(len(m["models"]) for m in makes),
+            "verification": verification and {
+                "source": "EEA, CO2 emissions from new passenger cars (discodata, CO2Emission.latest.co2cars)",
+                "licence": "CC BY 4.0 (EEA standard re-use policy)",
+                "norway": "model seen among new registrations in Norway 2019-2022",
+                "europeCountries": "number of other European countries where the model was newly registered 2010-2022",
+                "limits": "No Norwegian data before 2019 and no data at all before 2010 or after 2022: "
+                          "a missing flag means 'not confirmed', never 'not sold there'.",
+                **verification,
+            },
             "note": "Selection list only. Years are first-registration years seen in the Dutch register. "
                     "No service data; does not identify engine, gearbox or market.",
         },
@@ -167,10 +284,15 @@ def build(rows):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--raw", help="wcześniej pobrana agregacja RDW (JSON)")
+    parser.add_argument("--eea-raw", help="wcześniej pobrane dane EEA (JSON); 'skip' pomija weryfikację")
     parser.add_argument("--out", default=str(HERE / "vehicle-list.json"))
     args = parser.parse_args()
     rows = json.loads(pathlib.Path(args.raw).read_text()) if args.raw else fetch()
-    result = build(rows)
+    if args.eea_raw == "skip":
+        eea = None
+    else:
+        eea = json.loads(pathlib.Path(args.eea_raw).read_text()) if args.eea_raw else fetch_eea()
+    result = build(rows, eea)
     pathlib.Path(args.out).write_text(
         json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(json.dumps(result["meta"], ensure_ascii=False, indent=2))
