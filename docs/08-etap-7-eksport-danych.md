@@ -1,6 +1,6 @@
 # Etap 7 (część) — format eksportu i odtwarzania danych
 
-Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `service-engine`, 16 testów.
+Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `service-engine`, 19 testów.
 
 ## Status
 
@@ -15,7 +15,7 @@ Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `servi
 Archiwum ZIP:
 
 - `manifest.json` — wersja formatu, data, wersja aplikacji, lista plików z rozmiarem i skrótem SHA-256;
-- `data.json` — pojazdy, odczyty przebiegu, wpisy serwisowe z czynnościami, dokumenty, własne interwały użytkownika, odczyty wskaźnika serwisowego, ustawienia;
+- `data.json` — odwzorowanie tabel bazy aplikacji w wersji 2: pojazdy z jawnym wyborem bieżącego odczytu, odczyty z wyjaśnieniami anomalii, wpisy serwisowe z uporządkowanymi pracami (para kodów albo własny opis), rewizje i znaczniki czasu; do tego dokumenty, własne interwały, odczyty wskaźnika i ustawienia;
 - `documents/` — oryginalne zdjęcia i PDF.
 
 **Nie są eksportowane:** reguły z licencjonowanego katalogu (prawa dostawcy), surowy OCR, szkice i miniatury.
@@ -38,6 +38,7 @@ Domyślnie kopia jest jawna. Gdy użytkownik poda hasło, cała kopia jest szyfr
 
 ## Ograniczenia
 
-- Struktura `data.json` to **moja propozycja kontraktu**; model danych z Etapu 1 może wymagać jej dopasowania.
+- Struktura `data.json` została dopasowana do schematu bazy v2 z gałęzi Etapu 3 (odczytanego, nie scalonego). **Bezstratność nie jest udowodniona**, dopóki nie powstanie test baza → kopia → nowa baza.
+- Usunięto wywołanie niedostępne przed Androidem 13; działania na Androidzie 8–12 nie sprawdzono na urządzeniu.
 - Przy nieudanym imporcie aplikacja musi usunąć pliki dokumentów zapisane w trakcie czytania i nie zmieniać bazy — to obowiązek warstwy aplikacji, opisany w kodzie.
 - Nie testowano bardzo dużych archiwów (setki MB) na telefonie.

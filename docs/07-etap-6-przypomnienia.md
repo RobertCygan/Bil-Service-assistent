@@ -1,6 +1,6 @@
 # Etap 6 — przypomnienia: logika (bez części androidowej)
 
-Data: **10 listopada 2026**. Pakiet `app.servicepassport.reminders` w module `service-engine`, 11 testów.
+Data: **10 listopada 2026**. Pakiet `app.servicepassport.reminders` w module `service-engine`, 14 testów.
 
 ## Status
 
@@ -32,6 +32,8 @@ Funkcja jest bezstanowa: aplikacja przechowuje listę wysłanych przypomnień i 
 | Użytkownik dodał serwis | Przypomnienie do usunięcia, bez nowego |
 | Poprawka wpisu przesuwa termin | Nowe przypomnienie mimo niedawnego (zmienił się stan) |
 | Nieaktualny przebieg | **Jedno** przypomnienie na pojazd, niezależnie od liczby reguł; znika po nowym odczycie |
+| Wygasłe źródło reguły, albo wynik zależny od km przy niespójnym liczniku | Bez przypomnienia o czynności; reguła trafia do listy `suppressed` z przyczyną |
+| Niespójny licznik lub nowszy odczyt w historii niż wybrany | Jedno przypomnienie o sprawdzeniu przebiegu |
 | Przypomnienia wyłączone | Nic do pokazania, wszystko z tego pojazdu do usunięcia |
 
 ## Do zrobienia w aplikacji

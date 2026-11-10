@@ -49,6 +49,16 @@ class BuildTest(unittest.TestCase):
         self.assertEqual("CC0 1.0", result["meta"]["licence"])
         self.assertIsNone(result["meta"]["verification"])
 
+    def test_accents_do_not_create_duplicate_models(self):
+        result = build(
+            [row("LAMBORGHINI", "HURACAN", 400), row("LAMBORGHINI", "HURACÁN", 150)],
+            [eea("LAMBORGHINI", "Huracán", "NO", 2021)],
+        )
+        models = result["makes"][0]["models"]
+        self.assertEqual(["HURACAN"], [m["name"] for m in models])
+        self.assertEqual(550, models[0]["vehicles"])
+        self.assertEqual(["NO"], models[0]["nordic"])
+
     def test_small_make_uses_relative_model_threshold(self):
         result = build([row("GENESIS", "GV60", 520), row("GENESIS", "G70", 30), row("GENESIS", "ODD", 5)])
         self.assertEqual(["GV60", "G70"], [m["name"] for m in result["makes"][0]["models"]])

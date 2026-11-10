@@ -17,6 +17,7 @@ import pathlib
 import re
 import sys
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 
@@ -126,8 +127,13 @@ def clean_model(raw, brand_names):
     return name
 
 
+def unaccent(text):
+    """"COUPÉ" -> "COUPE": akcenty nie mogą tworzyć osobnych pozycji."""
+    return "".join(c for c in unicodedata.normalize("NFD", text) if not unicodedata.combining(c))
+
+
 def tokens(name):
-    return tuple(t for t in re.split(r"[^A-Z0-9]+", name) if t)
+    return tuple(t for t in re.split(r"[^A-Z0-9]+", unaccent(name)) if t)
 
 
 def brand_key(name):
@@ -223,7 +229,7 @@ def build(rows, eea=None):
             brands[brand]  # marka liczy się nawet bez czytelnej nazwy modelu
             brands[brand][""]["n"] += n
             continue
-        key = re.sub(r"[^A-Z0-9]", "", model) or model
+        key = re.sub(r"[^A-Z0-9]", "", unaccent(model)) or model
         entry = brands[brand][key]
         entry["n"] += n
         entry["spellings"][model] += n

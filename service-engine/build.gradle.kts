@@ -1,8 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    kotlin("jvm") version "2.1.21"
-    kotlin("plugin.serialization") version "2.1.21"
+    alias(libs.plugins.kotlin.jvm)
+    // Wtyczka serializacji musi mieć tę samą wersję co Kotlin; wspólny katalog nie ma jeszcze dla niej wpisu.
+    id("org.jetbrains.kotlin.plugin.serialization") version libs.versions.kotlin
     `java-test-fixtures`
 }
 

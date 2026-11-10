@@ -2,9 +2,9 @@ name: lookup-server
 
 on:
   push:
-    paths: ["lookup-server/**", "service-engine/**", ".github/workflows/lookup-server.yml"]
+    paths: ["lookup-server/**", "service-engine/**", "service-contract/**", "gradle/libs.versions.toml", ".github/workflows/lookup-server.yml"]
   pull_request:
-    paths: ["lookup-server/**", "service-engine/**", ".github/workflows/lookup-server.yml"]
+    paths: ["lookup-server/**", "service-engine/**", "service-contract/**", "gradle/libs.versions.toml", ".github/workflows/lookup-server.yml"]
 
 permissions:
   contents: read

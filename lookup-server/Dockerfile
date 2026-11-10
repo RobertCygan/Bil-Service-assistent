@@ -2,6 +2,7 @@
 #   docker build -f lookup-server/Dockerfile -t lookup-server .
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /src
+COPY gradle gradle
 COPY service-engine service-engine
 COPY lookup-server lookup-server
 WORKDIR /src/lookup-server

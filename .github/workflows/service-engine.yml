@@ -2,9 +2,9 @@ name: service-engine
 
 on:
   push:
-    paths: ["service-engine/**", ".github/workflows/service-engine.yml"]
+    paths: ["service-engine/**", "service-contract/**", "gradle/libs.versions.toml", ".github/workflows/service-engine.yml"]
   pull_request:
-    paths: ["service-engine/**", ".github/workflows/service-engine.yml"]
+    paths: ["service-engine/**", "service-contract/**", "gradle/libs.versions.toml", ".github/workflows/service-engine.yml"]
 
 permissions:
   contents: read

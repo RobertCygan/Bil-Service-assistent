@@ -11,8 +11,8 @@
 | Źródło listy | [RDW Open Data — Gekentekende voertuigen](https://opendata.rdw.nl/Voertuigen/Open-Data-RDW-Gekentekende_voertuigen/m9d7-ebf2), licencja CC0 1.0 |
 | Źródło weryfikacji | [EEA — CO2 emissions from new passenger cars](https://www.eea.europa.eu/en/analysis/maps-and-charts/co2-emissions-from-new-passenger-cars) (tabela `CO2Emission.latest.co2cars`), CC BY wg ogólnej polityki EEA — **wymaga podania źródła w aplikacji** |
 | Zakres | auta osobowe pierwszy raz zarejestrowane od 2000 r., bez kamperów i dostawczych: 10 073 867 pojazdów |
-| Wynik | 73 marki, 1748 modeli, pokrywających ok. 98% pojazdów źródła |
-| Weryfikacja nordycka | 1386 modeli potwierdzonych w co najmniej jednym kraju nordyckim (w tym 261 dopisanych spoza RDW): NO 769, SE 1314, FI 1189, DK 1023, IS 496 |
+| Wynik | 73 marki, 1746 modeli, pokrywających ok. 98% pojazdów źródła |
+| Weryfikacja nordycka | 1385 modeli potwierdzonych w co najmniej jednym kraju nordyckim (w tym 259 dopisanych spoza RDW): NO 771, SE 1313, FI 1189, DK 1022, IS 496 |
 | Rozmiar | ok. 170 kB |
 
 Dokładne liczby i data pobrania są w polu `meta` pliku.
@@ -43,13 +43,13 @@ Pole `nordic` to lista krajów (`NO`, `SE`, `FI`, `DK`, `IS`), w których model 
 | Islandia | 2018–2022 |
 | Norwegia | 2019–2022 |
 
-**Brak kraju w polu znaczy „nie potwierdzono”, nie „nie było w sprzedaży”.** Modele wycofane przed początkiem danych (np. Lupo) i nowości z lat 2023–2026 (np. ID.7) nie mają potwierdzenia; 362 modele nie mają żadnego kraju. Zalecenie: używać pola do **sortowania lub oznaczenia**, nie do ukrywania pozycji.
+**Brak kraju w polu znaczy „nie potwierdzono”, nie „nie było w sprzedaży”.** Modele wycofane przed początkiem danych (np. Lupo) i nowości z lat 2023–2026 (np. ID.7) nie mają potwierdzenia; 361 modeli nie ma żadnego kraju. Zalecenie: używać pola do **sortowania lub oznaczenia**, nie do ukrywania pozycji.
 
 ## Zasady
 
 1. Marki: scalanie wariantów zapisu (`brand_rules.json`); marka musi mieć min. 500 aut w źródle — niszowe i historyczne odpadają. Wyjątek (`alwaysInclude`): Maxus, Hongqi, Seres, Voyah, JAC i Morgan, obecne w Norwegii.
 2. Tylko auta z pierwszą rejestracją od 2000 r. Starsze użytkownik wpisuje ręcznie.
-3. Nazwy modeli: usunięcie powtórzonej marki, mocy („150 KW”), kodów typu i emisji; scalanie różnic zapisu (`T-ROC` / `T ROC`).
+3. Nazwy modeli: usunięcie powtórzonej marki, mocy („150 KW”), kodów typu i emisji; scalanie różnic zapisu (`T-ROC` / `T ROC`, `HURACÁN` / `HURACAN`).
 4. Próg modelu: 250 aut dla dużych marek; dla małych 2% aut marki, minimum 25.
 5. Model spoza RDW jest dopisywany, jeśli był rejestrowany w co najmniej 2 krajach nordyckich i w 2 różnych latach.
 6. Dopasowanie nazw między źródłami: model jest potwierdzony, gdy nazwa w EEA zaczyna się od tych samych słów („GOLF” ~ „GOLF VARIANT”).

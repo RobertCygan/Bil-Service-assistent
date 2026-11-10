@@ -68,10 +68,11 @@ Moduł ma własne, minimalne typy wejściowe. Aplikacja potrzebuje **jednego ada
 | Silnik oczekuje | Skąd w aplikacji | Uwaga |
 | --- | --- | --- |
 | `PerformedTask(taskCode, date, odometerKm?)` | Zatwierdzone czynności z wpisów serwisowych | **Szkice OCR nie mogą tu trafić** — filtruje adapter |
-| `OdometerReading(date, km)` | Odczyty przebiegu | Przebiegi z wpisów serwisowych silnik dołącza sam |
+| `OdometerReading(date, km)` | Odczyty przebiegu | Służą do wykrywania niespójności i szacunku |
+| `currentOdometer` | Jawnie wybrany bieżący odczyt | `Selected(odczyt)` albo `NotSelected`; silnik nie zastępuje wyboru odczytem z historii |
 | `inServiceDate` | Data pierwszej rejestracji pojazdu | Jeśli model z Etapu 1 jej nie ma — potrzebne pole (opcjonalne) |
 | `Map<ConfigAttribute, String>` | Pola konfiguracji pojazdu | Brak pola = brak wpisu w mapie |
-| `taskCode` | Wspólny słownik czynności | **Jedyny punkt wymagający uzgodnienia:** kody w regułach i w historii muszą być te same. Silnik traktuje je jako dowolne napisy, więc przyjmie słownik z etapów 1–3 bez zmian |
+| `taskCode` | Wspólny kontrakt `service-contract` | Pełna para `czynność:operacja`, np. `engine_oil:replace`. Odczyt faktur zwraca te same kody. Szczegóły: [09-uzgodnienie-z-aplikacja.md](09-uzgodnienie-z-aplikacja.md) |
 | `Reason`, `Category` → tekst | Zasoby `nb-NO` / `en` | Silnik nie zawiera tekstów dla użytkownika |
 
 Podłączenie do builda: `include(":service-engine")` w głównym `settings.gradle.kts` + `implementation(project(":service-engine"))`; dane demo tylko w debug: `debugImplementation(testFixtures(project(":service-engine")))`. Wymaga JVM 17 i pluginu Kotlin — przy integracji wersję pluginu trzeba zrównać z aplikacją. `java.time` jest dostępne od API 26 (zgodne z rekomendacją z Etapu 0).

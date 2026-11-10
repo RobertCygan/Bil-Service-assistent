@@ -10,5 +10,11 @@ dependencyResolutionManagement {
     repositories {
         mavenCentral()
     }
+    // Wersje narzędzi z jednego miejsca dla całego repozytorium (ten sam katalog co aplikacja).
+    versionCatalogs {
+        create("libs") {
+            from(files("../gradle/libs.versions.toml"))
+        }
+    }
 }
 rootProject.name = "service-engine"
