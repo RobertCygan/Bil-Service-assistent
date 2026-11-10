@@ -6,13 +6,15 @@ Data: **10 listopada 2026**. Gałąź: `codex/etap-0-plan`. Dokument i moduł `s
 
 | Element | Stan |
 | --- | --- |
-| Silnik terminów, dopasowanie planu, bramka katalogu (`service-engine/`) | **Zaimplementowane i przetestowane** (39 testów, czysty Kotlin/JVM) |
+| Silnik terminów, dopasowanie planu, bramka katalogu (`service-engine/`, pakiet `engine`) | **Zaimplementowane i przetestowane** (39 testów, czysty Kotlin/JVM) |
+| Rdzeń Etapu 5: ekstrakcja z tekstu OCR, szkic, zatwierdzanie, limity, duplikaty (pakiet `extraction`) | **Zaimplementowane i przetestowane** (22 testy) — wyłącznie na zmyślonych dokumentach |
 | Zweryfikowane reguły producenta | **Brak.** Bramka danych z [01-dane-i-zrodla.md](01-dane-i-zrodla.md) nadal otwarta; katalog produkcyjny jest pusty |
 | Dane w testach | **Wyłącznie demonstracyjne**, fikcyjny pojazd „Demo Motors Example”, zmyślone interwały |
 | Pulpit (ekran Compose), adapter do bazy Room | **Nie ma** — wymaga kodu etapów 1–3 |
-| Etap 5 (OCR) | **Tylko projekt** w tym dokumencie, zero kodu |
+| Etap 5 na Androidzie: aparat, wybór pliku, PdfRenderer, ML Kit, ekran sprawdzenia, zapis do bazy | **Nie ma** — wymaga kodu etapów 1–3 |
+| Pomiar jakości na prawdziwych dokumentach NO/EN | **Niewykonany** — brak zestawu testowego; kryterium odbioru Etapu 5 niespełnione |
 
-Etap 4 **nie jest ukończony**: ukończona jest jego część niezależna od aplikacji i od dostawcy danych.
+Etapy 4 i 5 **nie są ukończone**: ukończone są ich części niezależne od aplikacji, od dostawcy danych i od prawdziwych dokumentów.
 
 ## Etap 4 — jak działa silnik
 
@@ -90,7 +92,7 @@ cd service-engine
 
 Raport: `service-engine/build/reports/tests/test/index.html`. Workflow `.github/workflows/service-engine.yml` uruchamia to samo tylko przy zmianach w `service-engine/`.
 
-## Etap 5 — projekt (bez implementacji)
+## Etap 5 — rdzeń ekstrakcji
 
 Ten sam wzorzec co w Etapie 4: logika w czystym Kotlinie, Android tylko na brzegach.
 
@@ -104,7 +106,9 @@ plik → walidacja (typ, ≤20 MB, ≤20 stron, SHA-256) → strony jako obrazy 
 
 **Granica testowalności:** `DocumentExtractor` przyjmuje tekst z ramkami, a nie obraz. Dzięki temu ekstrakcję testujemy na JVM na zapisanych wynikach OCR, bez telefonu, a jakość samego OCR mierzymy osobno na urządzeniu.
 
-**Szkic (`DraftProposal`)** — każde pole ma wartość, listę kandydatów i wskazanie strony/ramki, z której pochodzi:
+**Zaimplementowane** (pakiet `app.servicepassport.extraction`): `DocumentExtractor.extract(strony, pojazd, dziś)`, `DraftConfirmation.confirm()`, `ImportLimits.check()`, `DuplicateCheck.find()`, startowy słownik NO/EN (13 czynności, **kody tymczasowe**). **Niezaimplementowane:** wszystko po stronie Androida oraz przechowywanie surowego OCR i szkicu w bazie.
+
+**Szkic (`DraftProposal`)** — każde pole ma wartość, stan (rozpoznano / sprawdź / nie znaleziono), listę kandydatów i wskazanie strony/linii/ramki, z której pochodzi:
 
 | Pole | Zasada |
 | --- | --- |
@@ -121,13 +125,28 @@ plik → walidacja (typ, ≤20 MB, ≤20 stron, SHA-256) → strony jako obrazy 
 
 **Kontrakt z Etapem 4:** silnik widzi wyłącznie to, co wyszło z zatwierdzenia. Szkic, surowy OCR i pozycje inne niż zatwierdzone `PERFORMED` nie mają drogi do `EvaluationInput`.
 
+### Znane ograniczenia ekstrakcji
+
+- Reguły powstały na **zmyślonych** dokumentach napisanych przeze mnie. Nie wiem jeszcze, jak sprawdzą się na prawdziwych fakturach norweskich warsztatów; liczby jakości nie istnieją.
+- Wejściem jest tekst linii. Prawdziwy ML Kit może dzielić wiersze tabel inaczej (np. kwota w osobnej linii) — to wyjdzie dopiero na urządzeniu.
+- Pozycje spoza słownika nie trafiają do szkicu; użytkownik dodaje je ręcznie.
+- Numer rejestracyjny: tylko norweski format samochodowy (2 litery + 5 cyfr). VIN nie jest korygowany przy typowych pomyłkach OCR (0/O, 1/I).
+- Data dd/mm zapisana z ukośnikiem jest czytana jako dzień/miesiąc i oznaczana „sprawdź”.
+- Tekst typu „odometer … 1” zostanie odczytany jako przebieg — reguły nie odróżniają treści złośliwej od prawdziwej. Zabezpieczeniem jest obowiązkowe sprawdzenie przez użytkownika, nie ekstraktor.
+
 **Bez LLM w pierwszym wariancie**, zgodnie z Etapem 0. Jeśli pomiar na zestawie 40 dokumentów nie osiągnie celów, decyzja o chmurze wraca do właściciela.
 
 **Zależności blokujące start Etapu 5:** model danych dokumentu/szkicu z Etapu 1, słownik czynności, prywatny zestaw prawdziwych dokumentów NO/EN (poza repozytorium).
 
-## Decyzje dla właściciela
+## Decyzje
 
-1. **Progi aplikacji:** 1500 km / 30 dni dla „zbliża się”, 90 dni dla nieaktualnego przebiegu — zostają czy zmieniamy?
-2. **Odczyt wskaźnika serwisowego z auta** jako dane wejściowe dla planów zmiennych — tak/nie? Wymaga jednego prostego ekranu i tabeli.
-3. **Słownik czynności:** potrzebuję listy kodów z etapów 1–3, gdy będzie stabilna.
-4. **Bramka danych** (TecRMI/Autodata) nadal decyduje, czy Etap 4 da się zamknąć produkcyjnie.
+Zatwierdzone przez właściciela 10 listopada 2026:
+
+- progi aplikacji zostają: „zbliża się” = 1500 km / 30 dni, nieaktualny przebieg = 90 dni;
+- odczyt wskaźnika serwisowego z auta jest danymi wejściowymi dla planów zmiennych (wymaga ekranu i tabeli w aplikacji).
+
+Otwarte:
+
+1. **Słownik czynności:** lista kodów z etapów 1–3, gdy będzie stabilna — zastąpi kody tymczasowe w `DefaultTaskDictionary`.
+2. **Prywatny zestaw prawdziwych dokumentów NO/EN** (min. 40 wg Etapu 0, poza repozytorium) — bez niego nie da się zmierzyć jakości ani zamknąć Etapu 5.
+3. **Bramka danych** (TecRMI/Autodata) nadal decyduje, czy Etap 4 da się zamknąć produkcyjnie.
