@@ -1,0 +1,96 @@
+{
+  "checked_on": "2026-11-10",
+  "scope": "Stage 2 Android foundation only",
+  "local": {
+    "jdk": 17,
+    "gradle": "8.13",
+    "assemble_debug": "passed",
+    "assemble_debug_android_test": "passed",
+    "lint": {
+      "errors": 0,
+      "warnings": 21
+    },
+    "suites": [
+      {
+        "suite": "app.servicepassport.android.ProfileValidationTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.android.ProfilePersistenceTest",
+        "tests": 2,
+        "failures": 0,
+        "errors": 0
+      },
+      {
+        "suite": "app.servicepassport.contract.ServiceTaskTest",
+        "tests": 3,
+        "failures": 0,
+        "errors": 0
+      }
+    ],
+    "locale_keys": 28
+  },
+  "android_device_ci": {
+    "status": "passed",
+    "api": 35,
+    "android_version": "15",
+    "compose_tests": 1,
+    "process_restart": {
+      "process_force_stopped": true,
+      "saved_profile_restored": true,
+      "model_year_restored": true,
+      "selected_language_restored": "nb-NO",
+      "manufacturer_schedule_present": false
+    },
+    "runs": [
+      {
+        "id": 42833105076,
+        "event": "pull_request",
+        "conclusion": "success"
+      },
+      {
+        "id": 42833093179,
+        "event": "push",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "integration": {
+    "engine_pr": 2,
+    "engine_reviewed_sha": "adaf5fd2c74974da14d92e9c0cc59fffd04f37f6",
+    "engine_merged": false,
+    "manufacturer_rules": 0,
+    "task_code_contract": 1,
+    "near_due_km": 1500,
+    "near_due_days": 30,
+    "stale_odometer_days": 90,
+    "indicator_ui_in_mvp": false,
+    "canonical_actions": 15
+  },
+  "source_revision": "d0056728b7b2e054d87f8fa0605e37fea7321a16",
+  "artifacts": {
+    "apk_archive": {
+      "run_id": 42833093179,
+      "id": 13771594252,
+      "sha256": "bd402e0502674827e5ea794f4c983df702e1a6bfab4725986905403d5e1e3a09"
+    },
+    "verified_apk_sha256": "97e300bf2a3b4ea6c809e4fb22606e2fbbb982512beb3886fd51cc7efb4b0ea8",
+    "device_proof_archive": {
+      "run_id": 42833105076,
+      "id": 13771814236,
+      "sha256": "5edc367bf5ad0dd3e0da8b51a026b9e0b3fb811de5e6fa2cba2619bde7e9d60b"
+    }
+  },
+  "apk_permissions": [
+    "app.servicepassport.android.debug.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+  ],
+  "limitations": [
+    "No physical-device test yet",
+    "No Android OCR integration or real-document accuracy measurement",
+    "No engine adapter or verified manufacturer rules",
+    "Local software emulator failed to finish Android boot; device verification ran on CI",
+    "Lint reports 21 non-blocking warnings, primarily dependency update suggestions"
+  ]
+}

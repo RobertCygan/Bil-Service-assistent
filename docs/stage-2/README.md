@@ -1,6 +1,6 @@
 # Etap 2 — fundament Android
 
-Data: **10 listopada 2026**, Europe/Oslo. Etap 1 zaakceptowany przez właściciela; PR #3 włączono do `main`. To osobny przyrost fundamentu, bez rozpoczęcia Etapu 3 i bez scalania PR #2.
+Data: **10 listopada 2026**, Europe/Oslo. Etap 1 zaakceptowany przez właściciela; PR #3 włączono do `main`. **Status: gotowy do odbioru.** To osobny przyrost fundamentu, bez rozpoczęcia Etapu 3 i bez scalania PR #2.
 
 ## 1. Cel
 
@@ -22,6 +22,11 @@ Uruchamialna aplikacja Android, podstawowa nawigacja, oba języki, trwały zapis
 Nie ma danych demonstracyjnych ani harmonogramu zaszytego w aplikacji. Pusta historia jest rzeczywiście pusta. Ekran po zapisaniu auta informuje o braku zweryfikowanego planu. Formularz zapisuje tylko nazwę i opcjonalny rok — komplet konfiguracji, przebiegi i wpisy serwisowe to Etap 3.
 
 ## 3. Jak sprawdzić
+
+- [Pobierz APK i raporty z CI](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42833093179/artifacts/13771594252) — rozpakuj ZIP; APK jest w `app/build/outputs/apk/debug/app-debug.apk`. Pobranie artefaktu wymaga zalogowania na GitHubie, retencja 7 dni.
+- Rzeczywiste ekrany emulatora: [Bokmål](android-no.png) i [English](android-en.png). Nazwa „Foundation test car” pochodzi z testu, nie z dokumentu użytkownika.
+- [Raport weryfikacji](verification.json).
+
 
 ### Wymagania
 
@@ -47,16 +52,19 @@ CI `Android foundation`: zadanie `build` publikuje APK i raporty jako artefakt `
 
 ## 4. Weryfikacja
 
-| Kontrola | Stan na przygotowanie PR |
+| Kontrola | Wynik |
 | --- | --- |
 | Root wrapper, kompilacja APK debug i APK testowego | Przeszło lokalnie, JDK 17 |
 | Testy kontraktu | 3 testy, 0 błędów |
 | Walidacja formularza | 2 testy, 0 błędów |
 | Room: zapis, zamknięcie, ponowne otwarcie; aktualizacja zachowuje ID | Przeszło lokalnie, test z plikową bazą przez Robolectric |
 | Nieznana wersja bazy | Test potwierdza odmowę otwarcia bez kasowania istniejącego rekordu |
-| Android Lint | Przeszło lokalnie |
-| Uruchomienie i języki na emulatorze | Weryfikacja w toku; wynik zostanie uzupełniony przed odbiorem |
-| CI GitHub | Oczekuje na uruchomienie dla tego PR |
+| Android Lint | 0 błędów, 21 ostrzeżeń: 20 dotyczy nowszych wersji zależności/narzędzi, 1 informuje o użyciu localeConfig dopiero od API 33 |
+| Uruchomienie i języki na emulatorze | Przeszło w CI na Androidzie 15 / API 35: 1 test Compose, zapis, nawigacja, NO/EN i odtworzenie Activity |
+| Pełne zatrzymanie procesu i ponowny start | Przeszło: zachowane nazwa auta, rok 2022 i język nb-NO; sprawdzenie hierarchii UI i zrzuty ekranów |
+| CI GitHub | Oba przebiegi dla kodu `d0056728b7b2e054d87f8fa0605e37fea7321a16` zakończone sukcesem: [PR](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42833105076) i [push](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42833093179) |
+
+Lokalny emulator bez KVM nie zakończył rozruchu systemu (pozostawał offline); test Androida wykonano na akcelerowanym emulatorze w CI. Nie wykonano testu fizycznego telefonu — należy on do późniejszej bety. Ostatnia zmiana po zielonym commicie kodu dodaje wyłącznie dokumentację i zrzuty, bez zmiany aplikacji.
 
 Testy bazy i kontraktu nie są testami prawdziwego OCR, reguł producenta ani adaptera do silnika. Schemat v1 jest pierwszym schematem: nie tworzymy fikcyjnej migracji tylko po to, aby wykazać liczbę migracji.
 
@@ -70,7 +78,7 @@ Obecny plik bazy jest w prywatnym katalogu aplikacji; Room samo nie szyfruje baz
 
 - Przyjęte przez właściciela: 1500 km / 30 dni i 90 dni jako progi aplikacji. Nie są jeszcze używane przez fundament bez podłączonego silnika.
 - Po pozostawieniu wyboru zdecydowano: opcjonalny wskaźnik w API silnika zostaje, nowy ekran poza MVP.
-- Wspólne kody obejmują operację, np. `engine_oil:replace`. Słownik w `service-contract/` nie zawiera żadnych interwałów.
+- Wspólne kody obejmują operację, np. `engine_oil:replace`. Słownik w `service-contract/` obejmuje 15 czynności i ich dozwolone operacje, uwzględnia aktualizację ekstraktora PR #2 i nie zawiera żadnych interwałów.
 - Przed adapterem trzeba rozwiązać jawny wybór bieżącego odczytu, wygasłe źródła i ograniczenia rodzajów reguł. Szczegóły: [INTEGRATION.md](../INTEGRATION.md).
 - Autor PR #2 nadal prowadzi własne pliki. Nie zmieniono jego gałęzi ani nie scalono modułu bez integracji/testów.
 
@@ -81,7 +89,7 @@ Obecny plik bazy jest w prywatnym katalogu aplikacji; Room samo nie szyfruje baz
 - [x] Podstawowy rekord ma trwały zapis; testy plikowej bazy przechodzą.
 - [x] Schemat eksportowany, brak kasującego fallbacku, proces migracji określony.
 - [x] Środowiska debug/release i podstawowa obsługa błędów gotowe.
-- [ ] Wynik uruchomienia aplikacji i zmiany języka na Androidzie potwierdzony.
+- [x] Wynik uruchomienia aplikacji i zmiany języka na Androidzie potwierdzony w CI; pełny restart procesu także sprawdzony.
 - [ ] Właściciel odebrał Etap 2.
 
 ## 8. Następny krok
