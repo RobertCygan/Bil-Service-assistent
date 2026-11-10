@@ -6,9 +6,16 @@ Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazd
 
 ## Status
 
-**Etap 0 zaakceptowany przez właściciela. Etap 1 — UX i model danych przygotowane do odbioru.** Nie ma jeszcze kodu aplikacji Android, działającego OCR ani zatwierdzonych harmonogramów. Etap 2 nie został rozpoczęty.
+**Etapy 0 i 1 zaakceptowane. Etap 2 — fundament Android gotowy do odbioru.** Jest aplikacja Kotlin/Compose z NO/EN i lokalnym profilem auta. Pełna historia, OCR i harmonogramy nie są jeszcze podłączone.
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
+
+## Aplikacja Android — Etap 2
+
+- [Uruchomienie, APK do pobrania, zakres i weryfikacja](docs/stage-2/README.md)
+- Rzeczywiste ekrany Androida: [NO](docs/stage-2/android-no.png) · [EN](docs/stage-2/android-en.png)
+- [Wspólny kontrakt z silnikiem i OCR](docs/INTEGRATION.md)
+- Build: `./gradlew :service-contract:test :app:assembleDebug :app:testDebugUnitTest :app:lintDebug`
 
 ## Makiety i model danych — Etap 1
 
