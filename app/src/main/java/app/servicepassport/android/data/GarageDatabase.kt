@@ -77,6 +77,24 @@ data class CurrentOdometerEntity(
     @ColumnInfo(name = "reading_id") val readingId: String,
 )
 
+/** What the car's own service display showed on a given day. Entered by the driver, never calculated. */
+@Entity(
+    tableName = "indicator_readings",
+    foreignKeys = [ForeignKey(entity = VehicleEntity::class, parentColumns = ["id"], childColumns = ["vehicle_id"], onDelete = ForeignKey.CASCADE)],
+    indices = [Index("vehicle_id")],
+)
+data class IndicatorReadingEntity(
+    @PrimaryKey val id: String,
+    @ColumnInfo(name = "vehicle_id") val vehicleId: String,
+    @ColumnInfo(name = "observed_day") val observedDay: Long,
+    @ColumnInfo(name = "odometer_km") val odometerKm: Long,
+    @ColumnInfo(name = "remaining_km") val remainingKm: Int?,
+    @ColumnInfo(name = "remaining_days") val remainingDays: Int?,
+    val revision: Long,
+    @ColumnInfo(name = "created_at_utc") val createdAtUtc: Long,
+    @ColumnInfo(name = "updated_at_utc") val updatedAtUtc: Long,
+)
+
 data class ServiceRecord(
     @Embedded val event: ServiceEventEntity,
     @Relation(parentColumn = "id", entityColumn = "event_id") val actions: List<ServiceActionEntity>,
@@ -92,7 +110,10 @@ data class GarageSnapshot(
     @Relation(parentColumn = "id", entityColumn = "vehicle_id") val selections: List<CurrentOdometerEntity>,
     @Relation(entity = ServiceEventEntity::class, parentColumn = "id", entityColumn = "vehicle_id") val events: List<ServiceRecord>,
     @Relation(parentColumn = "id", entityColumn = "vehicle_id") val intervals: List<UserIntervalEntity> = emptyList(),
+    @Relation(parentColumn = "id", entityColumn = "vehicle_id") val indicators: List<IndicatorReadingEntity> = emptyList(),
 ) {
+    /** The newest display reading; older ones are kept only as a record. */
+    val latestIndicator: IndicatorReadingEntity? get() = indicators.maxWithOrNull(compareBy<IndicatorReadingEntity> { it.observedDay }.thenBy { it.createdAtUtc }.thenBy { it.id })
     val currentReading: OdometerReadingEntity? get() = readings.firstOrNull { it.id == selections.singleOrNull()?.readingId }
     val history: List<ServiceRecord> get() = events.sortedWith(compareByDescending<ServiceRecord> { it.event.performedDay }.thenByDescending { it.event.createdAtUtc }.thenBy { it.event.id })
 }
@@ -119,6 +140,9 @@ interface VehicleDao {
     @Insert suspend fun insertInterval(interval: UserIntervalEntity)
     @Update suspend fun updateInterval(interval: UserIntervalEntity)
     @Query("DELETE FROM user_intervals WHERE id = :id") suspend fun deleteInterval(id: String)
+    @Query("SELECT * FROM indicator_readings WHERE id = :id") suspend fun indicator(id: String): IndicatorReadingEntity?
+    @Insert suspend fun insertIndicator(reading: IndicatorReadingEntity)
+    @Query("DELETE FROM indicator_readings WHERE id = :id") suspend fun deleteIndicator(id: String)
     @Query("SELECT id FROM vehicles ORDER BY created_at_utc, id") suspend fun vehicleIds(): List<String>
     /** Backup restore only: child tables are removed by their foreign-key cascades. */
     @Query("DELETE FROM vehicles") suspend fun deleteAllVehicles()
@@ -151,10 +175,16 @@ object DatabaseMigrations {
             db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_user_intervals_vehicle_id_action_code_operation_code ON user_intervals(vehicle_id, action_code, operation_code)")
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS indicator_readings (id TEXT NOT NULL, vehicle_id TEXT NOT NULL, observed_day INTEGER NOT NULL, odometer_km INTEGER NOT NULL, remaining_km INTEGER, remaining_days INTEGER, revision INTEGER NOT NULL, created_at_utc INTEGER NOT NULL, updated_at_utc INTEGER NOT NULL, PRIMARY KEY(id), FOREIGN KEY(vehicle_id) REFERENCES vehicles(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS index_indicator_readings_vehicle_id ON indicator_readings(vehicle_id)")
+        }
+    }
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 }
 
-@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class, UserIntervalEntity::class], version = 3, exportSchema = true)
+@Database(entities = [VehicleEntity::class, ServiceEventEntity::class, ServiceActionEntity::class, OdometerReadingEntity::class, CurrentOdometerEntity::class, UserIntervalEntity::class, IndicatorReadingEntity::class], version = 4, exportSchema = true)
 abstract class GarageDatabase : RoomDatabase() {
     abstract fun vehicles(): VehicleDao
     companion object {

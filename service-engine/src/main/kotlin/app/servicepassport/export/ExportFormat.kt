@@ -33,8 +33,8 @@ public data class ExportManifest(
 public data class ExportedFile(val path: String, val sha256: String, val bytes: Long)
 
 /**
- * Treść kopii. Pola odpowiadają schematowi bazy aplikacji w wersji 3 (tabele `vehicles`, `service_events`,
- * `service_actions`, `odometer_readings`, `current_odometer`, `user_intervals`), tak aby kopia była bezstratna:
+ * Treść kopii. Pola odpowiadają schematowi bazy aplikacji w wersji 4 (tabele `vehicles`, `service_events`,
+ * `service_actions`, `odometer_readings`, `current_odometer`, `user_intervals`, `indicator_readings`), tak aby kopia była bezstratna:
  * identyfikatory, rewizje, znaczniki czasu, jawny wybór bieżącego odczytu i wyjaśnienia anomalii są zachowane.
  * Dni (`...Date`) to ISO-8601; znaczniki `...AtUtc` to milisekundy UTC, jak w bazie.
  */
@@ -43,7 +43,7 @@ public data class ExportData(
     val vehicles: List<ExportVehicle> = emptyList(),
     val odometerReadings: List<ExportOdometerReading> = emptyList(),
     val serviceEvents: List<ExportServiceEvent> = emptyList(),
-    /** Tabele, których aplikacja jeszcze nie ma (dokumenty, odczyty wskaźnika). */
+    /** Tabela, której aplikacja jeszcze nie ma. */
     val documents: List<ExportDocument> = emptyList(),
     val userRules: List<ExportUserRule> = emptyList(),
     val indicatorReadings: List<ExportIndicatorReading> = emptyList(),
@@ -140,12 +140,17 @@ public data class ExportUserRule(
     val updatedAtUtc: Long = 0,
 )
 
+/** Odczyt wskaźnika serwisowego z wyświetlacza auta (tabela `indicator_readings`). */
 @Serializable
 public data class ExportIndicatorReading(
+    val id: String,
     val vehicleId: String,
     val taskCode: String,
     val date: String,
     val odometerKm: Int,
     val remainingKm: Int? = null,
     val remainingDays: Int? = null,
+    val revision: Long = 1,
+    val createdAtUtc: Long = 0,
+    val updatedAtUtc: Long = 0,
 )

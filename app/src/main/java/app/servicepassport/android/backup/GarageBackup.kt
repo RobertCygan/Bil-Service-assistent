@@ -2,6 +2,7 @@ package app.servicepassport.android.backup
 
 import androidx.room.withTransaction
 import app.servicepassport.android.data.*
+import app.servicepassport.android.integration.EngineAdapter
 import app.servicepassport.android.reminders.ReminderStore
 import app.servicepassport.contract.ServiceTask
 import app.servicepassport.export.*
@@ -19,7 +20,7 @@ enum class RestoreProblem {
     UNKNOWN_TASK,
     /** History stores NOK only; another currency must not be relabelled. */
     UNSUPPORTED_CURRENCY,
-    /** Documents or indicator readings: this app version has no table for them, so restoring would lose data. */
+    /** Documents, or a display reading for another task: this app version cannot store them without loss. */
     UNSUPPORTED_CONTENT,
     /** The app handles one vehicle. */
     SEVERAL_VEHICLES,
@@ -41,6 +42,7 @@ data class GarageRows(
     val readings: List<OdometerReadingEntity>,
     val selections: List<CurrentOdometerEntity>,
     val intervals: List<UserIntervalEntity>,
+    val indicators: List<IndicatorReadingEntity> = emptyList(),
 )
 
 class BackupRefused(val problem: RestoreProblem) : IllegalArgumentException(problem.name)
@@ -77,6 +79,9 @@ object BackupMapper {
         userRules = snapshots.flatMap { s ->
             s.intervals.sortedBy { it.id }.map { ExportUserRule(it.id, it.vehicleId, it.actionCode, it.operationCode, it.distanceKm, it.months, it.revision, it.createdAtUtc, it.updatedAtUtc) }
         },
+        indicatorReadings = snapshots.flatMap { s ->
+            s.indicators.sortedBy { it.id }.map { ExportIndicatorReading(it.id, it.vehicleId, EngineAdapter.INDICATOR_TASK, date(it.observedDay), it.odometerKm.toInt(), it.remainingKm, it.remainingDays, it.revision, it.createdAtUtc, it.updatedAtUtc) }
+        },
     )
 
     /** @throws BackupRefused when the content cannot be stored without loss or reinterpretation */
@@ -84,7 +89,7 @@ object BackupMapper {
         fun refuse(problem: RestoreProblem): Nothing = throw BackupRefused(problem)
         if (data.vehicles.isEmpty()) refuse(RestoreProblem.EMPTY_BACKUP)
         if (data.vehicles.size > 1) refuse(RestoreProblem.SEVERAL_VEHICLES)
-        if (data.documents.isNotEmpty() || data.indicatorReadings.isNotEmpty()) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
+        if (data.documents.isNotEmpty() || data.indicatorReadings.any { it.taskCode != EngineAdapter.INDICATOR_TASK }) refuse(RestoreProblem.UNSUPPORTED_CONTENT)
         fun known(action: String, operation: String) { if (ServiceTask.fromTaskCode("$action:$operation") == null) refuse(RestoreProblem.UNKNOWN_TASK) }
 
         val vehicles = data.vehicles.map { v ->
@@ -113,7 +118,8 @@ object BackupMapper {
             known(it.actionCode, it.operationCode)
             UserIntervalEntity(it.id, it.vehicleId, it.actionCode, it.operationCode, it.km, it.months, it.revision, it.createdAtUtc, it.updatedAtUtc)
         }
-        return GarageRows(vehicles, events, actions, readings, selections, intervals)
+        val indicators = data.indicatorReadings.map { IndicatorReadingEntity(it.id, it.vehicleId, day(it.date), it.odometerKm.toLong(), it.remainingKm, it.remainingDays, it.revision, it.createdAtUtc, it.updatedAtUtc) }
+        return GarageRows(vehicles, events, actions, readings, selections, intervals, indicators)
     }
 }
 
@@ -156,6 +162,7 @@ class GarageBackup(private val database: GarageDatabase, private val clock: Cloc
             rows.readings.forEach { dao.saveReading(it) }
             rows.selections.forEach { dao.selectReading(it) }
             rows.intervals.forEach { dao.insertInterval(it) }
+            rows.indicators.forEach { dao.insertIndicator(it) }
         }
         settings?.importSettings(data.settings)
         RestoreOutcome.Restored

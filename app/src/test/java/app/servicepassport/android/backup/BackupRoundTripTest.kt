@@ -43,6 +43,7 @@ class BackupRoundTripTest {
             snapshots.flatMap { it.readings }.sortedBy { it.id },
             snapshots.flatMap { it.selections },
             snapshots.flatMap { it.intervals }.sortedBy { it.id },
+            snapshots.flatMap { it.indicators }.sortedBy { it.id },
         )
     }
 
@@ -73,6 +74,8 @@ class BackupRoundTripTest {
         val interval = id()
         repo.saveInterval(UserIntervalInput(interval, car, null, "brakes", "inspect", null, 24))
         repo.saveInterval(UserIntervalInput(interval, car, 1, "brakes", "inspect", 30_000, 24))
+        repo.saveIndicator(IndicatorInput(id(), car, day("2026-09-01"), 82_000, 6_000, 120))
+        repo.saveIndicator(IndicatorInput(id(), car, day("2026-11-05"), 84_600, -200, null))
         return db
     }
 
@@ -86,7 +89,7 @@ class BackupRoundTripTest {
         val source = populated()
         val before = rows(source)
         assertEquals(1, before.vehicles.size); assertEquals(2, before.events.size); assertEquals(4, before.actions.size)
-        assertEquals(3, before.readings.size); assertEquals(2, before.intervals.size)
+        assertEquals(3, before.readings.size); assertEquals(2, before.intervals.size); assertEquals(2, before.indicators.size)
         assertEquals("the deliberately older reading is the selected one", 80_000L, before.readings.single { it.id == before.selections.single().readingId }.km)
 
         val target = database()
@@ -153,6 +156,7 @@ class BackupRoundTripTest {
         assertEquals(RestoreProblem.UNKNOWN_TASK, problem { BackupMapper.rows(one.copy(userRules = listOf(app.servicepassport.export.ExportUserRule("r", "v1", "tyres", "replace", km = 1)))) })
         assertEquals(RestoreProblem.UNSUPPORTED_CURRENCY, problem { BackupMapper.rows(one.copy(serviceEvents = listOf(event(coded, cost = 100, currency = "EUR")))) })
         assertEquals(RestoreProblem.UNSUPPORTED_CURRENCY, problem { BackupMapper.rows(one.copy(serviceEvents = listOf(event(coded, cost = 100)))) })
-        assertEquals(RestoreProblem.UNSUPPORTED_CONTENT, problem { BackupMapper.rows(one.copy(indicatorReadings = listOf(app.servicepassport.export.ExportIndicatorReading("v1", "x:inspect", "2026-01-01", 1, remainingKm = 1)))) })
+        assertEquals(RestoreProblem.UNSUPPORTED_CONTENT, problem { BackupMapper.rows(one.copy(indicatorReadings = listOf(app.servicepassport.export.ExportIndicatorReading("i", "v1", "engine_oil:replace", "2026-01-01", 1, remainingKm = 1)))) })
+        assertNull(problem { BackupMapper.rows(one.copy(indicatorReadings = listOf(app.servicepassport.export.ExportIndicatorReading("i", "v1", "inspection_service:inspect", "2026-01-01", 1, remainingKm = 1)))) })
     }
 }

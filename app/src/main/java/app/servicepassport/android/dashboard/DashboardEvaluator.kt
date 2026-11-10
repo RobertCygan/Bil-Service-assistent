@@ -26,7 +26,9 @@ data class ManufacturerCatalog(
 object InstalledManufacturerCatalog { val value = ManufacturerCatalog() }
 
 enum class CatalogState { NOT_AVAILABLE, NO_MATCH, CONFIGURATION_MISSING, AMBIGUOUS, SOURCE_UNAVAILABLE, INVALID_CATALOG, MATCHED }
-enum class TaskOrigin { USER, MANUFACTURER }
+enum class TaskOrigin { USER, MANUFACTURER,
+    /** Taken from the car's own service display, as entered by the driver. */
+    VEHICLE_DISPLAY }
 enum class DashboardReason {
     CONFIRMED_ACTION_MISSING, ODOMETER_MISSING, LAST_SERVICE_ODOMETER_MISSING, IN_SERVICE_DATE_MISSING,
     VARIABLE_SCHEDULE, ODOMETER_STALE, ODOMETER_UPDATE_REQUIRED, ODOMETER_INCONSISTENT,
@@ -70,6 +72,13 @@ class DashboardEvaluator(private val catalog: ManufacturerCatalog = InstalledMan
             val source = SourceRef("user:${interval.id}", "User interval", interval.revision.toString(), today, null, DataOrigin.USER_DEFINED, "Entered by the vehicle owner")
             val rule = ServiceRule("user:${interval.id}", task.taskCode, Schedule.Fixed(Interval(interval.distanceKm, interval.months)), source)
             tasks += evaluateRule(rule.id, rule, TaskOrigin.USER, facts, today)
+        }
+        // The car's own display is a source of its own: no interval is assumed, the entered values are the result.
+        val displayTask = requireNotNull(ServiceTask.fromTaskCode(EngineAdapter.INDICATOR_TASK))
+        if (facts.indicators.isNotEmpty() && tasks.none { it.task == displayTask && it.origin == TaskOrigin.MANUFACTURER }) {
+            val source = SourceRef("vehicle-display", "Vehicle service display", facts.indicators.last().date.toString(), today, null, DataOrigin.USER_DEFINED, "Read from the car by the vehicle owner")
+            val rule = ServiceRule("display:${facts.vehicleId}", EngineAdapter.INDICATOR_TASK, Schedule.Variable(), source)
+            tasks += evaluateRule(rule.id, rule, TaskOrigin.VEHICLE_DISPLAY, facts, today)
         }
         return DashboardState(today, tasks.sortedWith(compareBy<DashboardTask> { it.category.ordinal }.thenBy { it.dueDate ?: LocalDate.MAX }.thenBy { it.remainingKm ?: Int.MAX_VALUE }.thenBy { it.task.taskCode }.thenBy { it.id }), catalogState, missing)
     }

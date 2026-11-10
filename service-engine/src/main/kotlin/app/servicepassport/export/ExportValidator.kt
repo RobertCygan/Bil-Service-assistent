@@ -45,6 +45,7 @@ public object ExportValidator {
         unique(data.serviceEvents.flatMap { e -> e.actions.map { it.id } }, "action")
         unique(data.documents.map { it.id }, "document")
         unique(data.userRules.map { it.id }, "rule")
+        unique(data.indicatorReadings.map { it.id }, "indicator")
 
         for (v in data.vehicles) {
             val where = "vehicle:${v.id}"

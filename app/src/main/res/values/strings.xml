@@ -264,4 +264,19 @@
     <string name="data_content_not_supported">This backup contains information this version of the app cannot store. Nothing in the app was changed.</string>
     <string name="data_file_unreadable">The file could not be read. Nothing in the app was changed.</string>
     <string name="data_deleted">All data was deleted from this phone.</string>
+    <string name="indicator_title">Service display in the car</string>
+    <string name="indicator_source">From the car\'s service display</string>
+    <string name="indicator_explanation">Some cars work out the next service themselves and show it on the display. Enter what the car shows. The app uses those values as they are and does not replace them with a fixed interval.</string>
+    <string name="indicator_none">No reading from the car\'s display yet.</string>
+    <string name="indicator_latest">Read on %1$s at %2$s km</string>
+    <string name="indicator_km_value">Service in %1$s km</string>
+    <string name="indicator_days_value">Service in %1$d days</string>
+    <string name="indicator_add">New reading</string>
+    <string name="indicator_date">Date of the reading</string>
+    <string name="indicator_odometer">Mileage at that moment (km)</string>
+    <string name="indicator_km">Distance to service shown (km)</string>
+    <string name="indicator_days">Days to service shown</string>
+    <string name="indicator_input_help">Fill in what the display shows: distance, days or both. Use a minus sign if the car shows the service as overdue.</string>
+    <string name="indicator_save">Save reading</string>
+    <string name="invalid_indicator">Enter the distance or the days to service as a whole number.</string>
 </resources>

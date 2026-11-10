@@ -24,8 +24,20 @@ data class CurrentReadingInput(
     val warningsAcknowledged: Boolean = false,
     val reviewToken: String? = null,
 )
+/** One reading of the car's service display: distance and/or days left, as shown. Negative means the car says it is overdue. */
+data class IndicatorInput(val id: String, val vehicleId: String, val observedDay: Long, val odometerKm: Long, val remainingKm: Int?, val remainingDays: Int?)
+object IndicatorValidation {
+    const val MAX_KM = 200_000
+    const val MAX_DAYS = 3_650
+    fun validate(input: IndicatorInput, today: java.time.LocalDate) {
+        HistoryValidation.day(input.observedDay, today); HistoryValidation.km(input.odometerKm)
+        if (input.remainingKm == null && input.remainingDays == null) throw InputRejected(InputProblem.INVALID_INDICATOR)
+        if (input.remainingKm != null && input.remainingKm !in -MAX_KM..MAX_KM) throw InputRejected(InputProblem.INVALID_INDICATOR)
+        if (input.remainingDays != null && input.remainingDays !in -MAX_DAYS..MAX_DAYS) throw InputRejected(InputProblem.INVALID_INDICATOR)
+    }
+}
 enum class ReadingWarning { INCONSISTENT_VALUE, SAME_DAY_DIFFERENT, OLDER_CURRENT_SELECTION }
-enum class InputProblem { DATE_IN_FUTURE, INVALID_DATE, INVALID_KM, NO_ACTIONS, INVALID_ACTION, DUPLICATE_ACTION, INVALID_COST, INVALID_PROFILE, NOTE_TOO_LONG, WARNINGS_NEED_REVIEW, NOT_FOUND, CONFLICT, INVALID_INTERVAL, DUPLICATE_INTERVAL }
+enum class InputProblem { DATE_IN_FUTURE, INVALID_DATE, INVALID_KM, NO_ACTIONS, INVALID_ACTION, DUPLICATE_ACTION, INVALID_COST, INVALID_PROFILE, NOTE_TOO_LONG, WARNINGS_NEED_REVIEW, NOT_FOUND, CONFLICT, INVALID_INTERVAL, DUPLICATE_INTERVAL, INVALID_INDICATOR }
 class InputRejected(val problem: InputProblem) : IllegalArgumentException(problem.name)
 
 object ReadingConsistency {

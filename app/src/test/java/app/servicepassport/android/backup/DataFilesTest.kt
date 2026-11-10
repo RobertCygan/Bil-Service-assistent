@@ -28,7 +28,7 @@ class DataFilesTest {
     private fun database(): GarageDatabase { val file = "files-${id()}.db"; files += file; return GarageDatabase.open(context, file).also { open += it } }
     private fun target(): Uri = Uri.fromFile(File(context.cacheDir, "backup-${id()}.zip"))
     /** Order-independent view of the whole database (the export mapping sorts every table). */
-    private suspend fun vehicles(db: GarageDatabase) = BackupMapper.export(db.vehicles().vehicleIds().map { requireNotNull(db.vehicles().garage(it)) }).let { it.vehicles + it.odometerReadings + it.serviceEvents + it.userRules }
+    private suspend fun vehicles(db: GarageDatabase) = BackupMapper.export(db.vehicles().vehicleIds().map { requireNotNull(db.vehicles().garage(it)) }).let { it.vehicles + it.odometerReadings + it.serviceEvents + it.userRules + it.indicatorReadings }
 
     @Before fun setup() {
         context = ApplicationProvider.getApplicationContext()

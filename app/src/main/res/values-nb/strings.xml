@@ -261,4 +261,19 @@
     <string name="data_content_not_supported">Denne sikkerhetskopien inneholder informasjon som denne versjonen av appen ikke kan lagre. Ingenting i appen ble endret.</string>
     <string name="data_file_unreadable">Filen kunne ikke leses. Ingenting i appen ble endret.</string>
     <string name="data_deleted">Alle data er slettet fra denne telefonen.</string>
+    <string name="indicator_title">Servicevisning i bilen</string>
+    <string name="indicator_source">Fra bilens servicevisning</string>
+    <string name="indicator_explanation">Noen biler beregner neste service selv og viser det i displayet. Legg inn det bilen viser. Appen bruker verdiene som de er og erstatter dem ikke med et fast intervall.</string>
+    <string name="indicator_none">Ingen avlesning fra bilens display ennå.</string>
+    <string name="indicator_latest">Avlest %1$s ved %2$s km</string>
+    <string name="indicator_km_value">Service om %1$s km</string>
+    <string name="indicator_days_value">Service om %1$d dager</string>
+    <string name="indicator_add">Ny avlesning</string>
+    <string name="indicator_date">Dato for avlesningen</string>
+    <string name="indicator_odometer">Kilometerstand da (km)</string>
+    <string name="indicator_km">Vist avstand til service (km)</string>
+    <string name="indicator_days">Vist antall dager til service</string>
+    <string name="indicator_input_help">Fyll inn det displayet viser: avstand, dager eller begge. Bruk minustegn hvis bilen viser at service er forfalt.</string>
+    <string name="indicator_save">Lagre avlesning</string>
+    <string name="invalid_indicator">Skriv avstanden eller antall dager til service som et helt tall.</string>
 </resources>

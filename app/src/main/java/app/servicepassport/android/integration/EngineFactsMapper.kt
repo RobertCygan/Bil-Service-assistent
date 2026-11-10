@@ -18,6 +18,8 @@ data class PreparedEngineFacts(
     val performedActions: List<PreparedPerformedAction>,
     val unmappedActions: List<PreparedCustomAction>,
     val odometerCautions: Set<OdometerCaution>,
+    /** Readings of the car's own service display, newest last. */
+    val indicators: List<PreparedIndicator> = emptyList(),
     val policy: PreparedEnginePolicy = PreparedEnginePolicy(),
 )
 
@@ -36,6 +38,8 @@ data class PreparedPerformedAction(
     val performedOn: LocalDate,
     val odometerKm: Int?,
 )
+
+data class PreparedIndicator(val id: String, val date: LocalDate, val odometerKm: Int, val remainingKm: Int?, val remainingDays: Int?)
 
 data class PreparedCustomAction(
     val eventId: String,
@@ -116,6 +120,10 @@ object EngineFactsMapper {
             vehicle.id, vehicle.configurationRevision, configuration,
             vehicle.firstRegistrationDay?.let(LocalDate::ofEpochDay), current, readings,
             performed.toList(), custom.toList(), cautions,
+            snapshot.indicators.map {
+                require(it.vehicleId == vehicle.id) { "Indicator reading belongs to another vehicle" }
+                PreparedIndicator(it.id, LocalDate.ofEpochDay(it.observedDay), kilometers(it.odometerKm), it.remainingKm, it.remainingDays)
+            }.sortedWith(compareBy<PreparedIndicator> { it.date }.thenBy { it.id }),
         )
     }
 

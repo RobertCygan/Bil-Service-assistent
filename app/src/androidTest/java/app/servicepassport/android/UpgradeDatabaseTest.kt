@@ -46,7 +46,7 @@ class UpgradeDatabaseTest {
             assertEquals(100L, garage.vehicle.createdAtUtc); assertEquals(200L, garage.vehicle.updatedAtUtc)
             assertNull(garage.vehicle.firstRegistrationDay); assertNull(garage.currentReading)
             assertTrue(garage.history.isEmpty()); assertTrue(garage.intervals.isEmpty())
-            assertEquals(3, upgraded.openHelper.writableDatabase.version)
+            assertTrue(garage.indicators.isEmpty()); assertEquals(4, upgraded.openHelper.writableDatabase.version)
         } finally { upgraded.close(); context.deleteDatabase(file) }
     }
 
@@ -78,7 +78,7 @@ class UpgradeDatabaseTest {
             assertEquals(saved.currentReading, reopened.currentReading)
             assertEquals(setOf("service-reading", "newer-reading"), reopened.readings.map { it.id }.toSet())
             assertEquals(20000, reopened.intervals.single().distanceKm); assertEquals(12, reopened.intervals.single().months)
-            assertEquals(3, upgraded.openHelper.writableDatabase.version)
+            assertTrue(reopened.indicators.isEmpty()); assertEquals(4, upgraded.openHelper.writableDatabase.version)
         } finally { upgraded.close(); context.deleteDatabase(file) }
     }
 }

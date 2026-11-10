@@ -83,6 +83,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                 composable("dashboard") { DashboardPage(state, ::go, model::reload) }
                 composable("forecast/{id}") { node -> ForecastDetails(state, node.arguments?.getString("id").orEmpty(), ::go) }
                 composable("intervals") { IntervalsPage(state, ::go) { id, revision -> model.deleteInterval(id, revision) {} } }
+                composable("indicator") { IndicatorPage(state, model.today, ::go, { input -> model.saveIndicator(input) {} }) { id -> model.deleteIndicator(id) {} } }
                 composable("interval/new") { IntervalEditor(state, null, { dirty = it }) { input -> model.saveInterval(input, ::intervalSaved) } }
                 composable("interval/edit/{id}") { node ->
                     val interval = state.snapshot?.intervals?.firstOrNull { it.id == node.arguments?.getString("id") }
