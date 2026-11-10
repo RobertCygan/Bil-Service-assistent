@@ -1,6 +1,7 @@
 package app.servicepassport.reminders
 
 import app.servicepassport.engine.Category
+import app.servicepassport.engine.Dimension
 import app.servicepassport.engine.EngineSettings
 import app.servicepassport.engine.Reason
 import app.servicepassport.engine.TaskStatus
@@ -47,6 +48,11 @@ public data class ReminderPlan(
     val cancel: Set<String>,
     /** Najbliższy dzień, w którym wynik może się zmienić; null = nic zaplanowanego. Wskazówka dla WorkManagera. */
     val nextCheckOn: LocalDate?,
+    /**
+     * Reguły (id → przyczyna), dla których termin jest zaległy lub bliski, ale przypomnienia celowo NIE ma,
+     * bo wynik nie jest pewny. Pulpit musi pokazać przyczynę zamiast zalecenia.
+     */
+    val suppressed: Map<String, Reason> = emptyMap(),
 )
 
 /**
@@ -68,16 +74,27 @@ public object ReminderPlanner {
         if (!settings.enabled) return ReminderPlan(emptyList(), mine.map { it.key }.toSet(), null)
 
         val current = mutableListOf<Reminder>()
+        val suppressed = sortedMapOf<String, Reason>()
         for (s in statuses) {
             val kind = when (s.category) {
                 Category.OVERDUE -> ReminderKind.OVERDUE
                 Category.DUE_SOON -> ReminderKind.DUE_SOON
                 else -> continue // „wymaga danych” i „bez pilnej potrzeby” pokazuje pulpit, nie powiadomienie
             }
+            // Zastrzeżenia silnika: nie wysyłamy pozornie pewnego zalecenia.
+            val doubt = when {
+                Reason.SOURCE_EXPIRED in s.reasons -> Reason.SOURCE_EXPIRED
+                Reason.ODOMETER_INCONSISTENT in s.reasons && s.basis.decidedBy == Dimension.DISTANCE -> Reason.ODOMETER_INCONSISTENT
+                else -> null
+            }
+            if (doubt != null) {
+                suppressed[s.rule.id] = doubt
+                continue
+            }
             current += Reminder("$prefix$kind|${s.rule.id}", kind, vehicleId, s, "$kind|${s.dueDate}|${s.dueKm}")
         }
         if (settings.odometerReminders) {
-            val stale = statuses.filter { Reason.ODOMETER_STALE in it.reasons || Reason.ODOMETER_UPDATE_REQUIRED in it.reasons }
+            val stale = statuses.filter { status -> ODOMETER_ATTENTION.any { it in status.reasons } }
             val reading = stale.firstNotNullOfOrNull { it.basis.odometerUsed }
             if (reading != null) {
                 current += Reminder(
@@ -102,8 +119,14 @@ public object ReminderPlanner {
             notifyNow = notifyNow,
             cancel = mine.map { it.key }.filterNot { it in currentKeys }.toSet(),
             nextCheckOn = (repeatDates + transitions(statuses, engineSettings, settings)).filter { it.isAfter(today) }.minOrNull(),
+            suppressed = suppressed,
         )
     }
+
+    /** Zastrzeżenia, przy których prosimy o sprawdzenie lub uzupełnienie przebiegu. */
+    private val ODOMETER_ATTENTION = setOf(
+        Reason.ODOMETER_STALE, Reason.ODOMETER_UPDATE_REQUIRED, Reason.ODOMETER_INCONSISTENT, Reason.NEWER_ODOMETER_IN_HISTORY,
+    )
 
     /** Dni, w których wynik zmieni się sam z upływem czasu (progi km zmienia tylko nowy odczyt przebiegu). */
     private fun transitions(statuses: List<TaskStatus>, engine: EngineSettings, settings: ReminderSettings): List<LocalDate> {

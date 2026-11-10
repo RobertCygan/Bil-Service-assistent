@@ -1,6 +1,8 @@
 package app.servicepassport.reminders
 
+import app.servicepassport.engine.CurrentOdometer
 import app.servicepassport.engine.EvaluationInput
+import app.servicepassport.engine.Reason
 import app.servicepassport.engine.Interval
 import app.servicepassport.engine.OdometerReading
 import app.servicepassport.engine.PerformedTask
@@ -120,6 +122,43 @@ class ReminderPlannerTest {
         val after = ReminderPlanner.plan(car, fresh, day, delivered = delivered(plan, day))
         assertTrue(after.notifyNow.isEmpty())
         assertEquals(setOf("car-1|UPDATE_ODOMETER"), after.cancel, "new reading clears the reminder")
+    }
+
+    @Test
+    fun `expired source never produces a confident reminder`() {
+        val day = d("2026-11-10")
+        val expired = DemoCatalog.source.copy(validUntil = d("2026-01-01"))
+        val rules = listOf(oil.copy(source = expired), brakes)
+        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), rules, history))
+        val plan = ReminderPlanner.plan(car, st, day)
+        assertEquals(listOf("car-1|OVERDUE|r-brakes"), plan.notifyNow.map { it.key })
+        assertEquals(mapOf("r-oil" to Reason.SOURCE_EXPIRED), plan.suppressed)
+
+        // Wysłane wcześniej przypomnienie znika, gdy źródło wygaśnie.
+        val before = listOf(DeliveredReminder("car-1|DUE_SOON|r-oil", "x", day.minusDays(1)))
+        assertTrue("car-1|DUE_SOON|r-oil" in ReminderPlanner.plan(car, st, day, delivered = before).cancel)
+    }
+
+    @Test
+    fun `inconsistent odometer blocks distance based reminders and asks to check the odometer instead`() {
+        val day = d("2026-11-10")
+        val rules = listOf(belt, oil)
+        val hist = listOf(PerformedTask("belt", d("2024-01-10"), 50_000), PerformedTask("oil", d("2025-06-01"), null))
+        // licznik „cofa się”: 160 000 km w marcu, 151 000 km w listopadzie
+        val odo = listOf(OdometerReading(d("2026-03-01"), 160_000), OdometerReading(d("2026-11-01"), 151_000))
+        val st = statuses(day, hist, odo, rules)
+        val plan = ReminderPlanner.plan(car, st, day)
+        assertEquals(listOf("car-1|OVERDUE|r-oil", "car-1|UPDATE_ODOMETER"), plan.notifyNow.map { it.key }, "time based reminder stays")
+        assertEquals(mapOf("r-belt" to Reason.ODOMETER_INCONSISTENT), plan.suppressed)
+    }
+
+    @Test
+    fun `selected reading older than a later invoice asks to update the odometer`() {
+        val day = d("2026-11-10")
+        val selected = OdometerReading(d("2026-10-01"), 52_000)
+        val hist = listOf(PerformedTask("belt", d("2026-01-10"), 50_000), PerformedTask("other", d("2026-10-20"), 58_000))
+        val st = ServiceEngine.evaluate(EvaluationInput(day, d("2020-01-01"), listOf(belt), hist, listOf(selected), currentOdometer = CurrentOdometer.Selected(selected)))
+        assertEquals(listOf("car-1|UPDATE_ODOMETER"), ReminderPlanner.plan(car, st, day).notifyNow.map { it.key })
     }
 
     @Test
