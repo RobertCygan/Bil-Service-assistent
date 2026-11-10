@@ -52,8 +52,8 @@ data class PreparedEnginePolicy(
 )
 
 /**
- * Maps a transactional Room snapshot to facts ready for the future engine adapter.
- * Room v2 service_events contains confirmed manual history only; future OCR drafts need a separate store.
+ * Maps a transactional Room snapshot to the factual input used by EngineAdapter.
+ * Room v3 service_events contains confirmed manual history only; future OCR drafts need a separate store.
  * No engine dependency or hidden reconstruction of current mileage is allowed at this boundary.
  */
 object EngineFactsMapper {

@@ -23,7 +23,7 @@ class UpgradeDatabaseTest {
                 val entity = entities.getJSONObject(i)
                 val table = entity.getString("tableName")
                 old.execSQL(entity.getString("createSql").replace("\${TABLE_NAME}", table))
-                val indexes = entity.getJSONArray("indices")
+                val indexes = entity.optJSONArray("indices") ?: org.json.JSONArray()
                 for (j in 0 until indexes.length()) old.execSQL(indexes.getJSONObject(j).getString("createSql").replace("\${TABLE_NAME}", table))
             }
             val setup = schema.getJSONArray("setupQueries")

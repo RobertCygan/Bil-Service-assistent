@@ -89,6 +89,11 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     Text(stringResource(R.string.service_overview), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("dashboard_title"))
     val dashboard = state.dashboard
     if (state.loading) { CircularProgressIndicator(); return@Page }
+    if (state.problem == StorageProblem.READ) {
+        Text(stringResource(R.string.read_error))
+        Button(onClick = retry) { Text(stringResource(R.string.retry)) }
+        return@Page
+    }
     if (state.profile == null || dashboard == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     Text(requireNotNull(state.profile).displayName)
     if (dashboard.calculationUnavailable) {
@@ -126,6 +131,8 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
 }
 
 @Composable internal fun ForecastDetails(state: GarageState, id: String, go: (String) -> Unit) = Page {
+    if (state.loading) { CircularProgressIndicator(); return@Page }
+    if (state.problem == StorageProblem.READ) { Text(stringResource(R.string.read_error)); return@Page }
     val task = state.dashboard?.tasks?.firstOrNull { it.id == id }
     if (task == null) { Text(stringResource(R.string.entry_not_found)); return@Page }
     val locale = uiLocale()

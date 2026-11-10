@@ -18,6 +18,8 @@ import java.util.UUID
 @Composable internal fun IntervalsPage(state: GarageState, go: (String) -> Unit, delete: (String, Long) -> Unit) = Page {
     Text(stringResource(R.string.your_intervals), style = MaterialTheme.typography.headlineMedium)
     NoteCard(stringResource(R.string.user_interval_explanation))
+    if (state.loading) { CircularProgressIndicator(); return@Page }
+    if (state.problem == StorageProblem.READ) { Text(stringResource(R.string.read_error)); return@Page }
     val snapshot = state.snapshot ?: return@Page
     Button(onClick = { go("interval/new") }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("add_interval")) { Text(stringResource(R.string.add_interval)) }
     TextButton(onClick = { go("dashboard") }, modifier = Modifier.testTag("view_dashboard")) { Text(stringResource(R.string.service_overview)) }
@@ -46,6 +48,8 @@ import java.util.UUID
 }
 
 @Composable internal fun IntervalEditor(state: GarageState, interval: UserIntervalEntity?, onDirty: (Boolean) -> Unit, save: (UserIntervalInput) -> Unit) = Page {
+    if (state.loading) { CircularProgressIndicator(); return@Page }
+    if (state.problem == StorageProblem.READ) { Text(stringResource(R.string.read_error)); return@Page }
     val snapshot = state.snapshot ?: return@Page
     val locale = uiLocale()
     val id = rememberSaveable { interval?.id ?: UUID.randomUUID().toString() }

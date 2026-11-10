@@ -178,7 +178,7 @@ class FoundationSmokeTest {
             awaitTag("add_interval")
         }
         fun editOil(km: String) {
-            val card = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Engine oil · Replace"))
+            val card = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Engine oil · Replacement"))
             compose.onNode(hasText("Edit") and hasAnyAncestor(card)).performScrollTo().performClick()
             input("interval_km", km)
             click("save_interval")
@@ -204,7 +204,7 @@ class FoundationSmokeTest {
         compose.onAllNodesWithTag("interval_entry").assertCountEquals(4)
         // Removing a temporary rule must not remove any confirmed service history.
         addInterval("cabin_filter", "replace", "15000")
-        val cabin = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Cabin filter · Replace"))
+        val cabin = hasTestTag("interval_entry") and hasAnyDescendant(hasText("Cabin filter · Replacement"))
         compose.onNode(hasText("Delete") and hasAnyAncestor(cabin)).performScrollTo().performClick()
         compose.onNodeWithTag("confirm_delete_interval").performClick()
         compose.waitUntil(15_000) { compose.onAllNodesWithTag("interval_entry").fetchSemanticsNodes().size == 4 }
@@ -212,7 +212,7 @@ class FoundationSmokeTest {
         listOf("OVERDUE", "DUE_SOON", "NEEDS_DATA", "NO_URGENCY").forEach { count(it, "1") }
         compose.onNodeWithTag("dashboard_title").performScrollTo()
         screenshot("dashboard-en.png")
-        compose.onNode(hasText("Engine oil · Replace") and hasClickAction()).performScrollTo().performClick()
+        compose.onNode(hasText("Engine oil · Replacement") and hasClickAction()).performScrollTo().performClick()
         awaitTag("forecast_category")
         compose.onNodeWithTag("forecast_category").assertTextEquals("Overdue")
         compose.onNodeWithText("Your interval").assertExists()
