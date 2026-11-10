@@ -86,7 +86,7 @@ public object ExportValidator {
         }
         for (r in data.userRules) {
             val where = "rule:${r.id}"
-            blank(r.id, "rule.id"); vehicle(r.vehicleId, where); blank(r.taskCode, "$where.taskCode")
+            blank(r.id, "rule.id"); vehicle(r.vehicleId, where); blank(r.actionCode, "$where.actionCode"); blank(r.operationCode, "$where.operationCode")
             if (r.km == null && r.months == null) add(ExportIssueCode.RULE_WITHOUT_INTERVAL, where)
             if ((r.km ?: 1) <= 0 || (r.months ?: 1) <= 0) add(ExportIssueCode.VALUE_OUT_OF_RANGE, where)
         }

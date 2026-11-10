@@ -45,7 +45,7 @@ class ExportArchiveTest {
             ExportDocument("d1", "v1", "documents/d1.pdf", "application/pdf", "2025-03-14"),
             ExportDocument("d2", "v1", "documents/d2.jpg", "image/jpeg", "2025-03-14"),
         ),
-        userRules = listOf(ExportUserRule("r1", "v1", "air_filter:replace", months = 12)),
+        userRules = listOf(ExportUserRule("r1", "v1", "air_filter", "replace", months = 12, revision = 2, createdAtUtc = 7, updatedAtUtc = 8)),
         indicatorReadings = listOf(ExportIndicatorReading("v1", "inspection_service:inspect", "2026-10-01", 84_000, remainingKm = 4_000)),
         settings = mapOf("language" to "nb-NO"),
     )
@@ -116,8 +116,8 @@ class ExportArchiveTest {
         assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(readings { it.copy(km = Int.MAX_VALUE + 1L) }))
         assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(events { it.copy(costMinor = -1) }))
         assertEquals(setOf(ExportIssueCode.EVENT_WITHOUT_ACTIONS), codes(actions()))
-        assertEquals(setOf(ExportIssueCode.RULE_WITHOUT_INTERVAL), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x:replace")))))
-        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x:replace", km = 0)))))
+        assertEquals(setOf(ExportIssueCode.RULE_WITHOUT_INTERVAL), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x", "replace")))))
+        assertEquals(setOf(ExportIssueCode.VALUE_OUT_OF_RANGE), codes(data.copy(userRules = listOf(ExportUserRule("r", "v1", "x", "replace", km = 0)))))
         assertEquals(setOf(ExportIssueCode.INDICATOR_WITHOUT_VALUE), codes(data.copy(indicatorReadings = listOf(ExportIndicatorReading("v1", "x:inspect", "2026-01-01", 1)))))
         assertEquals(setOf(ExportIssueCode.EMPTY_FIELD), codes(data.copy(vehicles = listOf(data.vehicles[0].copy(displayName = " ")))))
         assertEquals(setOf(ExportIssueCode.DOCUMENT_FILE_MISSING), codes(data, setOf("documents/d1.pdf")))

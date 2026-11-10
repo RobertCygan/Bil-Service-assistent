@@ -67,6 +67,8 @@ public object ServiceEngine {
         val needsDate: Boolean,
         /** Sam w sobie nie pozwala stwierdzić „bez pilnej potrzeby” (plan zmienny bez odczytu wskaźnika). */
         val inconclusive: Boolean,
+        /** Suma przebiegu i interwału nie mieści się w zakresie; [dueKm] jest wtedy null. */
+        val overflow: Boolean = false,
     )
 
     private fun evaluateRule(rule: ServiceRule, ctx: Context): TaskStatus {
@@ -86,7 +88,9 @@ public object ServiceEngine {
         val timeOverdue = remainingDays != null && remainingDays < 0
         val overdue = kmOverdue || timeOverdue
 
-        if (due.needsKm && remainingKm == null) {
+        if (due.overflow) {
+            reasons += Reason.CALCULATION_LIMIT
+        } else if (due.needsKm && remainingKm == null) {
             reasons += when {
                 current == null -> Reason.ODOMETER_MISSING
                 else -> Reason.LAST_SERVICE_ODOMETER_MISSING
@@ -166,7 +170,8 @@ public object ServiceEngine {
 
         fun fromAnchor(interval: Interval?, kind: IntervalKind, inconclusive: Boolean) = Due(
             anchorKind, anchorDate, anchorKm, kind, interval,
-            dueKm = interval?.km?.let { km -> anchorKm?.plus(km) },
+            dueKm = interval?.km?.let { km -> anchorKm?.let { add(it, km) } },
+            overflow = interval?.km != null && anchorKm != null && add(anchorKm, interval.km) == null,
             dueDate = interval?.months?.let { m -> anchorDate?.plusMonths(m.toLong()) },
             needsKm = interval?.km != null,
             needsDate = interval?.months != null,
@@ -187,7 +192,8 @@ public object ServiceEngine {
                     Due(
                         AnchorKind.VEHICLE_INDICATOR, indicator.date, indicator.odometerKm,
                         IntervalKind.INDICATOR, null,
-                        dueKm = indicator.remainingKm?.let { indicator.odometerKm + it },
+                        dueKm = indicator.remainingKm?.let { add(indicator.odometerKm, it) },
+                        overflow = indicator.remainingKm != null && add(indicator.odometerKm, indicator.remainingKm) == null,
                         dueDate = indicator.remainingDays?.let { indicator.date.plusDays(it.toLong()) },
                         needsKm = indicator.remainingKm != null,
                         needsDate = indicator.remainingDays != null,
@@ -199,6 +205,9 @@ public object ServiceEngine {
             }
         }
     }
+
+    /** Dodawanie bez zawijania: null, gdy wynik nie mieści się w Int. */
+    private fun add(a: Int, b: Int): Int? = (a.toLong() + b.toLong()).takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
 
     /** Średni dzienny przebieg; null, gdy danych jest za mało lub są niespójne — wtedy nie szacujemy. */
     private fun dailyKm(sorted: List<OdometerReading>, settings: EngineSettings): Double? {

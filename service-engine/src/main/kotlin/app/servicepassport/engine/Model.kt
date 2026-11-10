@@ -141,6 +141,8 @@ public enum class Reason {
     NEWER_ODOMETER_IN_HISTORY,
     SOURCE_EXPIRED,
     FUTURE_ENTRIES_IGNORED,
+    /** Próg km wykracza poza obsługiwany zakres liczb — wyniku nie podajemy zamiast go zawijać. */
+    CALCULATION_LIMIT,
 }
 
 public enum class Dimension { DISTANCE, TIME }

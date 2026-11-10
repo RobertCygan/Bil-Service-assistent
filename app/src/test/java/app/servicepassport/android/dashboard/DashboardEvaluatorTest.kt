@@ -71,6 +71,25 @@ class DashboardEvaluatorTest {
         assertEquals(Category.OVERDUE, evaluate().category)
     }
 
+    @Test fun aLimitAlreadyPassedAtTheSelectedReadingStaysOverdueWhenANewerHigherReadingExists() = runBlocking {
+        service(48000); current(70000, days = 30); interval() // limit 68 000 km, selected reading is 2 000 km past it
+        repo.saveReading(ReadingInput(id(), car, null, today.minusDays(5).toEpochDay(), 72000, false))
+        val task = evaluate()
+        assertEquals(Category.OVERDUE, task.category)
+        assertEquals(68000, task.dueKm); assertEquals(-2000, task.remainingKm)
+        assertTrue(DashboardReason.NEWER_ODOMETER_IN_HISTORY in task.reasons)
+        assertFalse(DashboardReason.ODOMETER_INCONSISTENT in task.reasons)
+    }
+
+    @Test fun aNewerHigherReadingStillBlocksAdviceWhileTheSelectedReadingIsBelowTheLimit() = runBlocking {
+        service(48000); current(60000, days = 30); interval()
+        repo.saveReading(ReadingInput(id(), car, null, today.minusDays(5).toEpochDay(), 62000, false))
+        val task = evaluate()
+        assertEquals(Category.NEEDS_DATA, task.category)
+        assertNull(task.dueKm); assertNull(task.remainingKm)
+        assertTrue(DashboardReason.NEWER_ODOMETER_IN_HISTORY in task.reasons)
+    }
+
     @Test fun deletionOfCurrentReadingDoesNotFallBackToServiceHistory() = runBlocking {
         service(48000); val reading = current(59000); interval()
         repo.deleteReading(car, reading.id, 1)

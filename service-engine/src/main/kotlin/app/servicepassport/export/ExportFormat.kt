@@ -33,8 +33,8 @@ public data class ExportManifest(
 public data class ExportedFile(val path: String, val sha256: String, val bytes: Long)
 
 /**
- * Treść kopii. Pola odpowiadają schematowi bazy aplikacji w wersji 2 (tabele `vehicles`, `service_events`,
- * `service_actions`, `odometer_readings`, `current_odometer`), tak aby kopia była bezstratna:
+ * Treść kopii. Pola odpowiadają schematowi bazy aplikacji w wersji 3 (tabele `vehicles`, `service_events`,
+ * `service_actions`, `odometer_readings`, `current_odometer`, `user_intervals`), tak aby kopia była bezstratna:
  * identyfikatory, rewizje, znaczniki czasu, jawny wybór bieżącego odczytu i wyjaśnienia anomalii są zachowane.
  * Dni (`...Date`) to ISO-8601; znaczniki `...AtUtc` to milisekundy UTC, jak w bazie.
  */
@@ -43,7 +43,7 @@ public data class ExportData(
     val vehicles: List<ExportVehicle> = emptyList(),
     val odometerReadings: List<ExportOdometerReading> = emptyList(),
     val serviceEvents: List<ExportServiceEvent> = emptyList(),
-    /** Tabele, których aplikacja jeszcze nie ma (dokumenty, własne interwały, odczyty wskaźnika). */
+    /** Tabele, których aplikacja jeszcze nie ma (dokumenty, odczyty wskaźnika). */
     val documents: List<ExportDocument> = emptyList(),
     val userRules: List<ExportUserRule> = emptyList(),
     val indicatorReadings: List<ExportIndicatorReading> = emptyList(),
@@ -126,14 +126,18 @@ public data class ExportDocument(
     val addedOn: String,
 )
 
+/** Własny interwał użytkownika (tabela `user_intervals`). */
 @Serializable
 public data class ExportUserRule(
     val id: String,
     val vehicleId: String,
-    /** Pełna para `czynność:operacja`. */
-    val taskCode: String,
+    val actionCode: String,
+    val operationCode: String,
     val km: Int? = null,
     val months: Int? = null,
+    val revision: Long = 1,
+    val createdAtUtc: Long = 0,
+    val updatedAtUtc: Long = 0,
 )
 
 @Serializable
