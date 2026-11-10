@@ -96,3 +96,15 @@ Test biblioteki archiwum na API 26 potwierdza jej wykonanie oraz zapis/odczyt na
 [Raport bieżącego przyrostu](stage-4/README.md) przypina kod, wyniki JVM, Androida i restartu. Testy aplikacji obejmują rzeczywisty zapis Room → mapowanie → silnik, edycję interwałów i politykę kategorii. Test UI wpisuje własne interwały przez produkcyjne formularze, więc zrzuty nie wymagają ukrytego katalogu demonstracyjnego.
 
 Starsze raporty [Etapu 3](stage-3/README.md), [przygotowania](integration/README.md) i [autora modułów](09-uzgodnienie-z-aplikacja.md) opisują wcześniejsze rewizje. Bieżący zakres rozstrzyga ten dokument. Zmiana kodu, typu pola, źródła albo znaczenia statusu wymaga aktualizacji kontraktu i sprawdzenia przepływu między modułami.
+
+## Aktualizacja po scaleniu PR #7 (10 listopada 2026)
+
+Od tego miejsca całość prowadzi jeden autor (decyzja właściciela). Zmiany w pierwszym przyroście po scaleniu:
+
+- **Eksport dostosowany do Room v3:** `ExportUserRule` ma parę kodów, rewizję i znaczniki czasu; test obiegu baza → archiwum → nowa baza porównuje wszystkie wiersze sześciu tabel. Szczegóły: [08-etap-7-eksport-danych.md](08-etap-7-eksport-danych.md).
+- **Silnik nie zawija sum km:** przekroczenie zakresu daje `CALCULATION_LIMIT` i „wymaga danych”, także dla odczytu wskaźnika.
+- **Mapowanie przyczyn silnika na pulpit jest wyczerpujące** (`when` bez `else`): nowa przyczyna w silniku nie skompiluje się bez obsługi w aplikacji.
+- **Zaległość przy starszym wybranym odczycie:** jeśli próg km minął już przy wybranym odczycie, a jedyną wątpliwością jest nowszy, wyższy odczyt w historii, pozycja pozostaje „zaległa” z widocznymi km. Przy cofniętym liczniku, różnych km tego samego dnia lub zapisanym wyjątku nadal „wymaga danych”.
+- **Ekran wskaźnika serwisowego jest w MVP** (decyzja właściciela) — do zrobienia w osobnym przyroście.
+
+Znana rozbieżność do usunięcia w przyroście przypomnień: pulpit zaostrza kategorię silnika po swojej stronie, a `ReminderPlanner` czyta surowy wynik silnika. Przypomnienia muszą korzystać z tego samego końcowego wyniku co pulpit.

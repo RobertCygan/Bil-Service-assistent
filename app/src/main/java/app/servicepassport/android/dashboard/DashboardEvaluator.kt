@@ -107,16 +107,29 @@ class DashboardEvaluator(private val catalog: ManufacturerCatalog = InstalledMan
         val intervalKm = interval?.km
         if (intervalKm != null && anchorKm != null && anchorKm.toLong() + intervalKm.toLong() > Int.MAX_VALUE) return unavailable(DashboardReason.CALCULATION_LIMIT)
         val raw = ServiceEngine.evaluate(EngineAdapter.input(facts, today, listOf(rule))).single()
+        // Exhaustive on purpose: a new engine reason must fail compilation here, not crash the dashboard at runtime.
         val reasons = raw.reasons.mapTo(linkedSetOf()) { reason -> when (reason) {
             Reason.NO_CONFIRMATION_IN_DOCUMENTS -> DashboardReason.CONFIRMED_ACTION_MISSING
-            else -> DashboardReason.valueOf(reason.name)
+            Reason.ODOMETER_MISSING -> DashboardReason.ODOMETER_MISSING
+            Reason.LAST_SERVICE_ODOMETER_MISSING -> DashboardReason.LAST_SERVICE_ODOMETER_MISSING
+            Reason.IN_SERVICE_DATE_MISSING -> DashboardReason.IN_SERVICE_DATE_MISSING
+            Reason.VARIABLE_SCHEDULE -> DashboardReason.VARIABLE_SCHEDULE
+            Reason.ODOMETER_STALE -> DashboardReason.ODOMETER_STALE
+            Reason.ODOMETER_UPDATE_REQUIRED -> DashboardReason.ODOMETER_UPDATE_REQUIRED
+            Reason.ODOMETER_INCONSISTENT -> DashboardReason.ODOMETER_INCONSISTENT
+            Reason.NEWER_ODOMETER_IN_HISTORY -> DashboardReason.NEWER_ODOMETER_IN_HISTORY
+            Reason.SOURCE_EXPIRED -> DashboardReason.SOURCE_EXPIRED
+            Reason.FUTURE_ENTRIES_IGNORED -> DashboardReason.FUTURE_ENTRIES_IGNORED
+            Reason.CALCULATION_LIMIT -> DashboardReason.CALCULATION_LIMIT
         } }
         val distanceBased = interval?.km != null || rule.schedule is Schedule.Variable && raw.dueKm != null
-        val uncertainDistance = distanceBased && (
-            facts.currentOdometer?.exceptionReason?.isNotBlank() == true ||
-                OdometerCaution.DECREASING_VALUES in facts.odometerCautions || OdometerCaution.DIFFERENT_VALUES_ON_SAME_DAY in facts.odometerCautions ||
-                Reason.ODOMETER_INCONSISTENT in raw.reasons || Reason.NEWER_ODOMETER_IN_HISTORY in raw.reasons
-            )
+        val unreliableCounter = facts.currentOdometer?.exceptionReason?.isNotBlank() == true ||
+            OdometerCaution.DECREASING_VALUES in facts.odometerCautions || OdometerCaution.DIFFERENT_VALUES_ON_SAME_DAY in facts.odometerCautions ||
+            Reason.ODOMETER_INCONSISTENT in raw.reasons
+        // Mileage only grows: a limit already passed at the selected reading stays passed when a later, higher
+        // reading exists. Hiding it would understate a certain overdue item.
+        val provenOverdueByDistance = !unreliableCounter && (raw.remainingKm ?: 0) < 0
+        val uncertainDistance = distanceBased && (unreliableCounter || Reason.NEWER_ODOMETER_IN_HISTORY in raw.reasons && !provenOverdueByDistance)
         if (uncertainDistance) reasons += DashboardReason.ODOMETER_INCONSISTENT
         val missingDistance = distanceBased && (raw.basis.odometerUsed == null || raw.dueKm == null)
         val staleBelowThreshold = distanceBased && Reason.ODOMETER_STALE in raw.reasons && (raw.remainingKm ?: Int.MAX_VALUE) >= 0

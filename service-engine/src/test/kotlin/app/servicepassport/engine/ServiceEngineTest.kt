@@ -367,6 +367,22 @@ class ServiceEngineTest {
         assertTrue(s.reasons.isEmpty())
     }
 
+    @Test
+    fun `distance sums never wrap around`() {
+        val r = rule("x", Schedule.Fixed(Interval(km = 100_000)))
+        val s = one(r, listOf(PerformedTask("x", d("2026-06-01"), Int.MAX_VALUE - 5)), listOf(OdometerReading(d("2026-11-01"), Int.MAX_VALUE - 1)))
+        assertEquals(Category.NEEDS_DATA, s.category)
+        assertEquals(setOf(Reason.CALCULATION_LIMIT), s.reasons)
+        assertNull(s.dueKm)
+
+        val v = one(
+            rule("insp", Schedule.Variable()), odometer = listOf(OdometerReading(d("2026-11-01"), 10)),
+            indicators = listOf(IndicatorReading("insp", d("2026-10-01"), Int.MAX_VALUE - 1, remainingKm = 10)),
+        )
+        assertEquals(Category.NEEDS_DATA, v.category)
+        assertTrue(Reason.CALCULATION_LIMIT in v.reasons)
+    }
+
     // --- źródła, kolejność, dane demo ---
 
     @Test

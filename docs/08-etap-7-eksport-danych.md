@@ -6,9 +6,20 @@ Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `servi
 
 | Element | Stan |
 | --- | --- |
-| Format archiwum, zapis, odczyt z pełną weryfikacją, kontrola spójności treści | **Zaimplementowane i przetestowane** |
-| Mapowanie bazy aplikacji ↔ format, ekran eksportu/importu, wybór miejsca zapisu | **Nie ma** — wymaga kodu etapów 1–3 |
+| Format archiwum, zapis, odczyt z pełną weryfikacją, opcjonalne hasło | **Zaimplementowane i przetestowane** (moduł `service-engine`, 19 testów) |
+| Mapowanie bazy aplikacji (Room v3) ↔ format, zapis i odtworzenie całej bazy | **Zaimplementowane i przetestowane**: `app/.../backup/GarageBackup.kt`, 5 testów obiegu baza → kopia → nowa baza |
+| Ekran eksportu/importu, wybór miejsca zapisu i pola hasła | **Nie ma** |
+| Sprawdzenie na urządzeniu z Androidem 8–12 | **Nie wykonano** dla pełnego odtworzenia bazy (test biblioteki archiwum na API 26 istnieje) |
 | Usuwanie danych, audyt SDK i logów, polityka prywatności | **Nie ma** — pozostała część Etapu 7 |
+
+### Co potwierdza test obiegu
+
+Baza wypełniona przez zwykłe operacje aplikacji (auto z pełną konfiguracją i jej rewizją, dwa wpisy serwisowe z edycją, prace z kodami i własnym opisem w ustalonej kolejności, koszt, notatki, trzy odczyty, **świadomie wybrany starszy odczyt z wyjaśnieniem**, dwa własne interwały z edycją) jest zapisywana do archiwum i odtwarzana w nowej bazie. Porównywane są wszystkie wiersze wszystkich sześciu tabel — muszą być identyczne, łącznie z rewizjami i znacznikami czasu. Po odtworzeniu baza przyjmuje kolejne zmiany.
+
+Zasady odtwarzania:
+
+- zastępuje wszystkie dane lokalne w jednej transakcji; każda odmowa zostawia bazę nietkniętą;
+- odmowa, gdy kopia zawiera coś, czego ta wersja aplikacji nie umie zapisać bez straty: kod czynności spoza kontraktu, walutę inną niż NOK, dokumenty lub odczyty wskaźnika, więcej niż jedno auto.
 
 ## Format (wersja 1)
 
@@ -38,7 +49,8 @@ Domyślnie kopia jest jawna. Gdy użytkownik poda hasło, cała kopia jest szyfr
 
 ## Ograniczenia
 
-- Struktura `data.json` została dopasowana do schematu bazy v2 z gałęzi Etapu 3 (odczytanego, nie scalonego). **Bezstratność nie jest udowodniona**, dopóki nie powstanie test baza → kopia → nowa baza.
+- Bezstratność jest potwierdzona testem dla bazy v3 w środowisku testowym (Robolectric), nie na fizycznym telefonie.
+- Kopia nie obejmuje języka aplikacji (jest ustawieniem systemowym, nie wierszem bazy).
 - Usunięto wywołanie niedostępne przed Androidem 13; działania na Androidzie 8–12 nie sprawdzono na urządzeniu.
 - Przy nieudanym imporcie aplikacja musi usunąć pliki dokumentów zapisane w trakcie czytania i nie zmieniać bazy — to obowiązek warstwy aplikacji, opisany w kodzie.
 - Nie testowano bardzo dużych archiwów (setki MB) na telefonie.

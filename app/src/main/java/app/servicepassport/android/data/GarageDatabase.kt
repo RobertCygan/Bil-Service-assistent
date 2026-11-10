@@ -119,6 +119,9 @@ interface VehicleDao {
     @Insert suspend fun insertInterval(interval: UserIntervalEntity)
     @Update suspend fun updateInterval(interval: UserIntervalEntity)
     @Query("DELETE FROM user_intervals WHERE id = :id") suspend fun deleteInterval(id: String)
+    @Query("SELECT id FROM vehicles ORDER BY created_at_utc, id") suspend fun vehicleIds(): List<String>
+    /** Backup restore only: child tables are removed by their foreign-key cascades. */
+    @Query("DELETE FROM vehicles") suspend fun deleteAllVehicles()
 }
 
 object DatabaseMigrations {
