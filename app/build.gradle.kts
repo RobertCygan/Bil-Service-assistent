@@ -40,6 +40,10 @@ android {
     testOptions { unitTests.isIncludeAndroidResources = true }
     sourceSets["test"].resources.srcDir("schemas")
     sourceSets["androidTest"].assets.srcDir("schemas")
+    if (providers.gradleProperty("engineIntegrationRoot").isPresent) {
+        sourceSets["test"].java.srcDir("src/engineIntegrationTest/java")
+        sourceSets["androidTest"].java.srcDir("src/engineIntegrationAndroidTest/java")
+    }
     lint { abortOnError = true }
 }
 
@@ -66,6 +70,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    if (providers.gradleProperty("engineIntegrationRoot").isPresent) {
+        testImplementation("app.servicepassport:service-engine:0.1.0")
+        androidTestImplementation("app.servicepassport:service-engine:0.1.0")
+    }
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)

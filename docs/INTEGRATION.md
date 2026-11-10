@@ -13,6 +13,12 @@ Stan: **10 listopada 2026**. Odczytano silnik PR #2 przy commicie `ff102f4d1c50d
 
 Pracujemy na osobnych gałęziach. Akceptowane dokumenty Etapu 1 są już w `main`. PR #2 pozostaje osobną propozycją; nie włączamy jego katalogu demo do aplikacji, także w debug, bez odrębnej potrzeby testowej.
 
+## Przyrost przygotowujący integrację — 10 listopada 2026
+
+Po audycie właściciel zatwierdził poprawkę Etapu 3 oraz przygotowanie mapowania i testów połączenia. Aktualny punkt odniesienia dla drugiego modułu to `525c223a9b4377a8490ddb464010fa2128a99ca0`. Autor dodał `CurrentOdometer.Selected`/`NotSelected`, wspólne narzędzia i zmiany ekstrakcji/eksportu/przypomnień. [Raport przygotowania i sposób uruchomienia](integration/README.md) opisuje kod aplikacji, testy rzeczywistego silnika i przypięcie rewizji. Nie jest to scalenie PR #2 ani podłączenie silnika do zwykłego APK.
+
+Poniższe starsze różnice opisują powód zmian; status bieżącego odczytu aktualizuje sekcja A. Kolejne przyrosty muszą nadal rozwiązać prezentację źródła i zastrzeżeń oraz proces zatwierdzania OCR.
+
 ## 1. Narzędzia i granice modułów
 
 Przyjęto dla fundamentu: **Kotlin 2.2.21, Gradle 8.13, AGP 8.11.1, JDK/JVM 17, minSdk 26, compile/targetSdk 36**. Źródłem wersji jest `gradle/libs.versions.toml`. Nie wybierano AGP/Kotlin „na ślepo”: sprawdzono [tabelę Kotlin/Gradle/AGP](https://kotlinlang.org/docs/gradle-configure-project.html), [wymagania AGP 8.11](https://developer.android.com/build/releases/agp-8-11-0-release-notes) oraz [plugin kompilatora Compose](https://developer.android.com/jetpack/androidx/releases/compose-kotlin). Przed wydaniem wymagania Play i aktualizacje zależności wracają do weryfikacji.
@@ -72,9 +78,11 @@ Katalog `vehicle-catalog/` i pomocnicze VIN/tablice z PR #2 pozostają do osobne
 
 ### A. Bieżący przebieg
 
-Model logiczny aplikacji zakłada jawne `currentReadingId`. W schemacie Room v2 realizuje to tabela `current_odometer(vehicle_id, reading_id)`, z kluczem obcym sprawdzającym przynależność odczytu do auta. Odczyt starszej faktury nie ustala bieżącego przebiegu. API silnika z PR #2 przyjmuje listę odczytów i sam dołącza/przegląda odczyty z historii; nie ma jeszcze osobnego parametru autorytatywnego odczytu.
+Model logiczny aplikacji zakłada jawne `currentReadingId`. W schemacie Room v2 realizuje to tabela `current_odometer(vehicle_id, reading_id)`. `EngineFactsMapper` zachowuje ten wybór oraz osobną historię. Przy braku wyboru nie rekonstruuje bieżącego odczytu z historii.
 
-Przed integracją potrzebne jest rozszerzenie silnika lub jednoznacznie przetestowana polityka adaptera, która zachowa wybór aplikacji także wtedy, gdy historia zawiera późniejszy odczyt. Preferowany kierunek: opcjonalny jawny odczyt bieżący plus oddzielne odczyty do szacowania; historia nie może go po cichu zastępować. Nie naprawiamy tego przez usunięcie prawdziwych wpisów z historii przekazywanej do obliczeń.
+**Rozwiązane w API drugiego modelu przy `525c223…`:** `EvaluationInput.currentOdometer` przyjmuje `Selected`, `NotSelected` albo `LatestKnown`. Binding aplikacji zawsze ustawia pierwszą lub drugą opcję; `LatestKnown` pozostaje poza ścieżką aplikacji. Testy Room → mapowanie → prawdziwy silnik kontrolują jawny wybór oraz brak zastępstwa po usunięciu odczytu. Odczyty historyczne pozostają dostępne do wykrywania niespójności i szacowania.
+
+Po stronie aplikacji `selectCurrent(CurrentReadingInput)` waliduje także istniejący odczyt w transakcji. Wyjaśnienie i potwierdzenie są wymagane dla aktualnego zestawu danych. Zmiana wyjaśnienia przy odczycie usługowym podnosi rewizję odczytu i usługi, aby nieaktualny edytor nie nadpisał tego potwierdzenia.
 
 ### B. Wygaśnięcie źródła i licencja
 
