@@ -137,6 +137,8 @@ def index_eea(eea, aliases):
         country = squash(row.get("MS"))
         if not re.fullmatch(r"[A-Z]{2}", country):
             continue
+        if country == "UK":  # Wielka Brytania występuje w danych pod dwoma kodami
+            country = "GB"
         raw_brand = squash(row.get("Mk"))
         brand = aliases.get(raw_brand, raw_brand)
         model = clean_model(row.get("Cn"), sorted({raw_brand, brand}, key=len, reverse=True))
