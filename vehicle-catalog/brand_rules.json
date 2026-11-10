@@ -1,0 +1,32 @@
+{
+  "aliases": {
+    "BMW I": "BMW",
+    "TESLA MOTORS": "TESLA",
+    "VW": "VOLKSWAGEN",
+    "MERCEDES-AMG": "MERCEDES-BENZ",
+    "DAIMLER BENZ": "MERCEDES-BENZ",
+    "JAGUAR CARS": "JAGUAR",
+    "MICRO COMPACT CAR SMART": "SMART",
+    "MICRO COMPACT CAR": "SMART",
+    "ROLLS ROYCE": "ROLLS-ROYCE",
+    "DS AUTOMOBILES": "DS",
+    "QUATTRO": "AUDI",
+    "LADA-VAZ": "LADA",
+    "G.M.C.": "GMC",
+    "AUTOMOBILI LAMBORGHINI S.": "LAMBORGHINI",
+    "ALPINE-RENAULT": "ALPINE",
+    "LUCID MOTORS": "LUCID",
+    "RANGEROVER": "LAND ROVER",
+    "MC LAREN": "MCLAREN",
+    "FORD-CNG-TECHNIK": "FORD",
+    "N.S.U.": "NSU",
+    "D.K.W.": "DKW"
+  },
+  "dropped": ["JAGUAR LAND ROVER", "DAIMLERCHRYSLER AG", "DAIMLERCHRYSLER (USA)", "NIET GEREGISTREERD"],
+  "display": {
+    "BMW": "BMW", "MG": "MG", "BYD": "BYD", "DS": "DS", "GMC": "GMC", "NIO": "NIO", "TVR": "TVR", "DAF": "DAF",
+    "NSU": "NSU", "DKW": "DKW", "FAW": "FAW", "DFSK": "DFSK", "MINI": "MINI", "SEAT": "SEAT", "VM": "VM",
+    "CITROEN": "Citroën", "SKODA": "Škoda", "LYNK&CO": "Lynk & Co", "MCLAREN": "McLaren", "XPENG": "XPeng",
+    "KG MOBILITY": "KG Mobility", "VINFAST": "VinFast", "SSANGYONG": "SsangYong", "M.A.N.": "MAN"
+  }
+}
