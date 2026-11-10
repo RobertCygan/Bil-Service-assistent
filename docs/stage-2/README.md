@@ -37,7 +37,8 @@ APK debug: `app/build/outputs/apk/debug/app-debug.apk`, pakiet `app.servicepassp
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-./gradlew :app:connectedDebugAndroidTest
+./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
+python3 scripts/check_process_restart.py
 ```
 
 Test ręczny: wybierz język → zapisz nazwę/rok → przejdź między zakładkami → zmień język → całkowicie zamknij proces i uruchom aplikację ponownie. Sprawdź zachowanie nazwy/roku i języka. Nie używaj prawdziwych prywatnych dokumentów w tym etapie — ich import nie jest jeszcze zaimplementowany.

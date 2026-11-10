@@ -1,6 +1,6 @@
 # Wspólny kontrakt aplikacji i silnika — v1
 
-Stan: **10 listopada 2026**. Odczytano PR #2 przy commicie `ff102f4d1c50d0974e8c6792270effc26894e4a3`. Ten dokument i `service-contract/` są punktem odniesienia dla etapów 1–3 oraz 4–5. Nie oznaczają, że PR #2 został scalony lub że adapter i OCR już działają.
+Stan: **10 listopada 2026**. Odczytano silnik PR #2 przy commicie `ff102f4d1c50d0974e8c6792270effc26894e4a3`, a następnie aktualizację do `adaf5fd2c74974da14d92e9c0cc59fffd04f37f6`, obejmującą rdzeń ekstrakcji i katalog pojazdów. Ten dokument i `service-contract/` są punktem odniesienia dla etapów 1–3 oraz 4–5. Nie oznaczają, że PR #2 został scalony lub że adapter i OCR na Androidzie już działają.
 
 ## Podział pracy
 
@@ -35,6 +35,7 @@ W bazie zachowujemy oddzielnie czynność i operację. Do `ServiceRule.taskCode`
 | Kod czynności | Dozwolone operacje |
 | --- | --- |
 | `engine_oil` | `replace`, `inspect` |
+| `oil_filter` | `replace`, `inspect` |
 | `gearbox_oil` | `replace`, `inspect` |
 | `brake_fluid` | `replace`, `inspect` |
 | `coolant` | `replace`, `inspect` |
@@ -42,16 +43,30 @@ W bazie zachowujemy oddzielnie czynność i operację. Do `ServiceRule.taskCode`
 | `timing_belt` | `replace`, `inspect` |
 | `air_filter` | `replace`, `inspect` |
 | `cabin_filter` | `replace`, `inspect` |
+| `fuel_filter` | `replace`, `inspect` |
+| `brake_pads` | `replace`, `inspect` |
+| `brake_discs` | `replace`, `inspect` |
+| `inspection_service` | `inspect` |
 | `brakes` | `inspect` |
 | `battery_12v` | `test`, `replace` |
 
 To identyfikatory, **nie zalecenia wykonania ani harmonogram**. Nie utożsamiamy kodu z językiem dokumentu. Opis nieznanej czynności może zostać w historii, ale bez arbitralnego dopasowania do reguł. `fromTaskCode` odrzuca nieznane i niepełne pary; nie robi rozmytego dopasowania. Nie używać obecnych krótkich kodów z fikcyjnych testów silnika jako alternatywnego słownika produkcyjnego.
+
+### Tymczasowe kody ekstraktora z aktualizacji PR #2
+
+`DefaultTaskDictionary` ma 13 kodów wielkimi literami. Przy integracji zastępujemy je pełnymi parami z kontraktu: `ENGINE_OIL` → `engine_oil:replace`, `OIL_FILTER` → `oil_filter:replace`, analogicznie pozostałe nazwy części **tylko po potwierdzeniu wymiany**. `INSPECTION_SERVICE` → `inspection_service:inspect`; ogólne „full service” nie potwierdza wymiany każdej części. Kontrole i testy wymagają własnej operacji, zamiast mapowania dowolnej wzmianki o części na `replace`.
+
+Zalecany punkt integracji to jawnie wstrzyknięty słownik `DocumentExtractor(...)` oparty na kontrakcie. Nazwy tymczasowe nie stają się kodami historii produkcyjnej. `brakes:inspect`, `brake_pads:replace` i `brake_discs:replace` pozostają trzema różnymi pozycjami. Zmiana słownika nie zastępuje walidacji klasyfikacji PERFORMED, dopasowania pojazdu i potwierdzenia przez użytkownika.
 
 ## 3. Decyzje właściciela
 
 - **Zatwierdzone:** zbliżający się termin = **1500 km lub 30 dni**, nieaktualny przebieg = **90 dni**. To progi prezentacji/przypomnień aplikacji; nie zmieniają terminu serwisu wynikającego ze źródła. W Etapie 2 nie są jeszcze stosowane przez pulpit, bo silnik nie jest podłączony.
 - **Decyzja w ramach pozostawionego wyboru:** opcjonalny `IndicatorReading` zostaje w API silnika, ale ekran i tabela ręcznego odczytu wskaźnika są **poza MVP**. Bez potrzebnego odczytu plan zmienny pokazuje „wymaga danych”. Nie dodajemy fikcyjnego odczytu ani stałego interwału zastępczego.
 - Data pierwszej rejestracji pozostaje osobna od roku modelowego; zostanie dodana do danych pojazdu w Etapie 3 z rzeczywistą migracją.
+
+**Do synchronizacji opisu PR #2:** jego aktualizacja odnotowuje ekran wskaźnika jako przewidziany w aplikacji. W bieżącej rozmowie właściciel pozostawił wybór i przyjęto odłożenie tego ekranu poza MVP. Opcjonalny typ w silniku pozostaje zgodny; opis zakresu i przyszłe zadania UI wymagają dostosowania do tej decyzji.
+
+Katalog `vehicle-catalog/` z PR #2 można ocenić do późniejszego wyboru auta w Etapie 3. Dane `firstYear`/`lastYear` są latami pierwszych rejestracji w źródle, a nie rokiem modelowym i nie mogą go automatycznie uzupełniać. Ręczny wpis pozostaje dostępny dla aut spoza listy. Lista marek/modeli nie przypisuje harmonogramu ani nie zamyka bramki źródła.
 
 ## 4. Różnice wymagające rozwiązania przed adapterem
 

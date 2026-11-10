@@ -2,6 +2,7 @@
 from pathlib import Path
 import json
 import subprocess
+import sys
 import time
 import xml.etree.ElementTree as ET
 
@@ -12,7 +13,11 @@ OUT.mkdir(parents=True, exist_ok=True)
 
 
 def adb(*args, timeout=40):
-    return subprocess.check_output(["adb", *args], timeout=timeout)
+    try:
+        return subprocess.check_output(["adb", *args], timeout=timeout, stderr=subprocess.STDOUT)
+    except subprocess.CalledProcessError as error:
+        print(error.output.decode("utf-8", errors="replace")[:1500], file=sys.stderr)
+        raise
 
 
 # The connected test leaves the app in Bokmål, while the clean CI device uses English.

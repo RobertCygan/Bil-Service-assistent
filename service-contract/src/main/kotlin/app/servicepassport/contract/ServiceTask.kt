@@ -3,6 +3,7 @@ package app.servicepassport.contract
 /** Wire values are permanent identifiers, never translated strings or manufacturer intervals. */
 enum class ServiceAction(val code: String, val operations: Set<Operation>) {
     ENGINE_OIL("engine_oil", setOf(Operation.REPLACE, Operation.INSPECT)),
+    OIL_FILTER("oil_filter", setOf(Operation.REPLACE, Operation.INSPECT)),
     GEARBOX_OIL("gearbox_oil", setOf(Operation.REPLACE, Operation.INSPECT)),
     BRAKE_FLUID("brake_fluid", setOf(Operation.REPLACE, Operation.INSPECT)),
     COOLANT("coolant", setOf(Operation.REPLACE, Operation.INSPECT)),
@@ -10,6 +11,10 @@ enum class ServiceAction(val code: String, val operations: Set<Operation>) {
     TIMING_BELT("timing_belt", setOf(Operation.REPLACE, Operation.INSPECT)),
     AIR_FILTER("air_filter", setOf(Operation.REPLACE, Operation.INSPECT)),
     CABIN_FILTER("cabin_filter", setOf(Operation.REPLACE, Operation.INSPECT)),
+    FUEL_FILTER("fuel_filter", setOf(Operation.REPLACE, Operation.INSPECT)),
+    BRAKE_PADS("brake_pads", setOf(Operation.REPLACE, Operation.INSPECT)),
+    BRAKE_DISCS("brake_discs", setOf(Operation.REPLACE, Operation.INSPECT)),
+    INSPECTION_SERVICE("inspection_service", setOf(Operation.INSPECT)),
     BRAKES("brakes", setOf(Operation.INSPECT)),
     BATTERY_12V("battery_12v", setOf(Operation.TEST, Operation.REPLACE)),
 }

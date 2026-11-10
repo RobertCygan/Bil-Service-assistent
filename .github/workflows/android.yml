@@ -61,7 +61,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            ./gradlew :app:connectedDebugAndroidTest
+            ./gradlew :app:connectedDebugAndroidTest -Pandroid.injected.androidTest.leaveApksInstalledAfterRun=true
             python3 scripts/check_process_restart.py
       - uses: actions/upload-artifact@v4
         if: always()
