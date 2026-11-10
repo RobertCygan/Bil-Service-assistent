@@ -63,7 +63,11 @@ def fetch():
 EEA_SQL = "https://discodata.eea.europa.eu/sql"
 EEA_TABLE = "[CO2Emission].[latest].[co2cars]"  # nowe rejestracje 2010-2022; Norwegia: 2019-2022
 EEA_YEARS = range(2010, 2023)
-MIN_NORWAY_YEARS = 2        # model spoza RDW dopisujemy, gdy był rejestrowany w Norwegii w tylu różnych latach
+NORDIC = ("NO", "SE", "FI", "DK", "IS")
+# model spoza RDW dopisujemy, gdy był rejestrowany w co najmniej tylu krajach nordyckich i tylu różnych latach
+MIN_NORDIC_COUNTRIES = 2
+MIN_NORDIC_YEARS = 2
+FORCED_MODEL_THRESHOLD = 10  # próg modelu dla marek z listy alwaysInclude
 
 
 def fetch_eea():
@@ -115,7 +119,7 @@ def clean_model(raw, brand_names):
     name = LEADING_TYPE_CODE.sub("", name)  # "171010 GOLF" -> "GOLF"
     name = POWER_SUFFIX.sub("", name)
     name = EMISSION_CODE.sub("", name).strip(" -./,")
-    if not name or name == "NIET GEREGISTREERD" or len(name) > 30:
+    if not name or name in ("NIET GEREGISTREERD", "N/A", "DFSK") or len(name) > 30:
         return None
     if re.fullmatch(r"[\d\s./-]{5,}", name):  # fabryczne kody typu, np. "113021"
         return None
@@ -131,62 +135,59 @@ def brand_key(name):
 
 
 def index_eea(eea, aliases):
-    """marka -> {tokeny nazwy: {"NO": {lata}, "countries": {kraje poza NO}, "name": zapis}}"""
+    """marka -> {tokeny nazwy: {"seen": {(kraj, rok)}, "name": zapis}} — tylko kraje nordyckie."""
     index = collections.defaultdict(dict)
     for row in eea:
         country = squash(row.get("MS"))
-        if not re.fullmatch(r"[A-Z]{2}", country):
+        if country not in NORDIC:
             continue
-        if country == "UK":  # Wielka Brytania występuje w danych pod dwoma kodami
-            country = "GB"
         raw_brand = squash(row.get("Mk"))
         brand = aliases.get(raw_brand, raw_brand)
         model = clean_model(row.get("Cn"), sorted({raw_brand, brand}, key=len, reverse=True))
         if not brand or model is None or not tokens(model):
             continue
-        entry = index[brand_key(brand)].setdefault(
-            tokens(model), {"NO": set(), "countries": set(), "name": model})
-        if country == "NO":
-            entry["NO"].add(row.get("Year"))
-        else:
-            entry["countries"].add(country)
+        entry = index[brand_key(brand)].setdefault(tokens(model), {"seen": set(), "name": model})
+        entry["seen"].add((country, row.get("Year")))
     return index
 
 
-def verify(makes, eea, aliases, display):
-    """Oznacza modele potwierdzone w Norwegii / Europie i dopisuje modele norweskie spoza RDW."""
+def verify(makes, eea, aliases):
+    """Oznacza modele potwierdzone w krajach nordyckich i dopisuje modele nordyckie spoza RDW."""
     index = index_eea(eea, aliases)
-    stats = {"confirmedNorway": 0, "confirmedEurope": 0, "addedFromNorway": 0}
+    stats = {"confirmed": {c: 0 for c in NORDIC}, "confirmedAnyNordic": 0, "addedFromNordic": 0}
     for make in makes:
         seen = index.get(make["key"], {})
-        listed = set()
+        listed, listed_keys = set(), set()
         for model in make["models"]:
             want = tokens(model["name"])
             listed.add(want)
             joined = "".join(want)
-            norway, countries = set(), set()
+            listed_keys.add(joined)
+            countries = set()
             for have, entry in seen.items():
                 # ten sam model, jeśli nazwa EEA zaczyna się od naszych słów ("GOLF" ~ "GOLF VARIANT")
                 if have[:len(want)] == want or "".join(have) == joined:
-                    norway |= entry["NO"]
-                    countries |= entry["countries"]
-            if norway:
-                model["norway"] = True
-                stats["confirmedNorway"] += 1
+                    countries |= {country for country, _ in entry["seen"]}
             if countries:
-                model["europeCountries"] = len(countries)
-                stats["confirmedEurope"] += 1
+                model["nordic"] = [c for c in NORDIC if c in countries]
         for have, entry in sorted(seen.items()):
-            covered = any(have[:len(want)] == want for want in listed)
-            if covered or len(entry["NO"]) < MIN_NORWAY_YEARS:
+            countries = {country for country, _ in entry["seen"]}
+            years = {year for _, year in entry["seen"]}
+            covered = "".join(have) in listed_keys or any(have[:len(want)] == want for want in listed)
+            if covered or len(countries) < MIN_NORDIC_COUNTRIES or len(years) < MIN_NORDIC_YEARS:
                 continue
             make["models"].append({
-                "name": entry["name"], "firstYear": min(entry["NO"]), "lastYear": max(entry["NO"]),
-                "vehicles": 0, "norway": True, "addedFrom": "EEA",
-                **({"europeCountries": len(entry["countries"])} if entry["countries"] else {}),
+                "name": entry["name"], "firstYear": min(years), "lastYear": max(years),
+                "vehicles": 0, "nordic": [c for c in NORDIC if c in countries], "addedFrom": "EEA",
             })
             listed.add(have)
-            stats["addedFromNorway"] += 1
+            listed_keys.add("".join(have))
+            stats["addedFromNordic"] += 1
+        for model in make["models"]:
+            if model.get("nordic"):
+                stats["confirmedAnyNordic"] += 1
+                for country in model["nordic"]:
+                    stats["confirmed"][country] += 1
     return stats
 
 
@@ -204,6 +205,7 @@ def year(value, pick):
 def build(rows, eea=None):
     rules = json.loads((HERE / "brand_rules.json").read_text(encoding="utf-8"))
     aliases, dropped, display = rules["aliases"], set(rules["dropped"]), rules["display"]
+    forced = set(rules.get("alwaysInclude", []))
 
     # klucz modelu = same litery i cyfry, żeby "T-ROC", "T ROC" i "TROC" były jednym modelem
     brands = collections.defaultdict(lambda: collections.defaultdict(
@@ -231,9 +233,11 @@ def build(rows, eea=None):
     makes, listed = [], 0
     for brand, models in brands.items():
         brand_total = sum(m["n"] for m in models.values())
-        if brand_total < MIN_BRAND_VEHICLES:
+        if brand_total < MIN_BRAND_VEHICLES and brand not in forced:
             continue
         threshold = min(MAX_MODEL_THRESHOLD, max(MIN_MODEL_THRESHOLD, brand_total // 50))
+        if brand in forced:
+            threshold = min(threshold, FORCED_MODEL_THRESHOLD)
         kept = []
         for key, m in models.items():
             if key == "" or m["n"] < threshold:
@@ -249,7 +253,7 @@ def build(rows, eea=None):
         makes.append({"name": display_brand(brand, display), "key": brand_key(brand),
                       "vehicles": brand_total, "models": kept})
     makes.sort(key=lambda m: m["name"].casefold())
-    verification = verify(makes, eea, aliases, display) if eea else None
+    verification = verify(makes, eea, aliases) if eea else None
     for make in makes:
         del make["key"]
 
@@ -261,6 +265,7 @@ def build(rows, eea=None):
             "retrieved": datetime.date.today().isoformat(),
             "filter": WHERE,
             "minBrandVehicles": MIN_BRAND_VEHICLES,
+            "alwaysIncludedMakes": sorted(forced),
             "firstYear": FIRST_YEAR,
             "modelThreshold": f"min({MAX_MODEL_THRESHOLD}, max({MIN_MODEL_THRESHOLD}, 2% of make))",
             "sourceVehicles": total,
@@ -270,10 +275,10 @@ def build(rows, eea=None):
             "verification": verification and {
                 "source": "EEA, CO2 emissions from new passenger cars (discodata, CO2Emission.latest.co2cars)",
                 "licence": "CC BY 4.0 (EEA standard re-use policy)",
-                "norway": "model seen among new registrations in Norway 2019-2022",
-                "europeCountries": "number of other European countries where the model was newly registered 2010-2022",
-                "limits": "No Norwegian data before 2019 and no data at all before 2010 or after 2022: "
-                          "a missing flag means 'not confirmed', never 'not sold there'.",
+                "nordic": "Nordic countries (NO, SE, FI, DK, IS) where the model was newly registered",
+                "coverage": "SE, FI, DK: 2010-2022; IS: 2018-2022; NO: 2019-2022",
+                "limits": "No data outside these years: a missing country means 'not confirmed', "
+                          "never 'not sold there'.",
                 **verification,
             },
             "note": "Selection list only. Years are first-registration years seen in the Dutch register. "

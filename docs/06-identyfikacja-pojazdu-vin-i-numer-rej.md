@@ -1,6 +1,6 @@
 # Identyfikacja auta po VIN i norweskim numerze rejestracyjnym — plan
 
-Data: **10 listopada 2026**. Wymaganie właściciela: aplikacja ma odczytywać dane auta po VIN, a w Norwegii po numerze rejestracyjnym (Statens vegvesen, SVV). **To jest plan, nie implementacja.**
+Data: **10 listopada 2026**. Wymaganie właściciela: aplikacja ma odczytywać dane auta po VIN, a w Norwegii po numerze rejestracyjnym (Statens vegvesen, SVV). Krok 1 (offline) jest zaimplementowany; kroki 2–3 to nadal plan.
 
 ## Co to zmienia względem Etapu 0
 
@@ -40,8 +40,23 @@ Sam VIN zwykle **nie ujawnia** kodu skrzyni ani systemu serwisowego. Znak roku m
 
 W każdym wariancie wynik lookupu jest **propozycją do potwierdzenia przez użytkownika**, a ręczne dodanie auta pozostaje pełnoprawną ścieżką.
 
+## Stan kroku 1 — zrobione
+
+Pakiet `app.servicepassport.vehicleid` w module `service-engine` (8 testów):
+
+- `Vin.parse()` — normalizacja, długość, niedozwolone litery I/O/Q, region producenta, podpowiedź marki z prefiksu; cyfra kontrolna liczona informacyjnie (w Europie nieobowiązkowa, więc jej brak nie jest błędem);
+- `NorwegianPlate.parse()` — postać zapisu: zwykła samochodowa, krótka, indywidualna/inna;
+- `CatalogMatcher` — dopasowanie nazw do listy i wyszukiwarka do płaskiej listy.
+
+Ograniczenia: tabela prefiksów ma 58 pozycji dla 31 marek, spisana z wiedzy ogólnej i **nieporównana z oficjalnym rejestrem** — wynik to podpowiedź do potwierdzenia. Brakuje m.in. marek chińskich, Polestara, MG, Mitsubishi, Suzuki. Nie odczytujemy modelu ani rocznika z VIN.
+
+## Decyzje właściciela (10 listopada 2026)
+
+- Zgoda na kroki 1–2 i na serwer pośredniczący; właściciel ma własny VPS.
+- Właściciel złoży wniosek o klucz API SVV.
+- Zakres geograficzny produktu na teraz: kraje nordyckie (NO, SE, FI, DK, IS). Odczyt po numerze rejestracyjnym dotyczy tylko Norwegii; rejestrów SE/FI/DK/IS nie badano.
+
 ## Potrzebne od właściciela
 
 - Wniosek o klucz API SVV (wymaga Twojej norweskiej e-ID) i przekazanie go przez bezpieczne ustawienia środowiska, nie w czacie ani repozytorium.
-- Zgoda na mały serwer i wybór, gdzie ma działać (koszt planistyczny z Etapu 0: 200–1000 NOK/mies.).
-- Zgoda na krok 1.
+- Dane VPS potrzebne do kroku 2: system, sposób wdrażania (np. Docker), domena z HTTPS.

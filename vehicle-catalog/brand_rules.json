@@ -26,7 +26,8 @@
     "AUTOMOBILI LAMBORGHINI SPA": "LAMBORGHINI",
     "MITSUBISHI MOTORS CORPORATION": "MITSUBISHI",
     "ASTON MARTIN LAGONDA": "ASTON MARTIN",
-    "KIA MOTORS": "KIA"
+    "KIA MOTORS": "KIA",
+    "FAW": "HONGQI"
   },
   "dropped": [
     "JAGUAR LAND ROVER",
@@ -58,6 +59,15 @@
     "KG MOBILITY": "KG Mobility",
     "VINFAST": "VinFast",
     "SSANGYONG": "SsangYong",
-    "M.A.N.": "MAN"
-  }
+    "M.A.N.": "MAN",
+    "JAC": "JAC"
+  },
+  "alwaysInclude": [
+    "MAXUS",
+    "HONGQI",
+    "SERES",
+    "VOYAH",
+    "JAC",
+    "MORGAN"
+  ]
 }

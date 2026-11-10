@@ -53,33 +53,40 @@ class BuildTest(unittest.TestCase):
         result = build([row("GENESIS", "GV60", 520), row("GENESIS", "G70", 30), row("GENESIS", "ODD", 5)])
         self.assertEqual(["GV60", "G70"], [m["name"] for m in result["makes"][0]["models"]])
 
-    def test_verification_flags_and_norway_additions(self):
+    def test_nordic_verification_and_additions(self):
         result = build(
             [row("VOLKSWAGEN", "GOLF", 900), row("VOLKSWAGEN", "LUPO", 400), row("VOLKSWAGEN", "UP!", 300)],
             [
                 eea("VW", "Golf Variant", "NO", 2021),      # zaczyna się od "GOLF" -> ten sam model
-                eea("VOLKSWAGEN", "GOLF", "DE", 2015),
-                eea("VOLKSWAGEN", "GOLF", "SE", 2016),
-                eea("VOLKSWAGEN", "UP", "FR", 2012),        # inny zapis tego samego modelu
-                eea("VOLKSWAGEN", "ID.BUZZ", "NO", 2021),   # spoza RDW, dwa lata w Norwegii -> dopisany
-                eea("VOLKSWAGEN", "ID.BUZZ", "NO", 2022),
-                eea("VOLKSWAGEN", "ONEOFF", "NO", 2022),    # tylko jeden rok -> pomijany
-                eea("VOLKSWAGEN", "GOLF", "M1", 2015),      # błędny kod kraju -> pomijany
+                eea("VOLKSWAGEN", "GOLF", "SE", 2015),
+                eea("VOLKSWAGEN", "GOLF", "DE", 2015),      # spoza krajów nordyckich -> pomijany
+                eea("VOLKSWAGEN", "UP", "FI", 2012),        # inny zapis tego samego modelu
+                eea("VOLKSWAGEN", "ID.BUZZ", "NO", 2021),   # spoza RDW: 2 kraje i 2 lata -> dopisany
+                eea("VOLKSWAGEN", "ID.BUZZ", "DK", 2022),
+                eea("VOLKSWAGEN", "EG50", "IS", 2021),      # jeden kraj -> szum, pomijany
+                eea("VOLKSWAGEN", "EG50", "IS", 2022),
+                eea("VOLKSWAGEN", "ONEYEAR", "NO", 2022),   # jeden rok -> pomijany
+                eea("VOLKSWAGEN", "ONEYEAR", "SE", 2022),
                 eea("UNKNOWNBRAND", "X", "NO", 2021),
             ],
         )
         models = {m["name"]: m for m in result["makes"][0]["models"]}
         self.assertEqual({"GOLF", "LUPO", "UP!", "ID.BUZZ"}, set(models))
-        self.assertTrue(models["GOLF"]["norway"])
-        self.assertEqual(2, models["GOLF"]["europeCountries"])
-        self.assertNotIn("norway", models["LUPO"])
-        self.assertNotIn("europeCountries", models["LUPO"])
-        self.assertEqual(1, models["UP!"]["europeCountries"])
+        self.assertEqual(["NO", "SE"], models["GOLF"]["nordic"])
+        self.assertNotIn("nordic", models["LUPO"])
+        self.assertEqual(["FI"], models["UP!"]["nordic"])
         self.assertEqual("EEA", models["ID.BUZZ"]["addedFrom"])
-        self.assertEqual((2021, 2022), (models["ID.BUZZ"]["firstYear"], models["ID.BUZZ"]["lastYear"]))
-        self.assertEqual(
-            {"confirmedNorway": 1, "confirmedEurope": 2, "addedFromNorway": 1},
-            {k: result["meta"]["verification"][k] for k in ("confirmedNorway", "confirmedEurope", "addedFromNorway")})
+        self.assertEqual(["NO", "DK"], models["ID.BUZZ"]["nordic"])
+        stats = result["meta"]["verification"]
+        self.assertEqual(3, stats["confirmedAnyNordic"])
+        self.assertEqual(1, stats["addedFromNordic"])
+        self.assertEqual({"NO": 2, "SE": 1, "FI": 1, "DK": 1, "IS": 0}, stats["confirmed"])
+
+    def test_always_included_make_bypasses_brand_threshold(self):
+        result = build([row("VOYAH", "FREE", 87), row("VOYAH", "DREAM", 6), row("NICHEBRAND", "ONE", 87)])
+        self.assertEqual(["Voyah"], [m["name"] for m in result["makes"]])
+        self.assertEqual(["FREE"], [m["name"] for m in result["makes"][0]["models"]])
+        self.assertIn("VOYAH", result["meta"]["alwaysIncludedMakes"])
 
 
 if __name__ == "__main__":
