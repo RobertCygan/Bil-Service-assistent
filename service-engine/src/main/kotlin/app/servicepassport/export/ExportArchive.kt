@@ -14,6 +14,10 @@ public enum class ImportFailure {
     NOT_AN_EXPORT, MANIFEST_INVALID, DATA_INVALID,
     /** Plik z nowszej wersji aplikacji — trzeba ją zaktualizować; niczego nie odtwarzamy częściowo. */
     NEWER_FORMAT,
+    /** Kopia jest zaszyfrowana, a hasła nie podano. */
+    PASSWORD_REQUIRED,
+    /** Złe hasło albo naruszony plik — nie da się tego rozróżnić. */
+    WRONG_PASSWORD_OR_DAMAGED,
     UNSAFE_PATH, UNEXPECTED_FILE, FILE_MISSING, FILE_CORRUPTED, TOO_LARGE, CONTENT_INCONSISTENT,
 }
 
@@ -57,6 +61,9 @@ public object ExportArchive {
         createdAt: String,
         appVersion: String,
         today: LocalDate,
+        /** Hasło włącza szyfrowanie całej kopii; null = kopia jawna. Zapomnianego hasła nie da się odzyskać. */
+        password: CharArray? = null,
+        iterations: Int = ExportEncryption.DEFAULT_ITERATIONS,
     ): ExportManifest {
         val issues = ExportValidator.validate(data, today, documents.map { it.path }.toSet()).toMutableList()
         val referenced = data.documents.map { it.path }.toSet()
@@ -64,7 +71,8 @@ public object ExportArchive {
         if (issues.isNotEmpty()) throw ExportException(issues)
 
         val files = mutableListOf<ExportedFile>()
-        ZipOutputStream(out).use { zip ->
+        val target = if (password != null) ExportEncryption.encrypting(out, password, iterations) else out
+        ZipOutputStream(target).use { zip ->
             fun put(path: String, source: InputStream) {
                 zip.putNextEntry(ZipEntry(path))
                 val digest = MessageDigest.getInstance("SHA-256")
@@ -98,6 +106,29 @@ public object ExportArchive {
         input: InputStream,
         today: LocalDate,
         limits: ImportLimits = ImportLimits(),
+        /** Hasło do zaszyfrowanej kopii; dla kopii jawnej jest ignorowane. */
+        password: CharArray? = null,
+        documentSink: (path: String) -> OutputStream,
+    ): ImportResult {
+        val buffered = java.io.BufferedInputStream(input)
+        buffered.mark(16)
+        val start = buffered.readNBytes(8)
+        buffered.reset()
+        val encrypted = ExportEncryption.isEncrypted(start)
+        if (encrypted && password == null) return ImportResult.Failure(ImportFailure.PASSWORD_REQUIRED)
+        return try {
+            readPlain(if (encrypted) ExportEncryption.decrypting(buffered, password!!) else buffered, today, limits, documentSink)
+        } catch (_: ExportDecryptionException) {
+            ImportResult.Failure(ImportFailure.WRONG_PASSWORD_OR_DAMAGED)
+        } catch (_: java.util.zip.ZipException) {
+            ImportResult.Failure(ImportFailure.FILE_CORRUPTED)
+        }
+    }
+
+    private fun readPlain(
+        input: InputStream,
+        today: LocalDate,
+        limits: ImportLimits,
         documentSink: (path: String) -> OutputStream,
     ): ImportResult {
         var manifestBytes: ByteArray? = null

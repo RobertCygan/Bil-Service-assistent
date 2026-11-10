@@ -161,4 +161,89 @@ class ExportArchiveTest {
         assertEquals(ImportFailure.TOO_LARGE, failure(good, ImportLimits(maxEntries = 2)))
         assertEquals(ImportFailure.TOO_LARGE, failure(good, ImportLimits(maxJsonBytes = 10)))
     }
+
+    // --- opcjonalne hasło ---
+
+    private val fast = ExportEncryption.MIN_ITERATIONS // testy nie potrzebują pełnej liczby iteracji
+    private fun exportEncrypted(password: String, d: ExportData = data, s: List<DocumentSource> = sources): ByteArray =
+        ByteArrayOutputStream().also { ExportArchive.write(it, d, s, "2026-11-10T12:00:00Z", "1.0.0", today, password.toCharArray(), fast) }.toByteArray()
+    private fun importWith(bytes: ByteArray, password: String?, sink: MutableMap<String, ByteArrayOutputStream> = mutableMapOf()) =
+        ExportArchive.read(ByteArrayInputStream(bytes), today, password = password?.toCharArray()) { path -> ByteArrayOutputStream().also { sink[path] = it } }
+
+    @Test
+    fun `password protected export round trips and hides its content`() {
+        val bytes = exportEncrypted("korrekt hest batteri")
+        assertTrue(ExportEncryption.isEncrypted(bytes))
+        val text = bytes.toString(Charsets.ISO_8859_1)
+        for (leak in listOf("XXDEMA0000000T123", "manifest.json", "documents/", "AB12345", "PK")) assertTrue(leak !in text.take(40) && (leak == "PK" || leak !in text), leak)
+
+        val sink = mutableMapOf<String, ByteArrayOutputStream>()
+        val result = assertIs<ImportResult.Success>(importWith(bytes, "korrekt hest batteri", sink))
+        assertEquals(data, result.data)
+        assertTrue(pdf.contentEquals(sink.getValue("documents/d1.pdf").toByteArray()))
+    }
+
+    @Test
+    fun `missing or wrong password and plain exports`() {
+        val bytes = exportEncrypted("hemmelig")
+        assertEquals(ImportFailure.PASSWORD_REQUIRED, assertIs<ImportResult.Failure>(importWith(bytes, null)).reason)
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, assertIs<ImportResult.Failure>(importWith(bytes, "Hemmelig")).reason)
+        assertIs<ImportResult.Success>(importWith(export(), "ignored for a plain export"))
+        assertTrue(!ExportEncryption.isEncrypted(export()))
+    }
+
+    @Test
+    fun `any change to an encrypted export is detected`() {
+        val bytes = exportEncrypted("hemmelig")
+        fun reason(b: ByteArray) = assertIs<ImportResult.Failure>(importWith(b, "hemmelig")).reason
+        val flipped = bytes.copyOf().also { it[it.size / 2] = (it[it.size / 2] + 1).toByte() }
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, reason(flipped))
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, reason(bytes.copyOf(bytes.size - 1)))
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, reason(bytes + 0))
+        val header = bytes.copyOf().also { it[20] = (it[20] + 1).toByte() } // sól
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, reason(header))
+        val hugeIterations = bytes.copyOf().also { it[8] = 0x7F }
+        assertEquals(ImportFailure.WRONG_PASSWORD_OR_DAMAGED, reason(hugeIterations), "absurd iteration counts are refused, not computed")
+    }
+
+    @Test
+    fun `stream encryption handles sizes around the chunk boundary`() {
+        val chunk = ExportEncryption.CHUNK
+        for (size in listOf(0, 1, chunk - 1, chunk, chunk + 1, 2 * chunk, 2 * chunk + 17)) {
+            val plain = ByteArray(size) { (it * 31 % 256).toByte() }
+            val encrypted = ByteArrayOutputStream().also { o -> ExportEncryption.encrypting(o, "pw".toCharArray(), fast).use { it.write(plain) } }.toByteArray()
+            val chunks = if (size == 0) 1 else (size + chunk - 1) / chunk
+            assertEquals(ExportEncryption.HEADER_BYTES + size + 16 * chunks, encrypted.size, "size $size")
+            val back = ExportEncryption.decrypting(ByteArrayInputStream(encrypted), "pw".toCharArray()).use { it.readBytes() }
+            assertTrue(plain.contentEquals(back), "size $size")
+        }
+    }
+
+    @Test
+    fun `cutting an encrypted stream at a chunk boundary does not pass as a shorter file`() {
+        val chunk = ExportEncryption.CHUNK
+        val plain = ByteArray(3 * chunk) { (it % 97).toByte() }
+        val encrypted = ByteArrayOutputStream().also { o -> ExportEncryption.encrypting(o, "pw".toCharArray(), fast).use { it.write(plain) } }.toByteArray()
+        val twoWholeChunks = encrypted.copyOf(ExportEncryption.HEADER_BYTES + 2 * (chunk + 16))
+        assertFailsWith<ExportDecryptionException> {
+            ExportEncryption.decrypting(ByteArrayInputStream(twoWholeChunks), "pw".toCharArray()).use { it.readBytes() }
+        }
+        val swapped = encrypted.copyOf().also { e ->
+            val a = ExportEncryption.HEADER_BYTES; val b = a + chunk + 16
+            val first = e.copyOfRange(a, b); System.arraycopy(e, b, e, a, chunk + 16); System.arraycopy(first, 0, e, b, chunk + 16)
+        }
+        assertFailsWith<ExportDecryptionException> {
+            ExportEncryption.decrypting(ByteArrayInputStream(swapped), "pw".toCharArray()).use { it.readBytes() }
+        }
+    }
+
+    @Test
+    fun `two exports of the same data with the same password differ`() {
+        assertTrue(!exportEncrypted("pw").contentEquals(exportEncrypted("pw")), "fresh salt and nonce every time")
+    }
+
+    @Test
+    fun `empty password is refused`() {
+        assertFailsWith<IllegalArgumentException> { exportEncrypted("") }
+    }
 }
