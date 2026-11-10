@@ -43,7 +43,21 @@ Wspólny workflow: [engine-integration.yml](../../.github/workflows/engine-integ
 
 ## Weryfikacja
 
-Trwa końcowa weryfikacja CI. Wyniki i raport zostaną dopisane po zakończeniu przebiegu.
+**Wynik: gotowe do odbioru w [PR #6](https://github.com/RobertCygan/Bil-Service-assistent/pull/6)**, opartym na PR #5. Kod aplikacji sprawdzony przy `11e4f82c918e9425334d1d868d5c4cc8c8e12d65`, silnik przy `525c223a9b4377a8490ddb464010fa2128a99ca0`. Późniejszy commit aktualizuje wyłącznie dokumentację.
+
+| Sprawdzenie | Wynik |
+| --- | --- |
+| Aplikacja z dodatkowym zestawem integracyjnym | 42 testy: 29 Etapu 3 po poprawce, 7 mapowania i 6 rzeczywistego połączenia z silnikiem; 0 błędów |
+| Wspólny kontrakt | 3 testy; 0 błędów |
+| Silnik z przypiętej rewizji | 111 testów; 0 błędów |
+| Android Lint i kompilacja APK testowego | Przeszło lokalnie i w CI |
+| Natywny test na minimum API 26 / Android 8.0 | 1 test: jawny brak odczytu oraz zapis/odczyt prostego archiwum; przeszło |
+| Regresja aplikacji API 35 / Android 15 | 2 testy i osobny force-stop/start; przeszło, także wybór istniejącego starszego odczytu |
+| Zwykły APK | Sprawdzono DEX: brak klas `app.servicepassport.engine`; mapowanie danych jest obecne |
+
+CI integracji: [PR](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42862574387) i [push](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42862549500). Regresja Androida: [PR](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42862574335) i [push](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42862549312). Wszystkie przebiegi zakończone sukcesem.
+
+[Raport maszynowy](verification.json). [Archiwum raportów integracyjnych](https://github.com/RobertCygan/Bil-Service-assistent/actions/runs/42862574387/artifacts/13784744384) pobrano, sprawdzono SHA-256, liczbę testów w XML oraz obie rewizje w `revisions.json`. Pobranie wymaga logowania na GitHubie; retencja 7 dni. Nie uruchamiano testów na fizycznym telefonie.
 
 Scenariusze testowe obejmują: usunięty bieżący odczyt przy nowszym przebiegu w historii, kontrolę bez resetu wymiany, własną czynność, brak km usługi, niepełną konfigurację, odrzucenie DEMO do produkcji, wygasłe źródło oraz wyjaśnioną wymianę licznika. Przy anomalii dopuszczalne jest przypomnienie o sprawdzeniu przebiegu; nie jest to zwykłe zalecenie wykonania usługi.
 
