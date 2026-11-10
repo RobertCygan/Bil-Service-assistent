@@ -115,7 +115,7 @@ class HistoryRepositoryTest {
     @Test fun selectingAnotherCarsReadingIsRejectedByRepositoryAndForeignKey() = runBlocking {
         val reading = ReadingInput(id(), car, null, today, 59000, true); repo.saveReading(reading)
         val other = id(); db.vehicles().save(VehicleEntity(other, "Other", null, 0, 0))
-        try { repo.selectCurrent(other, reading.id, 1); fail("Expected ownership check") } catch (e: InputRejected) { assertEquals(InputProblem.NOT_FOUND, e.problem) }
+        try { repo.selectCurrent(CurrentReadingInput(reading.id, other, 1)); fail("Expected ownership check") } catch (e: InputRejected) { assertEquals(InputProblem.NOT_FOUND, e.problem) }
         try { db.vehicles().selectReading(CurrentOdometerEntity(other, reading.id)); fail("Expected foreign key") } catch (_: android.database.sqlite.SQLiteConstraintException) { }
         assertEquals(reading.id, snapshot().currentReading?.id)
     }
@@ -153,5 +153,80 @@ class HistoryRepositoryTest {
         assertEquals("EXAMPLE", saved.vehicle.engineCode)
         assertEquals(2L, saved.vehicle.configurationRevision)
         assertEquals(1, saved.history.size)
+    }
+
+    @Test fun selectingAnExistingOlderReadingRequiresReasonAndFreshReview() = runBlocking {
+        val older = ReadingInput(id(), car, null, today - 300, 48000, false)
+        repo.saveReading(older)
+        val current = ReadingInput(id(), car, null, today, 59000, true)
+        repo.saveReading(current)
+        val input = CurrentReadingInput(older.id, car, 1)
+        val token = ReadingConsistency.token(snapshot(), older.id, older.observedDay, older.km, true)
+        for (invalid in listOf(input, input.copy(exceptionReason = "Deliberate historical choice"), input.copy(warningsAcknowledged = true, reviewToken = token))) {
+            try { repo.selectCurrent(invalid); fail("Expected review") } catch (e: InputRejected) { assertEquals(InputProblem.WARNINGS_NEED_REVIEW, e.problem) }
+            assertEquals(current.id, snapshot().currentReading?.id)
+            assertEquals("", snapshot().readings.first { it.id == older.id }.exceptionReason)
+        }
+        repo.selectCurrent(input.copy(exceptionReason = "Deliberate historical choice", warningsAcknowledged = true, reviewToken = token))
+        val saved = requireNotNull(snapshot().currentReading)
+        assertEquals(older.id, saved.id)
+        assertEquals(48000L, saved.km)
+        assertEquals(older.observedDay, saved.observedDay)
+        assertEquals("Deliberate historical choice", saved.exceptionReason)
+    }
+
+    @Test fun selectingAnExistingReadingRejectsAReviewAfterTheDataChanged() = runBlocking {
+        val older = ReadingInput(id(), car, null, today - 300, 48000, false)
+        repo.saveReading(older)
+        val current = ReadingInput(id(), car, null, today, 59000, true)
+        repo.saveReading(current)
+        val token = ReadingConsistency.token(snapshot(), older.id, older.observedDay, older.km, true)
+        repo.saveReading(ReadingInput(id(), car, null, today - 1, 58000, false))
+        try {
+            repo.selectCurrent(CurrentReadingInput(older.id, car, 1, "Historical choice", true, token))
+            fail("Expected fresh review")
+        } catch (e: InputRejected) { assertEquals(InputProblem.WARNINGS_NEED_REVIEW, e.problem) }
+        assertEquals(current.id, snapshot().currentReading?.id)
+    }
+
+    @Test fun reviewingAServiceReadingAlsoProtectsTheServiceFromAStaleEdit() = runBlocking {
+        val service = event()
+        repo.saveService(service)
+        repo.saveReading(ReadingInput(id(), car, null, today, 59000, true))
+        val reading = requireNotNull(snapshot().history.single().reading)
+        val token = ReadingConsistency.token(snapshot(), reading.id, reading.observedDay, reading.km, true)
+        repo.selectCurrent(CurrentReadingInput(reading.id, car, reading.revision, "Historical choice", true, token))
+        val saved = snapshot().history.single()
+        assertEquals(2L, saved.event.revision)
+        assertEquals(2L, saved.reading?.revision)
+        assertEquals("Historical choice", saved.reading?.exceptionReason)
+        assertEquals(service.performedDay, saved.event.performedDay)
+        assertEquals(48000L, saved.reading?.km)
+        try { repo.saveService(service.copy(expectedRevision = 1, note = "Stale editor")); fail("Expected conflict") }
+        catch (e: InputRejected) { assertEquals(InputProblem.CONFLICT, e.problem) }
+    }
+
+    @Test fun selectingALaterConsistentReadingNeedsNoException() = runBlocking {
+        repo.saveReading(ReadingInput(id(), car, null, today - 1, 58000, true))
+        val later = ReadingInput(id(), car, null, today, 59000, false)
+        repo.saveReading(later)
+        repo.selectCurrent(CurrentReadingInput(later.id, car, 1))
+        val saved = requireNotNull(snapshot().currentReading)
+        assertEquals(later.id, saved.id)
+        assertEquals(1L, saved.revision)
+        assertEquals("", saved.exceptionReason)
+    }
+
+    @Test fun priorSameDayExplanationDoesNotBypassASelectionReview() = runBlocking {
+        repo.saveReading(ReadingInput(id(), car, null, today, 59000, true))
+        val other = ReadingInput(id(), car, null, today, 60000, false)
+        val creationToken = ReadingConsistency.token(snapshot(), null, today, 60000, false)
+        repo.saveReading(other.copy(exceptionReason = "Two readings today", warningsAcknowledged = true, reviewToken = creationToken))
+        try { repo.selectCurrent(CurrentReadingInput(other.id, car, 1)); fail("Expected selection review") }
+        catch (e: InputRejected) { assertEquals(InputProblem.WARNINGS_NEED_REVIEW, e.problem) }
+        val selectionToken = ReadingConsistency.token(snapshot(), other.id, today, 60000, true)
+        repo.selectCurrent(CurrentReadingInput(other.id, car, 1, warningsAcknowledged = true, reviewToken = selectionToken))
+        assertEquals(other.id, snapshot().currentReading?.id)
+        assertEquals("Two readings today", snapshot().currentReading?.exceptionReason)
     }
 }

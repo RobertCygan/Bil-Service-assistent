@@ -97,6 +97,35 @@ class FoundationSmokeTest {
         compose.onAllNodesWithTag("confirmed_work").assertCountEquals(2)
         compose.onNodeWithTag("back").performClick()
 
+        compose.onNodeWithTag("nav_overview").performClick()
+        compose.onNodeWithTag("current_km").assertTextEquals("59,000 km")
+        click("reading_history")
+        fun chooseExisting(value: String) {
+            val card = hasTestTag("reading_entry") and hasAnyDescendant(hasText(value))
+            compose.onNode(hasText(compose.activity.getString(R.string.use_as_current)) and hasAnyAncestor(card)).performScrollTo().performClick()
+        }
+        chooseExisting("49,000 km")
+        compose.onNodeWithTag("current_reading_review").assertExists()
+        compose.onNodeWithText(compose.activity.getString(R.string.cancel)).performClick()
+        compose.onNodeWithTag("nav_overview").performClick()
+        compose.onNodeWithTag("current_km").assertTextEquals("59,000 km")
+        click("reading_history")
+        chooseExisting("49,000 km")
+        compose.onNodeWithTag("confirm_current_reading").performClick()
+        compose.onAllNodesWithTag("input_error").onLast().assertExists()
+        input("exception_reason", "Deliberate historical choice")
+        click("reading_reviewed")
+        compose.onNodeWithTag("confirm_current_reading").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodesWithTag("current_reading_review").fetchSemanticsNodes().isEmpty() }
+        compose.onNodeWithTag("nav_overview").performClick()
+        compose.onNodeWithTag("current_km").assertTextEquals("49,000 km")
+        click("reading_history")
+        chooseExisting("59,000 km")
+        compose.waitUntil(15_000) { compose.onAllNodesWithText("Deliberate historical choice").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("nav_overview").performClick()
+        compose.waitUntil(15_000) { compose.onAllNodes(hasTestTag("current_km") and hasText("59,000 km")).fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("nav_history").performClick()
+
         // A service with unknown mileage can be saved and deleted without creating a zero reading.
         click("add_service")
         input("service_date", "2025-12-14")

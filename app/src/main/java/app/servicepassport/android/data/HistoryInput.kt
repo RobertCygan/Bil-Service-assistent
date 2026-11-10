@@ -16,6 +16,14 @@ data class ReadingInput(
     val id: String, val vehicleId: String, val expectedRevision: Long?, val observedDay: Long,
     val km: Long, val useAsCurrent: Boolean, val exceptionReason: String = "", val warningsAcknowledged: Boolean = false, val reviewToken: String? = null,
 )
+data class CurrentReadingInput(
+    val readingId: String,
+    val vehicleId: String,
+    val expectedRevision: Long,
+    val exceptionReason: String? = null,
+    val warningsAcknowledged: Boolean = false,
+    val reviewToken: String? = null,
+)
 enum class ReadingWarning { INCONSISTENT_VALUE, SAME_DAY_DIFFERENT, OLDER_CURRENT_SELECTION }
 enum class InputProblem { DATE_IN_FUTURE, INVALID_DATE, INVALID_KM, NO_ACTIONS, INVALID_ACTION, DUPLICATE_ACTION, INVALID_COST, INVALID_PROFILE, NOTE_TOO_LONG, WARNINGS_NEED_REVIEW, NOT_FOUND, CONFLICT }
 class InputRejected(val problem: InputProblem) : IllegalArgumentException(problem.name)

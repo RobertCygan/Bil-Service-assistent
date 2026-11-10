@@ -1,8 +1,11 @@
 package app.servicepassport.android.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -37,7 +40,7 @@ import java.time.LocalDate
                         if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded))
                     }
                     Button(onClick = { go("reading/new") }, modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
-                    TextButton(onClick = { go("readings") }) { Text(stringResource(R.string.reading_history)) }
+                    TextButton(onClick = { go("readings") }, modifier = Modifier.testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
                 }
             }
             Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
@@ -89,9 +92,10 @@ import java.time.LocalDate
     if (askDelete) AlertDialog(onDismissRequest = { askDelete = false }, title = { Text(stringResource(R.string.delete_service_title)) }, text = { Text(stringResource(R.string.delete_service_body)) }, confirmButton = { TextButton(onClick = { askDelete = false; delete(id, record.event.revision) }, modifier = Modifier.testTag("confirm_delete")) { Text(stringResource(R.string.delete)) } }, dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(R.string.cancel)) } })
 }
 
-@Composable internal fun Readings(state: GarageState, go: (String) -> Unit, select: (String, Long) -> Unit, delete: (String, Long) -> Unit) = Page {
+@Composable internal fun Readings(state: GarageState, go: (String) -> Unit, select: (CurrentReadingInput, () -> Unit) -> Unit, delete: (String, Long) -> Unit) = Page {
     val snapshot = state.snapshot; val locale = uiLocale()
     var deleting by remember { mutableStateOf<OdometerReadingEntity?>(null) }
+    var reviewingId by rememberSaveable { mutableStateOf<String?>(null) }
     Text(stringResource(R.string.reading_history), style = MaterialTheme.typography.headlineMedium)
     if (snapshot == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     Button(onClick = { go("reading/new") }, modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.add_reading)) }
@@ -103,7 +107,11 @@ import java.time.LocalDate
             Text(LocalDates.text(reading.observedDay, locale))
             if (snapshot.currentReading?.id == reading.id) Text(stringResource(R.string.current_badge))
             if (reading.exceptionReason.isNotEmpty()) NoteCard(reading.exceptionReason)
-            if (snapshot.currentReading?.id != reading.id) TextButton(onClick = { select(reading.id, reading.revision) }, enabled = !state.saving) { Text(stringResource(R.string.use_as_current)) }
+            if (snapshot.currentReading?.id != reading.id) TextButton(onClick = {
+                val warnings = ReadingConsistency.warnings(reading.observedDay, reading.km, snapshot.readings.filter { it.id != reading.id }, snapshot.currentReading, true)
+                if (warnings.isEmpty()) select(CurrentReadingInput(reading.id, snapshot.vehicle.id, reading.revision)) {}
+                else reviewingId = reading.id
+            }, enabled = !state.saving, modifier = Modifier.testTag("select_current_${reading.id}")) { Text(stringResource(R.string.use_as_current)) }
             if (reading.eventId == null) {
                 TextButton(onClick = { go("reading/${reading.id}") }) { Text(stringResource(R.string.edit)) }
                 TextButton(onClick = { deleting = reading }, enabled = !state.saving) { Text(stringResource(R.string.delete)) }
@@ -111,6 +119,42 @@ import java.time.LocalDate
         } }
     }
     deleting?.let { reading -> AlertDialog(onDismissRequest = { deleting = null }, title = { Text(stringResource(R.string.delete_reading_title)) }, text = { Text(stringResource(R.string.delete_reading_body)) }, confirmButton = { TextButton(onClick = { deleting = null; delete(reading.id, reading.revision) }, modifier = Modifier.testTag("confirm_delete")) { Text(stringResource(R.string.delete)) } }, dismissButton = { TextButton(onClick = { deleting = null }) { Text(stringResource(R.string.cancel)) } }) }
+    snapshot.readings.firstOrNull { it.id == reviewingId }?.let { reading ->
+        CurrentReadingReview(state, snapshot, reading, { reviewingId = null }) { input ->
+            select(input) { reviewingId = null }
+        }
+    }
+}
+
+@Composable private fun CurrentReadingReview(
+    state: GarageState,
+    snapshot: GarageSnapshot,
+    reading: OdometerReadingEntity,
+    dismiss: () -> Unit,
+    select: (CurrentReadingInput) -> Unit,
+) {
+    var reason by rememberSaveable(reading.id, reading.revision) { mutableStateOf(reading.exceptionReason) }
+    var reviewedToken by rememberSaveable(reading.id, reading.revision) { mutableStateOf<String?>(null) }
+    val warnings = ReadingConsistency.warnings(reading.observedDay, reading.km, snapshot.readings.filter { it.id != reading.id }, snapshot.currentReading, true)
+    val token = ReadingConsistency.token(snapshot, reading.id, reading.observedDay, reading.km, true)
+    AlertDialog(
+        modifier = Modifier.testTag("current_reading_review"),
+        onDismissRequest = { if (!state.saving) dismiss() },
+        title = { Text(stringResource(R.string.use_as_current)) },
+        text = {
+            Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(LocalDates.text(reading.observedDay, uiLocale()) + " · " + formattedKm(reading.km, uiLocale()) + " km")
+                OdometerReview(warnings, token, reason, reviewedToken, { reason = it; reviewedToken = null }, { reviewedToken = it })
+                ErrorPanel(state)
+            }
+        },
+        confirmButton = {
+            TextButton(enabled = !state.saving, modifier = Modifier.testTag("confirm_current_reading"), onClick = {
+                select(CurrentReadingInput(reading.id, snapshot.vehicle.id, reading.revision, reason, reviewedToken != null, reviewedToken))
+            }) { Text(stringResource(if (state.saving) R.string.saving else R.string.use_as_current)) }
+        },
+        dismissButton = { TextButton(enabled = !state.saving, onClick = dismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable internal fun Settings() = Page {

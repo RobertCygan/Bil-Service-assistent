@@ -56,10 +56,8 @@ class GarageViewModel(private val repository: ProfileRepository) : ViewModel() {
         val car = state.value.profile?.id ?: return
         mutate(onSaved) { repository.deleteReading(car, id, revision) }
     }
-    fun selectReading(id: String, revision: Long) {
-        val car = state.value.profile?.id ?: return
-        mutate({}) { repository.selectCurrent(car, id, revision) }
-    }
+    fun selectReading(input: CurrentReadingInput, onSaved: () -> Unit) =
+        mutate(onSaved) { repository.selectCurrent(input) }
     class Factory(private val repository: ProfileRepository) : ViewModelProvider.Factory {
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             require(modelClass.isAssignableFrom(GarageViewModel::class.java))

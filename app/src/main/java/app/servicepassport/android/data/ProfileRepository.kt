@@ -84,13 +84,23 @@ class ProfileRepository(private val database: GarageDatabase, private val clock:
         if (input.useAsCurrent) dao.selectReading(CurrentOdometerEntity(input.vehicleId, input.id))
     }
 
-    suspend fun selectCurrent(vehicleId: String, readingId: String, expectedRevision: Long) = transaction {
-        val reading = dao.reading(readingId) ?: reject(InputProblem.NOT_FOUND)
-        if (reading.vehicleId != vehicleId) reject(InputProblem.NOT_FOUND)
-        if (reading.revision != expectedRevision) reject(InputProblem.CONFLICT)
-        // Selection is explicit. Existing anomaly notes remain visible; no conversion of old scales.
-        garage(vehicleId)
-        dao.selectReading(CurrentOdometerEntity(vehicleId, readingId))
+    suspend fun selectCurrent(input: CurrentReadingInput) = transaction {
+        val reading = dao.reading(input.readingId) ?: reject(InputProblem.NOT_FOUND)
+        if (reading.vehicleId != input.vehicleId) reject(InputProblem.NOT_FOUND)
+        if (reading.revision != input.expectedRevision) reject(InputProblem.CONFLICT)
+        val snapshot = garage(input.vehicleId)
+        val reason = input.exceptionReason?.trim() ?: reading.exceptionReason
+        verifyReading(snapshot, reading.id, reading.observedDay, reading.km, true, reason, input.warningsAcknowledged, input.reviewToken)
+        if (reason != reading.exceptionReason) {
+            val now = clock.millis()
+            dao.saveReading(reading.copy(exceptionReason = reason, revision = reading.revision + 1, updatedAtUtc = now))
+            // A service owns its reading. Protect an open service editor from overwriting this review.
+            reading.eventId?.let { eventId ->
+                val event = dao.event(eventId)?.event ?: reject(InputProblem.NOT_FOUND)
+                dao.updateEvent(event.copy(revision = event.revision + 1, updatedAtUtc = now))
+            }
+        }
+        dao.selectReading(CurrentOdometerEntity(input.vehicleId, reading.id))
     }
 
     suspend fun deleteReading(vehicleId: String, id: String, expectedRevision: Long) = transaction {
