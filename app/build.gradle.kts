@@ -7,7 +7,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+val releaseTests = providers.gradleProperty("releaseTests").isPresent
+
 android {
+    if (releaseTests) testBuildType = "release"
     namespace = "app.servicepassport.android"
     compileSdk = 36
     defaultConfig {
@@ -25,7 +28,16 @@ android {
             buildConfigField("String", "ENVIRONMENT", "\"local-development\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            // -PreleaseTests: CI runs the device tests against the shrunk build. The extra rules keep what the tests
+            // call directly; the libraries are shrunk exactly as in a real release.
+            if (releaseTests) {
+                proguardFiles("proguard-release-tests.pro")
+                testProguardFiles("proguard-device-tests.pro")
+                signingConfig = signingConfigs.getByName("debug")
+            }
             buildConfigField("String", "ENVIRONMENT", "\"offline\"")
         }
     }
