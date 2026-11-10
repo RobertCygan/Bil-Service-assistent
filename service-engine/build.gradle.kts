@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     kotlin("jvm") version "2.1.21"
+    kotlin("plugin.serialization") version "2.1.21"
     `java-test-fixtures`
 }
 
@@ -22,6 +23,8 @@ kotlin {
 }
 
 dependencies {
+    // Jedyna zależność poza biblioteką standardową: zapis i odczyt pliku eksportu.
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     testImplementation(kotlin("test"))
 }
 
