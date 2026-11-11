@@ -17,6 +17,19 @@ android {
         versionCode = 3
         versionName = "0.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // -PapkAbi=arm64-v8a builds a test APK for one processor type only (about half the size, for sending to a phone).
+        providers.gradleProperty("apkAbi").orNull?.let { abi -> ndk { abiFilters += abi } }
+    }
+    // The upload key never lives in the repository. Whoever publishes passes its location and passwords as Gradle
+    // properties (for example in ~/.gradle/gradle.properties); without them the release build stays unsigned.
+    val releaseStore = providers.gradleProperty("releaseStoreFile").orNull
+    signingConfigs {
+        if (releaseStore != null) create("release") {
+            storeFile = file(releaseStore)
+            storePassword = providers.gradleProperty("releaseStorePassword").get()
+            keyAlias = providers.gradleProperty("releaseKeyAlias").get()
+            keyPassword = providers.gradleProperty("releaseKeyPassword").get()
+        }
     }
     buildTypes {
         debug {
@@ -26,6 +39,7 @@ android {
         }
         release {
             isMinifyEnabled = false
+            if (releaseStore != null) signingConfig = signingConfigs.getByName("release")
             buildConfigField("String", "ENVIRONMENT", "\"offline\"")
         }
     }
