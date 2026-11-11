@@ -76,21 +76,26 @@ import java.time.LocalDate
             }
         }
         Surface(color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = Modifier.weight(1f).fillMaxHeight()) {
-            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                // Mileage at the most recent recorded service, the selected current reading, and the nearest distance limit.
+            // Three separate groups: the most recent recorded service, the selected current reading, the nearest distance limit.
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 val previous = snapshot.history.firstNotNullOfOrNull { it.reading }
-                OdometerLine(stringResource(R.string.previous_service_km), previous?.let { formattedKm(it.km, locale) + " km" }, scheme.onSurface)
-                Spacer(Modifier.height(4.dp))
-                Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                val reading = snapshot.currentReading
-                if (reading == null) Text(stringResource(R.string.odometer_missing), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("no_current_reading")) else {
-                    Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("current_km"))
-                    Text(LocalDates.text(reading.observedDay, locale), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.testTag("current_reading_date"))
+                OdometerGroup(stringResource(R.string.previous_service_km)) {
+                    Text(previous?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium)
                 }
-                Spacer(Modifier.height(4.dp))
+                HorizontalDivider(color = scheme.outlineVariant)
+                OdometerGroup(stringResource(R.string.current_odometer)) {
+                    val reading = snapshot.currentReading
+                    if (reading == null) Text(stringResource(R.string.odometer_missing), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("no_current_reading")) else {
+                        Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("current_km"))
+                        Text(LocalDates.text(reading.observedDay, locale), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.testTag("current_reading_date"))
+                    }
+                }
+                HorizontalDivider(color = scheme.outlineVariant)
                 val next = dashboard?.takeIf { !it.calculationUnavailable }?.tasks?.filter { it.dueKm != null }?.minByOrNull { it.dueKm!! }
-                OdometerLine(stringResource(R.string.next_limit_km), next?.dueKm?.let { formattedKm(it.toLong(), locale) + " km" }, next?.let { colors.status(it.category).accent } ?: scheme.onSurface)
-                next?.let { Text(workLabel(WorkInput(it.task.action.code, it.task.operation.code)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                OdometerGroup(stringResource(R.string.next_limit_km)) {
+                    Text(next?.dueKm?.let { formattedKm(it.toLong(), locale) + " km" } ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium, color = next?.let { colors.status(it.category).accent } ?: scheme.onSurface)
+                    next?.let { Text(workLabel(WorkInput(it.task.action.code, it.task.operation.code)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
+                }
             }
         }
     }
@@ -98,15 +103,17 @@ import java.time.LocalDate
         if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale), style = MaterialTheme.typography.bodySmall)
         if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded), style = MaterialTheme.typography.bodySmall)
     }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        FilledTonalButton(onClick = { go("reading/new") }, modifier = Modifier.weight(1f).testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
-        TextButton(onClick = { go("readings") }, modifier = Modifier.weight(1f).testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FilledTonalButton(onClick = { go("reading/new") }, modifier = Modifier.weight(1f).testTag("add_reading")) { Text(stringResource(R.string.update_odometer), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+        FilledTonalButton(onClick = { go("readings") }, modifier = Modifier.weight(1f).testTag("reading_history")) { Text(stringResource(R.string.reading_history), maxLines = 1, overflow = TextOverflow.Ellipsis) }
     }
 }
 
-@Composable private fun OdometerLine(label: String, value: String?, color: androidx.compose.ui.graphics.Color) {
-    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Text(value ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium, color = color)
+@Composable private fun OdometerGroup(label: String, content: @Composable ColumnScope.() -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        content()
+    }
 }
 
 @Composable private fun ActionTile(label: String, icon: ImageVector, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
