@@ -4,13 +4,23 @@ Aplikacja Android **CarServiceAssistent** dla kierowców w Norwegii, w językach
 
 Cel: pokazać, co i kiedy serwisować na podstawie potwierdzonej historii pojazdu oraz wiarygodnego harmonogramu.
 
-## Status
+## Status (11 listopada 2026)
 
-**Etapy 0–3 i przygotowanie integracji są w `main`. Pulpit Etapu 4 i własne interwały są w PR #7.** Aplikacja Kotlin/Compose w NO/EN łączy lokalną historię z rzeczywistym silnikiem. Katalog producentów pozostaje pusty do czasu uzyskania praw i zweryfikowanych danych.
+Cała praca jest w `main`; nie ma otwartych gałęzi z niescalonymi zmianami. Aplikacja Kotlin/Compose w NO/EN działa lokalnie, bez konta i bez dostępu do sieci.
 
-- [Bieżący przyrost: zakres, uruchomienie, APK i wyniki](docs/stage-4/README.md)
-- [PR #7: wspólny silnik, pulpit i interwały](https://github.com/RobertCygan/Bil-Service-assistent/pull/7)
-- [Aktualny kontrakt obu części](docs/INTEGRATION.md)
+**Jest w aplikacji:** auto i przebiegi, ręczna historia serwisowa, pulpit oparty na własnych interwałach kierowcy i na wskaźniku serwisowym z auta, odczyt faktur na telefonie ze sprawdzeniem przed zapisem, dokument przechowywany przy wpisie, przypomnienia, kopia zapasowa (opcjonalnie z hasłem) i usuwanie danych, podpowiedzi marki i modelu.
+
+**Nie ma:** harmonogramów producentów (katalog jest pusty do czasu uzyskania praw i zweryfikowanych danych), odczytu danych auta z rejestru vegvesen, publikacji w Google Play.
+
+**Niesprawdzone:** działanie na fizycznym telefonie i dokładność odczytu prawdziwych faktur.
+
+- [Gotowość do testów beta: spis testów, rozmiar, lista kontrolna na telefon](docs/12-etap-8-beta.md)
+- [Przygotowanie do Google Play](docs/13-etap-9-google-play.md)
+- [Prywatność: przegląd i projekt polityki](docs/11-etap-7-prywatnosc.md)
+- [Odczyt dokumentów](docs/10-etap-5-import-dokumentu.md) · [Przypomnienia](docs/07-etap-6-przypomnienia.md) · [Kopia danych](docs/08-etap-7-eksport-danych.md)
+- [Kontrakt między aplikacją a silnikiem](docs/INTEGRATION.md)
+
+Raporty poniżej (Etapy 0–4 i przygotowanie integracji) są zapisem historycznym poszczególnych przyrostów.
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
 

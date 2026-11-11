@@ -81,19 +81,33 @@ Przed pokazaniem jakiejkolwiek reguły producenta wymagane są łącznie:
 
 Niepusty tekst `usageRights` nie jest dowodem licencji. Uprawnienia dostarcza sprawdzona integracja katalogu, nie formularz kierowcy lub OCR. Źródło wygasłe/wycofane/niedopuszczone powoduje usunięcie reguł producenta z wyników i wyjaśnienie braku planu. Własne interwały pozostają osobno, z etykietą „Your interval” / „Ditt intervall”. Ten mechanizm nie dostarcza ani nie weryfikuje samych praw użycia.
 
-## 8. OCR — następny osobny przyrost
+## 8. Odczyt dokumentów (OCR)
 
-Biblioteka ekstrakcji jest zaimportowana; aplikacja nie odczytuje jeszcze faktur. `OcrRun`/`ServiceDraft` nie mają drogi do historii silnika. Integracja musi dodać oryginał dokumentu i trwały szkic, weryfikację pojazdu, rodzaju dokumentu, daty wykonania, waluty, pełnych kodów i wybranych prac oraz atomowe zatwierdzenie bez duplikatów. Data wystawienia faktury nie staje się automatycznie datą usługi. Wycena, zalecenie i zakup części nie resetują interwału. EUR/GBP lub brak waluty nie mogą zostać zapisane jako NOK. Ogólne „full service” nie potwierdza wymiany każdej części.
+**Stan (11 listopada 2026): podłączone.** Aplikacja odczytuje zdjęcie lub PDF na telefonie, pokazuje wynik do sprawdzenia i przenosi wybrane wartości do zwykłego formularza wpisu; do historii trafia dopiero wpis zapisany przez użytkownika. Kopia dokumentu jest przechowywana przy wpisie. Szczegóły i braki: [10-etap-5-import-dokumentu.md](10-etap-5-import-dokumentu.md).
 
-## 9. Eksport i przypomnienia — granice aktualnej zgodności
+Zasady, które obowiązują na tej granicy:
 
-`ExportData` z importu zachowuje pola dawnego schematu Room v2 i dodaje `userRules`, ale **`ExportUserRule` nie ma rewizji i znaczników czasu nowych `user_intervals`**. Format archiwum ma `formatVersion=1`; nie mylić tego z wersją schematu Room. Przed udostępnieniem kopii potrzebne są zgodna ewolucja DTO/walidatora i test **Room v3 → archiwum → nowa baza**, obejmujący także selekcję, własne opisy i metadane interwałów. Nie podłączamy niepełnej kopii do UI.
+- Szkic z odczytu nie ma drogi do historii silnika inaczej niż przez zapisany wpis.
+- Data wystawienia faktury nie staje się automatycznie datą usługi.
+- Wycena, zalecenie i zakup części nie są wstępnie zaznaczane i nie resetują interwału.
+- Kwota w walucie innej niż NOK albo bez rozpoznanej waluty nie jest zapisywana jako NOK.
+- Ogólny przegląd („årsservice”, „full service”) jest odczytywany jako przegląd serwisowy, nie jako wymiana poszczególnych części.
+- Dokument innego auta i wycena wymagają osobnego potwierdzenia; ten sam plik albo ta sama data i przebieg dają ostrzeżenie o duplikacie.
 
-Test biblioteki archiwum na API 26 potwierdza jej wykonanie oraz zapis/odczyt nagłówka na starszym Androidzie; nie dowodzi bezstratności kopii bazy. `ReminderPlanner` ma własne testy tłumienia niepewnych zaleceń; powiadomienia Androida nie są włączone. Przyszły planer musi uwzględniać także bramkę źródła i wiarygodność wyniku aplikacji, zamiast samodzielnie wywoływać silnik z pominięciem tych zasad.
+Nadal brakuje: zachowania wyborów z ekranu sprawdzenia po zamknięciu aplikacji oraz pomiaru na prawdziwych fakturach.
+
+## 9. Kopia danych i przypomnienia
+
+**Stan (11 listopada 2026): podłączone.**
+
+- **Kopia danych** odwzorowuje bezstratnie bazę aplikacji w schemacie Room v5 (pojazd, odczyty, jawny wybór bieżącego odczytu, wpisy z pracami, własne interwały z rewizją i znacznikami czasu, odczyty wskaźnika, dokumenty z plikami). Pilnuje tego test obiegu baza → archiwum → nowa baza. Format archiwum ma `formatVersion=1`; nie mylić tego z wersją schematu Room. Szczegóły: [08-etap-7-eksport-danych.md](08-etap-7-eksport-danych.md).
+- **Przypomnienia** są włączane przez użytkownika i czytają końcowy wynik pulpitu (`ReminderCoordinator` → `ReminderSubject`), więc uwzględniają bramkę źródła i wiarygodność wyniku; planer nie wywołuje silnika z pominięciem tych zasad. Szczegóły: [07-etap-6-przypomnienia.md](07-etap-6-przypomnienia.md).
+
+Niesprawdzone na fizycznym telefonie: wyświetlanie powiadomień przez system i odtworzenie kopii.
 
 ## 10. Weryfikacja i dalsza współpraca
 
-[Raport bieżącego przyrostu](stage-4/README.md) przypina kod, wyniki JVM, Androida i restartu. Testy aplikacji obejmują rzeczywisty zapis Room → mapowanie → silnik, edycję interwałów i politykę kategorii. Test UI wpisuje własne interwały przez produkcyjne formularze, więc zrzuty nie wymagają ukrytego katalogu demonstracyjnego.
+Aktualny spis testów i ich zakres jest w [12-etap-8-beta.md](12-etap-8-beta.md). [Raport przyrostu pulpitu](stage-4/README.md) przypina kod, wyniki JVM, Androida i restartu dla tamtej rewizji. Testy aplikacji obejmują rzeczywisty zapis Room → mapowanie → silnik, edycję interwałów i politykę kategorii. Test UI wpisuje własne interwały przez produkcyjne formularze, więc zrzuty nie wymagają ukrytego katalogu demonstracyjnego.
 
 Starsze raporty [Etapu 3](stage-3/README.md), [przygotowania](integration/README.md) i [autora modułów](09-uzgodnienie-z-aplikacja.md) opisują wcześniejsze rewizje. Bieżący zakres rozstrzyga ten dokument. Zmiana kodu, typu pola, źródła albo znaczenia statusu wymaga aktualizacji kontraktu i sprawdzenia przepływu między modułami.
 
@@ -105,7 +119,7 @@ Od tego miejsca całość prowadzi jeden autor (decyzja właściciela). Zmiany w
 - **Silnik nie zawija sum km:** przekroczenie zakresu daje `CALCULATION_LIMIT` i „wymaga danych”, także dla odczytu wskaźnika.
 - **Mapowanie przyczyn silnika na pulpit jest wyczerpujące** (`when` bez `else`): nowa przyczyna w silniku nie skompiluje się bez obsługi w aplikacji.
 - **Zaległość przy starszym wybranym odczycie:** jeśli próg km minął już przy wybranym odczycie, a jedyną wątpliwością jest nowszy, wyższy odczyt w historii, pozycja pozostaje „zaległa” z widocznymi km. Przy cofniętym liczniku, różnych km tego samego dnia lub zapisanym wyjątku nadal „wymaga danych”.
-- **Ekran wskaźnika serwisowego jest w MVP** (decyzja właściciela) — do zrobienia w osobnym przyroście.
+- **Ekran wskaźnika serwisowego jest w MVP** (decyzja właściciela) — zrobiony, opis w sekcji „Wskaźnik serwisowy z auta” poniżej.
 
 Rozbieżność kategorii między pulpitem a przypomnieniami jest usunięta: `ReminderPlanner` przyjmuje `ReminderSubject`, który aplikacja buduje z końcowego wyniku pulpitu (`ReminderCoordinator`). Szczegóły: [07-etap-6-przypomnienia.md](07-etap-6-przypomnienia.md).
 

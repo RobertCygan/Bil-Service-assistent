@@ -7,8 +7,8 @@ Data: **10 listopada 2026**. Pakiet `app.servicepassport.export` w module `servi
 | Element | Stan |
 | --- | --- |
 | Format archiwum, zapis, odczyt z pełną weryfikacją, opcjonalne hasło | **Zaimplementowane i przetestowane** (moduł `service-engine`, 19 testów) |
-| Mapowanie bazy aplikacji (Room v3) ↔ format, zapis i odtworzenie całej bazy | **Zaimplementowane i przetestowane**: `app/.../backup/GarageBackup.kt`, 5 testów obiegu baza → kopia → nowa baza |
-| Ekran w Ustawieniach: zapis kopii z opcjonalnym hasłem, odtworzenie, usunięcie wszystkich danych | **Zaimplementowane**; logika przetestowana na prawdziwych plikach (5 testów). Sam ekran i systemowe okno wyboru pliku **nie były oglądane ani klikane na urządzeniu** |
+| Mapowanie bazy aplikacji (Room v5, z dokumentami i odczytami wskaźnika) ↔ format, zapis i odtworzenie całej bazy | **Zaimplementowane i przetestowane**: `app/.../backup/GarageBackup.kt`, 5 testów obiegu baza → kopia → nowa baza |
+| Ekran w Ustawieniach: zapis kopii z opcjonalnym hasłem, odtworzenie, usunięcie wszystkich danych | **Zaimplementowane**; logika przetestowana na prawdziwych plikach. Przepływ przez ekran (zapis → usunięcie wszystkiego → odtworzenie) jest pokryty testem z atrapą okien systemowych, a kopia z hasłem — testem na emulatorze. Prawdziwe systemowe okno wyboru pliku i **fizyczny telefon pozostają niesprawdzone** |
 | Sprawdzenie na urządzeniu z Androidem 8–12 | **Nie wykonano** dla pełnego odtworzenia bazy (test biblioteki archiwum na API 26 istnieje) |
 | Usuwanie danych | **Zaimplementowane**: usuwa auto, historię, odczyty, interwały, ustawienia przypomnień i pokazane powiadomienia; kopii zapisanych poza aplikacją nie dotyka |
 | Audyt SDK i logów, polityka prywatności | **Nie ma** — pozostała część Etapu 7 |
