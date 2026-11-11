@@ -38,6 +38,18 @@ Etap 5 **nie jest ukończony**.
 - Przerwanie aplikacji dokładnie między zapisem bazy a przeniesieniem plików przy przywracaniu jest naprawiane przy następnym uruchomieniu: zweryfikowane pliki, które czekają, trafiają na miejsce tylko wtedy, gdy rozmiar i skrót zgadzają się z wpisem. Pliki, do których nie odwołuje się żaden wpis, są wtedy usuwane.
 - Wybór pliku, którego nie da się odczytać, oraz anulowanie aparatu nie kasują dokumentu, którego sprawdzanie przerwano wcześniej.
 
+## Słownik i reguły odczytu — poprawki z 11 listopada 2026
+
+Sprawdzenie typowych norweskich sformułowań (wpisanych z pamięci, **nie z prawdziwych faktur**) wykazało błąd i braki:
+
+- **Błąd:** linie o innym oleju („Skift olje girkasse”, „Skift olje bakaksel”, „Skift olje automatgir”) były proponowane jako wykonana wymiana oleju silnikowego. Teraz słowo wskazujące inny olej, opłatę środowiskową itp. wyklucza olej silnikowy w tej linii; olej skrzyni jest rozpoznawany jako olej skrzyni, a olej osi czy sprzęgła Haldex nie jest przypisywany do niczego. Zasada: pominięcie pozycji jest bezpieczniejsze niż przypisanie jej do złej czynności.
+- **Dodane słowa:** oljeservice, bremsebelegg, klosser, tannreim, kamreim, friskluftfilter, kabinfilter, bensinfilter, drivstofffilter, automatgirolje, bremsesjekk, batterisjekk, „stor/liten service”, „Service 60 000 km”, „service iht.” i podobne; „montert/installert” jako wykonanie wymiany.
+- **Przebieg:** etykiety „Km.stand”, „Km.st.”, „KM:” oraz etykieta i wartość w osobnych liniach tabeli. „km:” przy stawce lub krótkiej odległości nie jest stanem licznika.
+- **Kwota i data:** „Totalsum”, „Totalbeløp”, „Fakturabeløp”, „Sluttsum”; „Ferdig dato”, „ferdigstilt”, „Reparasjonsdato” jako data wykonania.
+- **Celowo nierozpoznawane:** samo „batteri” (bateria w kluczyku, akumulator trakcyjny), „EU-kontroll”, „AC-service”, wymiana opon, samo słowo „Service”.
+
+To nadal nie jest pomiar skuteczności — ten wymaga prawdziwych dokumentów.
+
 ## Koszt
 
 Model rozpoznawania tekstu jest dołączony do aplikacji, więc pakiet testowy urósł do ok. 57 MB (wersja debug ze wszystkimi architekturami). Rozmiar wydania będzie mniejszy i trzeba go zmierzyć przy przygotowaniu do Google Play.

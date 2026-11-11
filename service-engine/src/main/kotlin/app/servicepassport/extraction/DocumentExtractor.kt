@@ -12,13 +12,16 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
 
     private class Line(val evidence: Evidence, val norm: String)
 
-    private class Matcher(val term: TaskTerm, val operations: List<Pair<String, List<Regex>>>, val part: List<Regex>)
+    private class Matcher(val term: TaskTerm, val operations: List<Pair<String, List<Regex>>>, val part: List<Regex>, val unless: List<Regex>)
 
     private val matchers = dictionary.map { term ->
         // „replace” sprawdzamy pierwsze: fraza wymiany wygrywa z frazą kontroli w tej samej linii
         val ordered = term.operationPhrases.entries.sortedBy { if (it.key == "replace") 0 else 1 }
-        Matcher(term, ordered.map { it.key to it.value.map(::phrase) }, term.partPhrases.map(::phrase))
+        Matcher(term, ordered.map { it.key to it.value.map(::phrase) }, term.partPhrases.map(::phrase), term.unless.map(::phrase))
     }
+
+    /** Przegląd zapisany liczbą zamiast nazwą („Service 60 000 km”) — tylko gdy słownik zna przegląd serwisowy. */
+    private val serviceTerm = dictionary.firstOrNull { it.action == SERVICE_ACTION }
 
     public fun extract(pages: List<OcrPage>, vehicle: VehicleIdentity, today: LocalDate): DraftProposal {
         val lines = pages.sortedBy { it.index }.flatMap { page ->
@@ -119,12 +122,25 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
         val labeled = mutableListOf<Candidate<Int>>()
         val unlabeled = mutableListOf<Candidate<Int>>()
         var miles = false
-        for (line in lines) {
+        for ((i, line) in lines.withIndex()) {
             if (ODO_EXCLUDED.containsMatchIn(line.norm)) continue
+            // W tabelach etykieta i wartość bywają w osobnych liniach: sama etykieta, a pod nią sama liczba.
+            if (ODO_LABEL_ONLY.matches(line.norm)) {
+                lines.getOrNull(i + 1)?.let { next ->
+                    ODO_VALUE_ONLY.matchEntire(next.norm)?.groupValues?.get(1)?.filter(Char::isDigit)?.toIntOrNull()
+                        ?.takeIf { it in MIN_BARE_KM..MAX_KM }?.let { labeled += Candidate(it, next.evidence) }
+                }
+                continue
+            }
             val m = ODO_LABELED.find(line.norm)
+            val bare = if (m == null) ODO_BARE.find(line.norm) else null
             if (m != null) {
                 val value = m.groupValues[2].filter(Char::isDigit).toIntOrNull()?.takeIf { it <= MAX_KM } ?: continue
                 if (m.groupValues[3].startsWith("mi")) miles = true else labeled += Candidate(value, line.evidence)
+            } else if (bare != null) {
+                // Samo „km:” jest etykietą tylko dla liczby, która wygląda na stan licznika, a nie na stawkę czy odległość.
+                bare.groupValues[1].filter(Char::isDigit).toIntOrNull()?.takeIf { it in MIN_BARE_KM..MAX_KM }
+                    ?.let { labeled += Candidate(it, line.evidence) }
             } else {
                 ODO_UNLABELED.findAll(line.norm).forEach { u ->
                     u.groupValues[1].filter(Char::isDigit).toIntOrNull()?.takeIf { it in 1..MAX_KM }
@@ -178,8 +194,13 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
         var recommendedSection = false
         for (line in lines) {
             val matched = matchers.mapNotNull { m ->
+                // Słowo wykluczające wygrywa ze wszystkim: lepiej pominąć pozycję niż przypisać ją do złej czynności.
+                if (m.unless.any { it.containsMatchIn(line.norm) }) return@mapNotNull null
                 val byPhrase = m.operations.firstOrNull { (_, phrases) -> phrases.any { it.containsMatchIn(line.norm) } }?.first
                 if (byPhrase != null || m.part.any { it.containsMatchIn(line.norm) }) Match(m.term, byPhrase) else null
+            }.toMutableList()
+            if (serviceTerm != null && matched.none { it.term.action == SERVICE_ACTION } && SERVICE_AT_KM.containsMatchIn(line.norm)) {
+                matched += Match(serviceTerm, serviceTerm.operations.first())
             }
             if (matched.isEmpty()) {
                 val heading = line.norm.none(Char::isDigit) && line.norm.split(' ').size <= MAX_HEADING_WORDS
@@ -248,6 +269,8 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
         const val HEAD_LINES = 10
         const val MAX_KM = 2_000_000
         const val MAX_HEADING_WORDS = 5
+        const val MIN_BARE_KM = 1000
+        const val SERVICE_ACTION = "inspection_service"
 
         val WHITESPACE = Regex("[\\s\\u00A0]+")
         private const val W = "(?<![\\p{L}\\d])"
@@ -275,16 +298,18 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
                 "registrert|registered|reg\\.? ?dato|første gang|first reg\\p{L}*|født|levering\\p{L}*|bestilt|ordered",
         )
         val DATE_SERVICE = words(
-            "utført|servicedato|service dato|arbeidsdato|verkstedsdato|innlevert|date of service|service date|" +
+            "utført|servicedato|service dato|arbeidsdato|verkstedsdato|reparasjonsdato|ferdigdato|ferdig dato|ferdigstilt|innlevert|" +
+                "date of service|service date|" +
                 "work completed|completed|date of work|work date|carried out",
         )
         val DATE_INVOICE = words("fakturadato|faktura dato|invoice date|kvitteringsdato|dato|date")
 
         private const val NUM = "\\d{1,3}(?:[ .,]\\d{3})+(?!\\d)|\\d{1,7}"
-        val ODO_LABELED = Regex(
-            "$W(kilometerstand|km[- ]?stand|kjørelengde|tellerstand|kjørte km|kilometer|mileage|odometer(?: reading)?)" +
-                "\\D{0,12}($NUM)\\s*(km|miles|mi)?",
-        )
+        private const val ODO_LABEL = "kilometerstand|km[-. ]?stand|km\\.st\\.?|kjørelengde|tellerstand|kjørte km|kilometer|mileage|odometer(?: reading)?"
+        val ODO_LABELED = Regex("$W($ODO_LABEL)\\D{0,12}($NUM)\\s*(km|miles|mi)?")
+        val ODO_BARE = Regex("${W}km\\s*[:=]\\s*(\\d{1,3}(?:[ .]\\d{3})+|\\d{4,7})(?![.,]?\\d)")
+        val ODO_LABEL_ONLY = Regex("(?:$ODO_LABEL|km)\\s*[:.]?")
+        val ODO_VALUE_ONLY = Regex("(\\d{1,3}(?:[ .]\\d{3})+|\\d{3,7})\\s*(?:km)?")
         val ODO_UNLABELED = Regex("(?<![\\d.,])($NUM)\\s*km(?![\\p{L}/])")
         val ODO_EXCLUDED = words("neste|next|hver|every|intervall\\p{L}*|interval\\p{L}*|garanti\\p{L}*|warranty|innen|within|etter|after")
 
@@ -297,13 +322,14 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
         )
         val TEST_VERB = words("test|testet|testing|tested|målt|measured")
         val REPLACE_VERB = words(
-            "skift|skifte|skiftet|bytt|bytte|byttet|utskiftet|utskifting|erstattet|fornyet|" +
-                "replaced|changed|renewed|replace|change|replacement|renewal",
+            "skift|skifte|skiftet|bytt|bytte|byttet|utskiftet|utskifting|erstattet|fornyet|montert|installert|" +
+                "replaced|changed|renewed|replace|change|replacement|renewal|fitted|installed",
         )
         val RECOMMENDED = words(
             "bør|må|anbefal\\p{L}*|should|needs?|recommend\\p{L}*|advis\\p{L}*|neste|next|snart|soon|due",
         )
         val NOT_DONE = words("ikke utført|ikke skiftet|ikke byttet|not performed|not done|not replaced|declined|avslått|utsatt|deferred")
+        val SERVICE_AT_KM = Regex("${W}service\\s+(?:ved\\s+|at\\s+)?\\d{1,3}(?:[ .]?\\d{3})\\s*km$E")
         val RECOMMENDED_HEADING = words(
             "anbefal\\p{L}*|bør utføres|recommend\\p{L}*|advisor(?:y|ies)|future work|ved neste service|at next service",
         )
@@ -314,7 +340,8 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
 
         val TOTAL_STRONG = words(
             "å betale|til betaling|amount due|total due|balance due|sum inkl\\p{L}*\\.?|total inkl\\p{L}*\\.?|" +
-                "totalt inkl\\p{L}*\\.?|total incl?\\p{L}*\\.?|grand total",
+                "totalt inkl\\p{L}*\\.?|total incl?\\p{L}*\\.?|grand total|totalsum(?: inkl\\p{L}*\\.?)?|totalbeløp|" +
+                "fakturabeløp|fakturasum|sluttsum|sluttbeløp|invoice total|total amount",
         )
         val TOTAL_WEAK = words("totalt|total|sum|beløp")
         val TOTAL_EXCLUDED = words("eks\\p{L}*\\.?|excl\\p{L}*\\.?|ex vat|subtotal|sub total|netto|net|mva-grunnlag|herav mva|vat amount")

@@ -374,6 +374,91 @@ class DocumentExtractorTest {
         assertFalse(item.selectedByDefault)
     }
 
+    /** Jedna linia pozycji w zmyślonej fakturze; wynik jako „czynność:operacja/rodzaj”. */
+    private fun itemsOf(line: String) = extract("Eksempel Bilverksted AS\nFAKTURA 1001\n$line").items.map { "${it.taskCode}/${it.kind}" }
+    private fun fieldsOf(vararg lines: String) = extract((listOf("Eksempel Bilverksted AS", "FAKTURA 1001") + lines).joinToString("\n"))
+
+    @Test
+    fun `oil for the gearbox or an axle is never read as an engine oil change`() {
+        // Te linie były wcześniej proponowane jako wykonana wymiana oleju silnikowego.
+        assertEquals(listOf("gearbox_oil:replace/PERFORMED"), itemsOf("Skift olje girkasse"))
+        assertEquals(listOf("gearbox_oil:replace/PERFORMED"), itemsOf("Skift olje automatgir"))
+        assertEquals(listOf("gearbox_oil:replace/PERFORMED"), itemsOf("Oljeskift girkasse"))
+        assertEquals(listOf("gearbox_oil:replace/PERFORMED"), itemsOf("Automatgirolje skiftet"))
+        assertEquals(listOf("gearbox_oil:replace/PARTS_ONLY"), itemsOf("Olje girkasse 75W-90"))
+        for (line in listOf("Skift olje bakaksel", "Olje differensial byttet", "Skift olje haldex", "Miljøavgift olje", "Servoolje etterfylt, olje servo", "Gearbox oil and filter, oil change transmission")) {
+            assertTrue(itemsOf(line).none { it.startsWith("engine_oil") }, "engine oil proposed for: $line -> ${itemsOf(line)}")
+        }
+        // Zwykłe linie o oleju silnikowym działają jak dotąd.
+        assertEquals(listOf("engine_oil:replace/PERFORMED"), itemsOf("Oljeskift inkl. arbeid"))
+        assertEquals(listOf("engine_oil:replace/PERFORMED"), itemsOf("Oljeservice"))
+        assertEquals(listOf("engine_oil:replace/PARTS_ONLY"), itemsOf("Motorolje 0W-20 4,5 l"))
+        assertEquals(listOf("engine_oil:replace/PERFORMED", "oil_filter:replace/PERFORMED"), itemsOf("Bytte motorolje og oljefilter"))
+    }
+
+    @Test
+    fun `common Norwegian wording for parts and services is recognised`() {
+        val expected = mapOf(
+            "Bytte bremseskiver og klosser foran" to listOf("brake_pads:replace/PERFORMED", "brake_discs:replace/PERFORMED"),
+            "Bremsebelegg foran byttet" to listOf("brake_pads:replace/PERFORMED"),
+            "Bremseklosser bak montert" to listOf("brake_pads:replace/PERFORMED"),
+            "Tannreim byttet" to listOf("timing_belt:replace/PERFORMED"),
+            "Bytte tannreimsett og vannpumpe" to listOf("timing_belt:replace/PERFORMED"),
+            "Friskluftfilter skiftet" to listOf("cabin_filter:replace/PERFORMED"),
+            "Kabinfilter byttet" to listOf("cabin_filter:replace/PERFORMED"),
+            "Bensinfilter skiftet" to listOf("fuel_filter:replace/PERFORMED"),
+            "Drivstofffilter byttet" to listOf("fuel_filter:replace/PERFORMED"),
+            "Kontroll bremser" to listOf("brakes:inspect/PERFORMED"),
+            "Bremsesjekk" to listOf("brakes:inspect/PERFORMED"),
+            "Batterisjekk" to listOf("battery_12v:test/PERFORMED"),
+            "Bilbatteri byttet" to listOf("battery_12v:replace/PERFORMED"),
+            "Stor service" to listOf("inspection_service:inspect/PERFORMED"),
+            "Liten service" to listOf("inspection_service:inspect/PERFORMED"),
+            "Service 60 000 km" to listOf("inspection_service:inspect/PERFORMED"),
+            "60.000 km service iht. serviceprogram" to listOf("inspection_service:inspect/PERFORMED"),
+            "Service iht. produsentens program" to listOf("inspection_service:inspect/PERFORMED"),
+        )
+        for ((line, items) in expected) assertEquals(items.toSet(), itemsOf(line).toSet(), line)
+        // Zapowiedź następnego przeglądu to zalecenie, nie wykonana praca.
+        assertEquals(listOf("inspection_service:inspect/RECOMMENDED"), itemsOf("Neste service 75 000 km"))
+    }
+
+    @Test
+    fun `lines that only look related stay out of the draft`() {
+        for (line in listOf(
+            "Bytte batteri i nøkkel", "Batteri CR2032", "Kontroll av høyvoltsbatteri", "Spylervæske 4 l", "Bremserens", "EU-kontroll", "AC-service",
+            "Service klimaanlegg", "Skift av vinterdekk", "Hjulskift", "Vindusviskere foran", "Servicegebyr",
+        )) assertEquals(emptyList(), itemsOf(line), line)
+    }
+
+    @Test
+    fun `odometer labels as workshops write them`() {
+        for (line in listOf("Km.stand: 84.512", "KM: 84 512", "Km: 84512", "Km.st.: 84 512", "Kmstand 84512", "Kilometerstand 84 512 km")) {
+            val field = fieldsOf(line).odometerKm
+            assertEquals(84_512, field.value, line); assertEquals(FieldState.RECOGNIZED, field.state, line)
+        }
+        // Etykieta i wartość w osobnych liniach tabeli.
+        fieldsOf("Km.stand", "84 512").odometerKm.let { assertEquals(84_512, it.value); assertEquals(FieldState.RECOGNIZED, it.state) }
+        fieldsOf("Kilometerstand:", "84512 km").odometerKm.let { assertEquals(84_512, it.value) }
+        // „km:” przy stawce, krótkiej odległości albo bez liczby pod spodem nie jest stanem licznika.
+        for (lines in listOf(listOf("Pris pr km: 4,50"), listOf("Kjøring km: 12"), listOf("Km.stand", "Se vedlegg"), listOf("Km", "12"))) {
+            assertNull(fieldsOf(*lines.toTypedArray()).odometerKm.value, lines.toString())
+        }
+    }
+
+    @Test
+    fun `total and completion date labels as workshops write them`() {
+        for (line in listOf("Totalsum inkl. mva 2 189,00 kr", "Totalbeløp NOK 2 189,00", "Fakturabeløp 2 189,00 kr", "Sluttsum inkl mva: kr 2 189,00")) {
+            val total = fieldsOf(line).total
+            assertEquals(Money(218_900, "NOK"), total.value, line); assertEquals(FieldState.RECOGNIZED, total.state, line)
+        }
+        assertNull(fieldsOf("Totalsum eks. mva 1 751,20 kr").total.value)
+        for (line in listOf("Ferdig dato: 12.03.2025", "Arbeid ferdigstilt 12.03.2025", "Reparasjonsdato 12.03.2025")) {
+            val date = fieldsOf(line).serviceDate
+            assertEquals(LocalDate.parse("2025-03-12"), date.value, line); assertEquals(FieldState.RECOGNIZED, date.state, line)
+        }
+    }
+
     @Test
     fun `default dictionary matches the shared service contract`() {
         // Kontrakt jest własnością aplikacji; czytamy go jako tekst, żeby moduł pozostał samodzielnym buildem.
