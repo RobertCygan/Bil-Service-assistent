@@ -18,8 +18,8 @@ Etap 8 **nie jest ukończony**: bez testu na telefonie nie można uznać aplikac
 
 | Zestaw | Liczba testów | Gdzie działa |
 | --- | --- | --- |
-| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 154 | JVM (Robolectric) |
-| Aplikacja — testy na emulatorze (start, migracje bazy, pliki dokumentów, prawdziwy ML Kit, brak sieci, kopia z hasłem przez ekran ustawień) | 9 | Emulator w CI, API 26 i nowsze |
+| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 165 | JVM (Robolectric) |
+| Aplikacja — testy na emulatorze (start, migracje bazy, pliki dokumentów, prawdziwy ML Kit na pliku PDF i na zdjęciu zapisanym bokiem, brak sieci, kopia z hasłem przez ekran ustawień) | 11 | Emulator w CI, API 26 i nowsze |
 | Silnik (obliczenia, ekstrakcja, przypomnienia, eksport, szyfrowanie, VIN) | 113 | JVM |
 | Wspólny kontrakt | 3 | JVM |
 | Serwer pośredniczący | 11 | JVM — **bez prawdziwego API vegvesen** |
@@ -63,7 +63,7 @@ Instalacja: plik `app-debug.apk` z artefaktów CI. Wszystkie dane testowe wymyś
 7. **Zdjęcie aparatem** — przycisk otwiera aparat; po zrobieniu zdjęcia pojawia się ekran sprawdzenia.
 8. **Dokument przy wpisie** — w szczegółach wpisu dokument się otwiera; usunięcie dokumentu zostawia wpis.
 9. **Duplikat** — ponowne wczytanie tego samego pliku daje ostrzeżenie.
-10. **Przypomnienia** — włączenie pyta o zgodę; powiadomienie pojawia się dla zaległej pozycji (może to potrwać do doby).
+10. **Przypomnienia** — włączenie pyta o zgodę; powiadomienie pojawia się dla zaległej pozycji (może to potrwać do doby); ikona na pasku stanu ma kształt auta (nie jest pełnym kwadratem), a tekst jest w języku wybranym w aplikacji, także gdy telefon ma inny język.
 11. **Kopia** — zapis kopii z hasłem i bez; „Usuń wszystko”; przywrócenie kopii przywraca auto, historię i dokumenty; złe hasło daje jasny komunikat.
 12. **Duża czcionka i tryb ciemny** — ekrany pozostają czytelne, nic nie jest ucięte.
 13. **Tryb samolotowy** — wszystko powyższe działa bez sieci.

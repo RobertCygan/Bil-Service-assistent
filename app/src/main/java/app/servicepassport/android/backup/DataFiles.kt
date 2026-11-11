@@ -25,7 +25,10 @@ class DataFiles(private val context: Context, private val backup: GarageBackup, 
     suspend fun save(target: Uri, password: String?): DataOutcome {
         val chars = password?.takeIf { it.isNotEmpty() }?.toCharArray()
         return try {
-            val out = context.contentResolver.openOutputStream(target, "wt") ?: return DataOutcome.BACKUP_FAILED
+            // "wt" empties an existing file first; a few storage providers only know plain "w", which is enough for a new file.
+            val resolver = context.contentResolver
+            val out = (try { resolver.openOutputStream(target, "wt") } catch (_: Exception) { null } ?: resolver.openOutputStream(target, "w"))
+                ?: return DataOutcome.BACKUP_FAILED
             out.use { backup.write(it, BuildConfig.VERSION_NAME, chars) }
             DataOutcome.BACKUP_SAVED
         } catch (_: Exception) {
