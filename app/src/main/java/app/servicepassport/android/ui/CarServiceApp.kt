@@ -69,13 +69,12 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
     fun intervalSaved() { dirty = false; model.clearProblem(); if (!nav.popBackStack("intervals", false)) navigate("intervals") }
     BackHandler(enabled = dirty) { pendingBack = true }
     LaunchedEffect(route) { model.clearProblem() }
-    val colors = if (isSystemInDarkTheme()) darkColorScheme() else lightColorScheme(primary = Color(0xFF285A4B), secondary = Color(0xFF506857), background = Color(0xFFF8F9F5))
-    MaterialTheme(colorScheme = colors) {
+    AppTheme {
         Scaffold(
-            topBar = { TopAppBar(title = { Text(stringResource(R.string.app_name)) }, navigationIcon = {
+            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) }, navigationIcon = {
                 if (route !in tabs) IconButton(onClick = { back() }, modifier = Modifier.testTag("back")) { Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = stringResource(R.string.back)) }
             }) },
-            bottomBar = { NavigationBar {
+            bottomBar = { NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                 listOf(Triple("overview", R.string.overview, Icons.Default.Home), Triple("history", R.string.history, Icons.AutoMirrored.Default.List), Triple("settings", R.string.settings, Icons.Default.Settings)).forEach { (target, label, icon) ->
                     NavigationBarItem(modifier = Modifier.testTag("nav_$target"), selected = route == target, icon = { Icon(icon, contentDescription = null) }, label = { Text(stringResource(label)) }, onClick = { go(target) })
                 }

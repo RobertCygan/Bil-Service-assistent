@@ -37,7 +37,13 @@ android {
         compose = true
         buildConfig = true
     }
-    testOptions { unitTests.isIncludeAndroidResources = true }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // -Pscreenshots renders the real screens to PNG files on the JVM (see ScreenshotTest); otherwise nothing is written.
+        unitTests.all {
+            it.systemProperty("roborazzi.test.record", providers.gradleProperty("screenshots").isPresent.toString())
+        }
+    }
     sourceSets["test"].resources.srcDir("schemas")
     sourceSets["androidTest"].assets.srcDir("schemas")
     sourceSets["test"].java.srcDir("src/engineIntegrationTest/java")
@@ -83,6 +89,10 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.test.core)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.test)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)

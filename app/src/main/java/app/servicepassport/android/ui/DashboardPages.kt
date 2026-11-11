@@ -1,7 +1,13 @@
 package app.servicepassport.android.ui
 
 import android.net.Uri
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -43,10 +49,13 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
         listOf(listOf(Category.OVERDUE, Category.DUE_SOON), listOf(Category.NEEDS_DATA, Category.NO_URGENCY)).forEach { categories ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 categories.forEach { category ->
-                    OutlinedCard(Modifier.weight(1f)) {
-                        Column(Modifier.padding(12.dp)) {
-                            Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.labelMedium)
-                            Text(dashboard.tasks.count { it.category == category }.toString(), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("count_${category.name}"))
+                    val count = dashboard.tasks.count { it.category == category }
+                    val palette = LocalAppColors.current.status(category); val scheme = MaterialTheme.colorScheme
+                    // Colour only where there is something to act on; an empty group stays quiet.
+                    Surface(color = if (count > 0) palette.container else scheme.surfaceContainer, contentColor = if (count > 0) palette.onContainer else scheme.onSurfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
+                        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+                            Text(count.toString(), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("count_${category.name}"))
+                            Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -66,10 +75,13 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
         CatalogState.INVALID_CATALOG -> R.string.catalog_unavailable
         CatalogState.MATCHED -> R.string.catalog_not_available
     }
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.no_verified_schedule), style = MaterialTheme.typography.titleMedium)
-            Text(stringResource(message))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.no_verified_schedule), style = MaterialTheme.typography.titleMedium)
+            }
+            Text(stringResource(message), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (state.missingConfiguration.isNotEmpty()) {
                 state.missingConfiguration.forEach { field -> Text(stringResource(when (field) {
                     ConfigAttribute.MAKE -> R.string.make; ConfigAttribute.MODEL -> R.string.model
@@ -101,31 +113,64 @@ private fun originResource(origin: TaskOrigin): Int = when (origin) {
         return@Page
     }
     if (state.profile == null || dashboard == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
-    Text(requireNotNull(state.profile).displayName)
+    Text(requireNotNull(state.profile).displayName, color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (dashboard.calculationUnavailable) {
         NoteCard(stringResource(R.string.dashboard_unavailable))
         Button(onClick = retry) { Text(stringResource(R.string.retry)) }
         return@Page
     }
-    CatalogNotice(dashboard, go)
-    Button(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
-    OutlinedButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
     DashboardCounts(dashboard)
+    FilledTonalButton(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
+    OutlinedButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
+    CatalogNotice(dashboard, go)
     if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
     Category.entries.forEach { category ->
         val tasks = dashboard.tasks.filter { it.category == category }
         if (tasks.isNotEmpty()) {
-            Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.titleLarge)
-            tasks.forEach { task ->
-                OutlinedCard(onClick = { go("forecast/${Uri.encode(task.id)}") }, modifier = Modifier.fillMaxWidth().testTag("forecast_${task.id}")) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.titleMedium)
-                        Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.labelMedium)
-                        DueValues(task)
-                        task.reasons.forEach { Text(stringResource(reasonResource(it)), style = MaterialTheme.typography.bodySmall) }
-                    }
+            Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.titleLarge, color = LocalAppColors.current.status(category).accent)
+            tasks.forEach { task -> TaskCard(task, compact = false, modifier = Modifier.testTag("forecast_${task.id}")) { go("forecast/${Uri.encode(task.id)}") } }
+        }
+    }
+}
+
+/** How far the interval has been used, from the engine's own figures. Null when the engine could not calculate. */
+internal fun usedFraction(task: DashboardTask): Float? {
+    val interval = task.basis?.interval ?: return null
+    val byDistance = interval.km?.takeIf { it > 0 }?.let { km -> task.remainingKm?.let { 1f - it.toFloat() / km } }
+    val byTime = interval.months?.takeIf { it > 0 }?.let { months -> task.remainingDays?.let { 1f - it.toFloat() / (months * 30.44f) } }
+    return listOfNotNull(byDistance, byTime).maxOrNull()?.coerceIn(0f, 1f)
+}
+
+@Composable private fun remainingText(task: DashboardTask): String? {
+    val locale = uiLocale()
+    val parts = listOfNotNull(
+        task.remainingKm?.let { stringResource(if (it >= 0) R.string.km_left else R.string.km_over, formattedKm(kotlin.math.abs(it.toLong()), locale)) },
+        task.remainingDays?.let { stringResource(if (it >= 0) R.string.days_left else R.string.days_over, kotlin.math.abs(it).toString()) },
+    )
+    return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+}
+
+/** One service task: what it is, how urgent, and how much of the interval is used. */
+@Composable internal fun TaskCard(task: DashboardTask, compact: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val palette = LocalAppColors.current.status(task.category); val scheme = MaterialTheme.colorScheme
+    Surface(onClick = onClick, color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = modifier.fillMaxWidth()) {
+        Column(
+            Modifier.drawBehind { drawRect(palette.accent, size = Size(6.dp.toPx(), size.height)) }.padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                if (compact) Surface(color = palette.container, contentColor = palette.onContainer, shape = MaterialTheme.shapes.extraSmall) {
+                    Text(stringResource(categoryResource(task.category)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                 }
             }
+            remainingText(task)?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = palette.accent) }
+            usedFraction(task)?.let { LinearProgressIndicator(progress = { it }, color = palette.accent, trackColor = palette.container, drawStopIndicator = {}, modifier = Modifier.fillMaxWidth().height(6.dp)) }
+            if (!compact) {
+                Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                DueValues(task)
+            } else if (task.dueKm == null && task.dueDate == null) Text(stringResource(R.string.no_confirmed_due_value), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            task.reasons.forEach { Text(stringResource(reasonResource(it)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant) }
         }
     }
 }

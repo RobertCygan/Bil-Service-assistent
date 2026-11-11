@@ -3,7 +3,13 @@ package app.servicepassport.android.ui
 import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.documents.DocumentStore
 import app.servicepassport.android.reminders.ReminderStore
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -29,29 +35,63 @@ import java.time.LocalDate
             Text(stringResource(R.string.local_storage_note), style = MaterialTheme.typography.bodySmall)
         }
         else -> {
-            val snapshot = requireNotNull(state.snapshot); val locale = uiLocale()
-            Text(snapshot.vehicle.displayName, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("profile_name"))
-            snapshot.vehicle.modelYear?.let { Text(stringResource(R.string.model_year_value, it.toString())) }
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.titleMedium)
-                    val reading = snapshot.currentReading
-                    if (reading == null) Text(stringResource(R.string.odometer_missing), Modifier.testTag("no_current_reading")) else {
-                        Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("current_km"))
-                        Text(LocalDates.text(reading.observedDay, locale), Modifier.testTag("current_reading_date"))
-                        if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale))
-                        if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded))
-                    }
-                    Button(onClick = { go("reading/new") }, modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
-                    TextButton(onClick = { go("readings") }, modifier = Modifier.testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
+            val snapshot = requireNotNull(state.snapshot)
+            HeroCard(snapshot, today, go)
+            val dashboard = state.dashboard
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.service_overview), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                TextButton(onClick = { go("dashboard") }, modifier = Modifier.testTag("open_dashboard")) { Text(stringResource(R.string.see_all)) }
+            }
+            if (dashboard != null) {
+                if (dashboard.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else {
+                    DashboardCounts(dashboard)
+                    if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
+                    dashboard.tasks.sortedBy { it.category.ordinal }.take(3).forEach { task -> TaskCard(task, compact = true) { go("forecast/${android.net.Uri.encode(task.id)}") } }
                 }
             }
-            Button(onClick = { go("dashboard") }, modifier = Modifier.fillMaxWidth().testTag("open_dashboard")) { Text(stringResource(R.string.service_overview)) }
-            state.dashboard?.let { if (it.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else DashboardCounts(it) }
-            OutlinedButton(onClick = { go("import") }, modifier = Modifier.fillMaxWidth().testTag("import_document")) { Text(stringResource(R.string.import_document)) }
-    Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
-            state.dashboard?.let { if (!it.calculationUnavailable) CatalogNotice(it, go) }
-            OutlinedButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ActionTile(stringResource(R.string.add_service), Icons.Default.Add, primary = true, modifier = Modifier.weight(1f).testTag("add_service")) { go("service/new") }
+                ActionTile(stringResource(R.string.import_document), Icons.Default.Search, primary = false, modifier = Modifier.weight(1f).testTag("import_document")) { go("import") }
+            }
+            if (dashboard != null && !dashboard.calculationUnavailable) CatalogNotice(dashboard, go)
+            TextButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
+        }
+    }
+}
+
+/** The car and its mileage: the first thing on the first screen. */
+@Composable private fun HeroCard(snapshot: GarageSnapshot, today: LocalDate, go: (String) -> Unit) {
+    val colors = LocalAppColors.current; val locale = uiLocale(); val vehicle = snapshot.vehicle
+    Surface(color = colors.hero, contentColor = colors.onHero, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(vehicle.displayName, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("profile_name"))
+            val model = listOfNotNull(vehicle.make, vehicle.model).joinToString(" ")
+            val subtitle = listOfNotNull(model.takeIf { it.isNotEmpty() }, vehicle.modelYear?.let { if (model.isEmpty()) stringResource(R.string.model_year_value, it.toString()) else it.toString() }).joinToString(" · ")
+            if (subtitle.isNotEmpty()) Text(subtitle, color = colors.onHeroMuted)
+            Spacer(Modifier.height(12.dp))
+            Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.labelLarge, color = colors.onHeroMuted)
+            val reading = snapshot.currentReading
+            if (reading == null) Text(stringResource(R.string.odometer_missing), Modifier.testTag("no_current_reading")) else {
+                Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.displaySmall, modifier = Modifier.testTag("current_km"))
+                Text(LocalDates.text(reading.observedDay, locale), color = colors.onHeroMuted, modifier = Modifier.testTag("current_reading_date"))
+                if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale), style = MaterialTheme.typography.bodySmall)
+                if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded), style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { go("reading/new") }, colors = ButtonDefaults.buttonColors(containerColor = colors.onHero, contentColor = colors.hero), modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
+                TextButton(onClick = { go("readings") }, colors = ButtonDefaults.textButtonColors(contentColor = colors.onHero), modifier = Modifier.testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
+            }
+        }
+    }
+}
+
+@Composable private fun ActionTile(label: String, icon: ImageVector, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(onClick = onClick, color = if (primary) scheme.primaryContainer else scheme.surfaceContainerLow, contentColor = if (primary) scheme.onPrimaryContainer else scheme.onSurface, shape = MaterialTheme.shapes.medium, border = if (primary) null else BorderStroke(1.dp, scheme.outlineVariant), modifier = modifier) {
+        Column(Modifier.padding(16.dp).heightIn(min = 72.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Icon(icon, contentDescription = null)
+            Text(label, style = MaterialTheme.typography.titleSmall)
         }
     }
 }
@@ -60,17 +100,25 @@ import java.time.LocalDate
     Text(stringResource(R.string.history), style = MaterialTheme.typography.headlineMedium)
     val snapshot = state.snapshot; val locale = uiLocale()
     if (snapshot == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
-    Text(snapshot.vehicle.displayName)
+    val scheme = MaterialTheme.colorScheme
+    Text(snapshot.vehicle.displayName, color = scheme.onSurfaceVariant)
     Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
-    if (snapshot.events.isEmpty()) { Text(stringResource(R.string.history_empty_title)); Text(stringResource(R.string.history_empty_body)) }
+    if (snapshot.events.isEmpty()) { Text(stringResource(R.string.history_empty_title), style = MaterialTheme.typography.titleMedium); Text(stringResource(R.string.history_empty_body), color = scheme.onSurfaceVariant) }
     snapshot.history.forEach { record ->
-        OutlinedCard(onClick = { go("service/${record.event.id}") }, modifier = Modifier.fillMaxWidth().testTag("history_entry")) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(LocalDates.text(record.event.performedDay, locale), style = MaterialTheme.typography.titleMedium)
-                Text(record.reading?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.odometer_unknown))
+        Surface(onClick = { go("service/${record.event.id}") }, color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = Modifier.fillMaxWidth().testTag("history_entry")) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(LocalDates.text(record.event.performedDay, locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                    Surface(color = scheme.secondaryContainer, contentColor = scheme.onSecondaryContainer, shape = MaterialTheme.shapes.extraSmall) {
+                        Text(record.reading?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.odometer_unknown), style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                    }
+                }
                 record.orderedActions.forEach { Text(workLabel(WorkInput(it.actionCode, it.operationCode, it.customLabel))) }
-                record.event.costMinor?.let { Text(formattedMoney(it, locale)) }
-                Text(stringResource(R.string.confirmed_by_you), style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.confirmed_by_you), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                    record.event.costMinor?.let { Text(formattedMoney(it, locale), style = MaterialTheme.typography.titleSmall) }
+                    if (record.documents.isNotEmpty()) Text("  " + stringResource(R.string.documents_count, record.documents.size), style = MaterialTheme.typography.labelMedium, color = scheme.primary)
+                }
             }
         }
     }
