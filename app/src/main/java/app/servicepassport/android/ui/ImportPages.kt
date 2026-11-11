@@ -27,7 +27,11 @@ class ImportSession(private val store: DocumentStore? = null) {
     var staged by mutableStateOf<StagedDocument?>(null)
     /** The copy to save with the entry, when the driver chose to keep it. */
     var attachment by mutableStateOf<StagedDocument?>(null)
-    fun clear() { analysis = null; prefill = null; staged = null; attachment = null; store?.discardStaged() }
+    /** The review screen as last seen, so that coming back to it (also after the app was closed) keeps the choices. */
+    var savedReview by mutableStateOf<SavedReview?>(null)
+    /** Forgets what is on screen; the private copy stays until [clear]. */
+    fun reset() { analysis = null; prefill = null; staged = null; attachment = null; savedReview = null }
+    fun clear() { reset(); store?.discardStaged() }
 }
 
 private fun problemMessage(problem: AnalysisProblem): Int = when (problem) {
@@ -65,34 +69,35 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     var busy by remember { mutableStateOf(false) }
     // A review interrupted by closing the app can be picked up again: the private copy is still there.
     var pending by remember { mutableStateOf<StagedDocument?>(null) }
-    fun read(uri: Uri, fresh: Boolean) {
-        busy = true; pending = null
-        if (fresh) session.clear()
+    fun read(uri: Uri) {
+        busy = true; pending = null; session.reset()
         scope.launch {
             try {
                 val analysis = analyzer.analyse(uri, VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
-                // The private copy is made only for a document that could be read; it is discarded unless an entry is saved with it.
-                session.staged = if (analysis is DocumentAnalysis.Ready) store?.stage(uri) else null
+                // A private copy is made only for a document that could be read; it replaces an earlier unfinished one.
+                // A file that could not be read changes nothing: a document that was waiting is offered again.
+                if (analysis is DocumentAnalysis.Ready) session.staged = store?.stage(uri) else pending = store?.pending()
                 session.analysis = analysis
             } finally { busy = false }
         }
     }
     LaunchedEffect(Unit) { if (session.analysis == null) pending = store?.pending() }
     fun resume(document: StagedDocument) {
-        busy = true; pending = null
+        busy = true; pending = null; session.reset()
         scope.launch {
             try {
                 session.staged = document
-                session.analysis = analyzer.analyse(requireNotNull(store).stagedUri(document), VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
+                session.savedReview = requireNotNull(store).loadReview(document)?.let(ReviewPersistence::decode)
+                session.analysis = analyzer.analyse(store.stagedUri(document), VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
             } finally { busy = false }
         }
     }
-    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) read(uri, fresh = true) }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) read(uri) }
     var photo by remember { mutableStateOf<Uri?>(null) }
     var noCamera by remember { mutableStateOf(false) }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> photo?.takeIf { taken }?.let { read(it, fresh = false) } }
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> photo?.takeIf { taken }?.let { read(it) } }
     NoteCard(stringResource(R.string.import_explanation))
-    pending?.takeIf { !busy && session.analysis == null }?.let { document ->
+    pending?.takeIf { !busy && session.analysis !is DocumentAnalysis.Ready }?.let { document ->
         OutlinedCard(Modifier.fillMaxWidth().testTag("import_pending")) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.import_pending))
@@ -103,7 +108,8 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     }
     Button(onClick = { pick.launch(arrayOf("image/*", "application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("pick_document")) { Text(stringResource(R.string.import_pick)) }
     if (store != null) OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("take_photo"), onClick = {
-        session.clear(); noCamera = false
+        // Nothing is given up until a photo has actually been taken and read.
+        noCamera = false
         try { store.cameraTarget().also { photo = it; camera.launch(it) } } catch (_: Exception) { noCamera = true }
     }) { Text(stringResource(R.string.import_take_photo)) }
     if (noCamera) Text(stringResource(R.string.import_no_camera), color = MaterialTheme.colorScheme.error)
@@ -111,16 +117,29 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     when (val analysis = session.analysis) {
         null -> Unit
         is DocumentAnalysis.Failed -> Text(stringResource(problemMessage(analysis.problem)), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("import_problem"))
-        is DocumentAnalysis.Ready -> DraftReview(analysis.draft, today, snapshot.events, session.staged, store != null) { prefill, keep ->
-            session.prefill = prefill; session.attachment = session.staged.takeIf { keep }; go("service/new")
+        is DocumentAnalysis.Ready -> {
+            val staged = session.staged
+            val fingerprint = remember(analysis) { ReviewPersistence.fingerprint(analysis.draft) }
+            val restored = remember(analysis) { session.savedReview?.let { saved -> ReviewPersistence.restore(analysis.draft, saved)?.let { it to saved.keepDocument } } }
+            DraftReview(analysis.draft, today, snapshot.events, staged, store != null, restored?.first, restored?.second ?: true, onChanged = { choice, keep ->
+                val current = SavedReview(fingerprint, choice, keep)
+                session.savedReview = current
+                if (staged != null && store != null) scope.launch { store.saveReview(staged, ReviewPersistence.encode(current)) }
+            }) { prefill, keep ->
+                session.prefill = prefill; session.attachment = staged.takeIf { keep }; go("service/new")
+            }
         }
     }
 }
 
-@Composable private fun DraftReview(draft: DraftProposal, today: LocalDate, history: List<ServiceRecord>, staged: StagedDocument?, canKeep: Boolean, onContinue: (ServicePrefill, Boolean) -> Unit) {
-    var keep by remember(draft) { mutableStateOf(true) }
+@Composable private fun DraftReview(
+    draft: DraftProposal, today: LocalDate, history: List<ServiceRecord>, staged: StagedDocument?, canKeep: Boolean,
+    startChoice: ReviewChoice?, startKeep: Boolean, onChanged: (ReviewChoice, Boolean) -> Unit, onContinue: (ServicePrefill, Boolean) -> Unit,
+) {
+    var keep by remember(draft) { mutableStateOf(startKeep) }
     val locale = uiLocale()
-    var choice by remember(draft) { mutableStateOf(ImportReview.initialChoice(draft)) }
+    var choice by remember(draft) { mutableStateOf(startChoice ?: ImportReview.initialChoice(draft)) }
+    LaunchedEffect(choice, keep) { onChanged(choice, keep) }
     var errors by remember(draft) { mutableStateOf<Set<ConfirmationError>>(emptySet()) }
     HorizontalDivider()
     Text(stringResource(R.string.import_review_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("import_review"))

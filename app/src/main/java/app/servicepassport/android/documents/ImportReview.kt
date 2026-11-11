@@ -79,3 +79,61 @@ object ImportReview {
         ))
     }
 }
+
+/** The review screen as the driver left it, so that closing the app does not lose the choices. */
+data class SavedReview(val fingerprint: String, val choice: ReviewChoice, val keepDocument: Boolean)
+
+/**
+ * Saved choices point into one particular draft (item numbers, candidate values). They are used again only when the
+ * document reads exactly the same way; otherwise the review starts from the cautious defaults.
+ */
+object ReviewPersistence {
+    private const val VERSION = "1"
+
+    fun fingerprint(draft: DraftProposal): String {
+        val text = buildString {
+            draft.serviceDate.candidates.forEach { append("d:").append(it.value).append('\n') }
+            draft.odometerKm.candidates.forEach { append("k:").append(it.value).append('\n') }
+            draft.items.forEach { append("i:").append(it.action).append(':').append(it.operation).append(':').append(it.kind).append(':').append(it.originalText).append('\n') }
+            append("t:").append(draft.total.value?.minor).append(':').append(draft.total.value?.currency).append('\n')
+            draft.warnings.map { it.name }.sorted().forEach { append("w:").append(it).append('\n') }
+        }
+        return java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
+    }
+
+    fun encode(saved: SavedReview): String = listOf(
+        VERSION, saved.fingerprint, saved.choice.date?.toString().orEmpty(), saved.choice.odometerKm?.toString().orEmpty(),
+        saved.choice.selectedItems.sorted().joinToString(","), if (saved.choice.includeCost) "1" else "0",
+        saved.choice.acknowledged.map { it.name }.sorted().joinToString(","), if (saved.keepDocument) "1" else "0",
+    ).joinToString("|")
+
+    /** Null for anything that is not exactly what [encode] writes. */
+    fun decode(text: String): SavedReview? = try {
+        val parts = text.trim().split('|')
+        fun flag(value: String) = when (value) { "1" -> true; "0" -> false; else -> throw IllegalArgumentException() }
+        require(parts.size == 8 && parts[0] == VERSION && Regex("[0-9a-f]{64}").matches(parts[1]))
+        SavedReview(
+            parts[1],
+            ReviewChoice(
+                date = parts[2].takeIf { it.isNotEmpty() }?.let(LocalDate::parse),
+                odometerKm = parts[3].takeIf { it.isNotEmpty() }?.toInt(),
+                selectedItems = parts[4].split(',').filter { it.isNotEmpty() }.map { it.toInt().also { index -> require(index >= 0) } }.toSet(),
+                includeCost = flag(parts[5]),
+                acknowledged = parts[6].split(',').filter { it.isNotEmpty() }.map { DraftWarning.valueOf(it) }.toSet(),
+            ),
+            flag(parts[7]),
+        )
+    } catch (_: Exception) { null }
+
+    /** The saved choice, if it belongs to this draft and every part of it is still something the draft offers. */
+    fun restore(draft: DraftProposal, saved: SavedReview): ReviewChoice? {
+        val choice = saved.choice
+        val valid = saved.fingerprint == fingerprint(draft) &&
+            (choice.date == null || draft.serviceDate.candidates.any { it.value == choice.date }) &&
+            (choice.odometerKm == null || draft.odometerKm.candidates.any { it.value == choice.odometerKm }) &&
+            choice.selectedItems.all { index -> draft.items.getOrNull(index)?.let(ImportReview::contractTask) != null } &&
+            (!choice.includeCost || ImportReview.costAllowed(draft)) &&
+            draft.warnings.containsAll(choice.acknowledged)
+        return choice.takeIf { valid }
+    }
+}

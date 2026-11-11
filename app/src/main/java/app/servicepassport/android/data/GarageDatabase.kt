@@ -172,6 +172,7 @@ interface VehicleDao {
     @Insert suspend fun insertDocument(document: DocumentEntity)
     @Query("DELETE FROM documents WHERE id = :id") suspend fun deleteDocument(id: String)
     @Query("SELECT file_name FROM documents") suspend fun documentFileNames(): List<String>
+    @Query("SELECT * FROM documents") suspend fun documents(): List<DocumentEntity>
     @Query("SELECT id FROM vehicles ORDER BY created_at_utc, id") suspend fun vehicleIds(): List<String>
     /** Backup restore only: child tables are removed by their foreign-key cascades. */
     @Query("DELETE FROM vehicles") suspend fun deleteAllVehicles()

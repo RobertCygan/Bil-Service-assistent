@@ -14,10 +14,10 @@ import androidx.core.app.ActivityOptionsCompat
  * Stands for the system dialogs (file picker, "save as", camera, permission): every request is answered at once with
  * what [answer] returns for its contract. Null means the driver cancelled.
  */
-internal class Answering(var answer: (ActivityResultContract<*, *>) -> Any?) : ActivityResultRegistry(), ActivityResultRegistryOwner {
+internal class Answering(var answer: (contract: ActivityResultContract<*, *>, input: Any?) -> Any?) : ActivityResultRegistry(), ActivityResultRegistryOwner {
     override val activityResultRegistry: ActivityResultRegistry get() = this
     override fun <I, O> onLaunch(requestCode: Int, contract: ActivityResultContract<I, O>, input: I, options: ActivityOptionsCompat?) {
-        @Suppress("UNCHECKED_CAST") dispatchResult(requestCode, answer(contract) as O)
+        @Suppress("UNCHECKED_CAST") dispatchResult(requestCode, answer(contract, input) as O)
     }
 }
 

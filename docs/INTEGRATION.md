@@ -94,7 +94,7 @@ Zasady, które obowiązują na tej granicy:
 - Ogólny przegląd („årsservice”, „full service”) jest odczytywany jako przegląd serwisowy, nie jako wymiana poszczególnych części.
 - Dokument innego auta i wycena wymagają osobnego potwierdzenia; ten sam plik albo ta sama data i przebieg dają ostrzeżenie o duplikacie.
 
-Nadal brakuje: zachowania wyborów z ekranu sprawdzenia po zamknięciu aplikacji oraz pomiaru na prawdziwych fakturach.
+Wybory z ekranu sprawdzenia przetrwają zamknięcie aplikacji. Nadal brakuje pomiaru na prawdziwych fakturach.
 
 ## 9. Kopia danych i przypomnienia
 

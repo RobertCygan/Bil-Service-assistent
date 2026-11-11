@@ -60,11 +60,13 @@ class ImportFlowTest {
         Uri.fromFile(File(base, "faktura-${UUID.randomUUID()}.jpg").also { it.writeText(content) })
 
     private fun live() = File(base, DocumentStore.LIVE).listFiles().orEmpty().map { it.name }
-    private fun staged() = File(base, DocumentStore.STAGED).listFiles().orEmpty().map { it.name }
+    /** Staged document copies; the note of the review choices kept next to them is not a document. */
+    private fun staged() = File(base, DocumentStore.STAGED).listFiles().orEmpty().map { it.name }.filter { it != "review.txt" }
+    private fun everythingStaged() = File(base, DocumentStore.STAGED).listFiles().orEmpty().map { it.name }
     private fun events() = runBlocking { requireNotNull(db.vehicles().garage(requireNotNull(db.vehicles().getProfile()).id)).events }
 
     private fun start(pickedFile: Uri?) {
-        compose.setAppContent(Answering { pickedFile }) {
+        compose.setAppContent(Answering { _, _ -> pickedFile }) {
             CarServiceApp(repository, documents = DocumentAnalyzer(context, FixedText(invoice)), documentStore = store)
         }
         await("profile_name")
@@ -99,7 +101,7 @@ class ImportFlowTest {
         assertEquals(listOf("engine_oil" to "replace"), record.orderedActions.map { it.actionCode to it.operationCode })
         val document = record.documents.single()
         assertEquals("image/jpeg", document.mimeType)
-        assertEquals(listOf(document.fileName), live()); assertTrue(staged().isEmpty())
+        assertEquals(listOf(document.fileName), live()); assertTrue(everythingStaged().isEmpty())
 
         compose.onNodeWithTag("history_entry").performScrollTo().performClick()
         await("service_document")
@@ -133,7 +135,7 @@ class ImportFlowTest {
         await("confirm_discard"); compose.tap("confirm_discard")
         gone("save_service")
         assertTrue(events().isEmpty())
-        assertTrue(live().isEmpty()); assertTrue(staged().isEmpty())
+        assertTrue(live().isEmpty()); assertTrue(everythingStaged().isEmpty())
     }
 
     @Test fun aReviewInterruptedByClosingTheAppCanBeContinued() {
@@ -146,6 +148,58 @@ class ImportFlowTest {
         assertEquals(earlier.id, events().single().documents.single().id)
     }
 
+    @Test fun choicesMadeBeforeTheAppWasClosedAreStillThereWhenTheReviewIsContinued() {
+        // What the app leaves behind when it is closed on the review screen: the copy and the choices made so far.
+        val earlier = requireNotNull(runBlocking { store.stage(picked("left behind with choices")) })
+        runBlocking {
+            val analysis = DocumentAnalyzer(context, FixedText(invoice)).analyse(store.stagedUri(earlier), app.servicepassport.extraction.VehicleIdentity(null, "AB12345"), LocalDate.of(2026, 11, 10))
+            val draft = (analysis as DocumentAnalysis.Ready).draft
+            val choice = ImportReview.initialChoice(draft).copy(includeCost = false)
+            store.saveReview(earlier, ReviewPersistence.encode(SavedReview(ReviewPersistence.fingerprint(draft), choice, keepDocument = false)))
+        }
+        start(null)
+        click("import_document"); await("import_pending")
+        click("import_resume"); await("import_review")
+        compose.onNodeWithTag("import_keep").performScrollTo().assertIsOff()
+        compose.onNodeWithTag("import_cost").performScrollTo().assertIsOff()
+        saveFromReview()
+        val record = events().single()
+        assertNull(record.event.costMinor); assertTrue(record.documents.isEmpty())
+    }
+
+    @Test fun theReviewScreenWritesChoicesDownAsTheyAreMade() {
+        start(picked())
+        readDocument()
+        val staged = requireNotNull(runBlocking { store.pending() })
+        fun saved() = runBlocking { store.loadReview(staged) }?.let(ReviewPersistence::decode)
+        compose.waitUntil(15_000) { saved()?.keepDocument == true }
+        click("import_keep")
+        compose.waitUntil(15_000) { saved()?.keepDocument == false }
+        click("import_cost")
+        compose.waitUntil(15_000) { saved()?.choice?.includeCost == false }
+    }
+
+    @Test fun goingBackFromTheFormShowsTheReviewAsItWasLeft() {
+        start(picked())
+        readDocument()
+        click("import_keep")
+        click("import_continue"); await("save_service")
+        compose.tap("back"); await("confirm_discard"); compose.tap("confirm_discard")
+        await("import_review")
+        compose.onNodeWithTag("import_keep").performScrollTo().assertIsOff()
+    }
+
+    @Test fun aFileThatCannotBeReadDoesNotCostTheDocumentThatWasWaiting() {
+        val earlier = requireNotNull(runBlocking { store.stage(picked("left behind")) })
+        val unsupported = Uri.fromFile(File(base, "notat.txt").also { it.writeText("not a document type") })
+        start(unsupported)
+        click("import_document"); await("import_pending")
+        click("pick_document"); await("import_problem")
+        await("import_pending")
+        assertEquals(listOf(earlier.fileName), staged())
+        click("import_resume"); await("import_review")
+    }
+
     @Test fun anInterruptedReviewCanBeDiscarded() {
         requireNotNull(runBlocking { store.stage(picked("left behind")) })
         start(null)
@@ -153,6 +207,48 @@ class ImportFlowTest {
         compose.onNodeWithText(text(R.string.import_discard)).performScrollTo().performClick()
         gone("import_pending")
         assertTrue(staged().isEmpty()); assertTrue(events().isEmpty())
+    }
+
+    /** The camera hand-over goes through the app's file provider, which serves only the real files directory. */
+    private fun startWithCamera(photo: ByteArray?): DocumentStore {
+        // Each test here gets a fresh files directory, but the provider remembers the first one it saw in this JVM.
+        androidx.core.content.FileProvider::class.java.getDeclaredField("sCache").apply { isAccessible = true }.let { field ->
+            @Suppress("UNCHECKED_CAST") (field.get(null) as MutableMap<String, Any>).clear()
+        }
+        val real = DocumentStore(context, db, clock)
+        real.deleteAll()
+        val dialogs = Answering { contract, input ->
+            if (contract !is androidx.activity.result.contract.ActivityResultContracts.TakePicture) null
+            else if (photo == null) false
+            else { requireNotNull(context.contentResolver.openOutputStream(input as Uri)).use { it.write(photo) }; true }
+        }
+        compose.setAppContent(dialogs) { CarServiceApp(repository, documents = DocumentAnalyzer(context, FixedText(invoice)), documentStore = real) }
+        await("profile_name")
+        return real
+    }
+
+    @Test fun aPhotoTakenFromTheAppIsReadAndKeptLikeAPickedFile() {
+        val photo = ByteArray(3000) { (it % 97).toByte() }
+        val real = startWithCamera(photo)
+        try {
+            click("import_document"); await("take_photo"); click("take_photo"); await("import_review")
+            saveFromReview()
+            val document = events().single().documents.single()
+            assertEquals("image/jpeg", document.mimeType)
+            assertArrayEquals(photo, real.open(document).use { it.readBytes() })
+        } finally { real.deleteAll() }
+    }
+
+    @Test fun cancellingTheCameraKeepsTheDocumentThatWasWaiting() {
+        val real = startWithCamera(null)
+        try {
+            val earlier = requireNotNull(runBlocking { real.stage(picked("left behind")) })
+            click("import_document"); await("import_pending")
+            click("take_photo")
+            compose.onAllNodesWithTag("import_review").assertCountEquals(0)
+            compose.onNodeWithTag("import_pending").assertExists()
+            assertEquals(earlier, runBlocking { real.pending() })
+        } finally { real.deleteAll() }
     }
 
     @Test fun cancellingTheFileDialogChangesNothing() {

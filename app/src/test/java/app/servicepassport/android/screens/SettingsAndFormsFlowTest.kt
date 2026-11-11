@@ -65,7 +65,7 @@ class SettingsAndFormsFlowTest {
 
     private fun start(backupFile: Uri? = null) {
         val files = DataFiles(context, GarageBackup(db, clock, reminders, store), null)
-        compose.setAppContent(Answering { backupFile }) { CarServiceApp(repository, reminders, dataFiles = files, documentStore = store) }
+        compose.setAppContent(Answering { _, _ -> backupFile }) { CarServiceApp(repository, reminders, dataFiles = files, documentStore = store) }
         compose.await("profile_name")
     }
 

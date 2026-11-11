@@ -353,4 +353,5 @@
     <string name="previous_service_km">Last service</string>
     <string name="next_limit_km">Next limit</string>
     <string name="no_value">—</string>
+    <string name="app_version">Version %1$s</string>
 </resources>
