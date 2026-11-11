@@ -18,7 +18,7 @@ Etap 8 **nie jest ukończony**: bez testu na telefonie nie można uznać aplikac
 
 | Zestaw | Liczba testów | Gdzie działa |
 | --- | --- | --- |
-| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 165 | JVM (Robolectric) |
+| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 170 | JVM (Robolectric) |
 | Aplikacja — testy na emulatorze (start, migracje bazy, pliki dokumentów, prawdziwy ML Kit na pliku PDF i na zdjęciu zapisanym bokiem, brak sieci, kopia z hasłem przez ekran ustawień) | 11 | Emulator w CI, API 26 i nowsze |
 | Silnik (obliczenia, ekstrakcja, przypomnienia, eksport, szyfrowanie, VIN) | 113 | JVM |
 | Wspólny kontrakt | 3 | JVM |
@@ -60,7 +60,7 @@ Instalacja: plik `app-debug.apk` z artefaktów CI. Wszystkie dane testowe wymyś
 4. **Własny interwał i pulpit** — po dodaniu interwału pulpit pokazuje termin; bez interwału pokazuje brak potwierdzonego harmonogramu.
 5. **Wskaźnik serwisowy** — wpisanie odczytu z wyświetlacza auta zmienia pulpit.
 6. **Dokument z pliku** — wybór zdjęcia i PDF; ekran sprawdzenia pokazuje datę, przebieg i pozycje ze źródłem; zapis wpisu.
-7. **Zdjęcie aparatem** — przycisk otwiera aparat; po zrobieniu zdjęcia pojawia się ekran sprawdzenia.
+7. **Zdjęcie aparatem** — przycisk otwiera aparat; po zrobieniu zdjęcia pojawia się ekran sprawdzenia. Sprawdzić też z telefonem obróconym poziomo podczas robienia zdjęcia oraz obrót telefonu na ekranie sprawdzenia i w formularzu wpisu — dokument nie może zniknąć.
 8. **Dokument przy wpisie** — w szczegółach wpisu dokument się otwiera; usunięcie dokumentu zostawia wpis.
 9. **Duplikat** — ponowne wczytanie tego samego pliku daje ostrzeżenie.
 10. **Przypomnienia** — włączenie pyta o zgodę; powiadomienie pojawia się dla zaległej pozycji (może to potrwać do doby); ikona na pasku stanu ma kształt auta (nie jest pełnym kwadratem), a tekst jest w języku wybranym w aplikacji, także gdy telefon ma inny język.

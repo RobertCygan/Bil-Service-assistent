@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
@@ -46,7 +47,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
         }
     }
     LaunchedEffect(state.dashboard) { if (state.dashboard != null) onDataChanged() }
-    val imports = remember { ImportSession(documentStore) }
+    val imports = model.imports
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -96,6 +97,9 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                 }
                 composable("vehicle") { ProfileEditor(state, model.today, { dirty = it }) { input -> model.save(input) { saved("overview") } } }
                 composable("service/new") {
+                    // The form's fields are restored after the app was closed in the background; so is its document.
+                    val attachedId = rememberSaveable { imports.attachment?.id.orEmpty() }
+                    LaunchedEffect(attachedId) { imports.reattach(attachedId.ifEmpty { null }) }
                     ServiceEditor(state, null, model.today, { dirty = it }, imports.prefill, imports.attachment != null) { input -> model.saveService(input, imports.attachment) { imports.clear(); saved("history") } }
                 }
                 composable("import") { ImportPage(state, imports, documents, documentStore, model.today, ::go) }

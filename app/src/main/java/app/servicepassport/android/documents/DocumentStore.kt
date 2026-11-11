@@ -80,10 +80,12 @@ class DocumentStore(
     /** Where the camera app writes a new photo. Readable and writable only through the grant given with the intent. */
     fun cameraTarget(): Uri {
         staging.mkdirs()
-        val file = File(staging, CAMERA_FILE)
-        file.delete()
-        return FileProvider.getUriForFile(context, authority(context), file)
+        File(staging, CAMERA_FILE).delete()
+        return cameraUri()
     }
+
+    /** The photo the camera app wrote. The address is always the same, so it need not be remembered while the camera is open. */
+    fun cameraUri(): Uri = FileProvider.getUriForFile(context, authority(context), File(staging, CAMERA_FILE))
 
     /** Copies the picked document into the staging directory. Returns null when it cannot be copied; nothing is kept then. */
     suspend fun stage(uri: Uri): StagedDocument? = withContext(Dispatchers.IO) {
