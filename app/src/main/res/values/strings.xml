@@ -350,4 +350,7 @@
     <string name="days_left">%1$s days left</string>
     <string name="days_over">%1$s days over</string>
     <string name="documents_count">Documents: %1$d</string>
+    <string name="previous_service_km">Last service</string>
+    <string name="next_limit_km">Next limit</string>
+    <string name="no_value">—</string>
 </resources>

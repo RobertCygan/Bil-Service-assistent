@@ -347,4 +347,7 @@
     <string name="days_left">%1$s dager igjen</string>
     <string name="days_over">%1$s dager over</string>
     <string name="documents_count">Dokumenter: %1$d</string>
+    <string name="previous_service_km">Forrige service</string>
+    <string name="next_limit_km">Neste frist</string>
+    <string name="no_value">—</string>
 </resources>
