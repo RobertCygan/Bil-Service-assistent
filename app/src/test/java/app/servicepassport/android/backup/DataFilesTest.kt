@@ -9,6 +9,12 @@ import app.servicepassport.reminders.ReminderSettings
 import java.io.File
 import java.time.*
 import java.util.UUID
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.*
 import org.junit.Assert.*
@@ -89,6 +95,42 @@ class DataFilesTest {
         // The emptied app accepts a new car.
         ProfileRepository(db, clock).save(ProfileInput("Ny bil", 2024))
         assertEquals("Ny bil", db.vehicles().getProfile()?.displayName)
+    }
+
+    /** Starts the work as a screen does and takes the screen away as soon as the work is under way. */
+    private suspend fun startedThenAbandoned(work: suspend () -> Unit) {
+        val screen = CoroutineScope(Dispatchers.Default + Job())
+        val running = screen.launch(start = CoroutineStart.UNDISPATCHED) { work() }
+        screen.cancel()
+        running.join()
+    }
+
+    @Test fun aRestoreThatHasStartedFinishesWhenItsScreenGoesAway() = runBlocking {
+        val source = filled(); val store = ReminderStore(context)
+        store.settings = ReminderSettings(enabled = true, repeatEveryDays = 30, odometerReminders = false)
+        val file = target()
+        assertEquals(DataOutcome.BACKUP_SAVED, DataFiles(context, GarageBackup(source, clock, store), null).save(file, null))
+        store.reset()
+        val other = database()
+        startedThenAbandoned { DataFiles(context, GarageBackup(other, clock, store), null).restore(file, null) }
+        assertEquals(vehicles(source), vehicles(other))
+        assertEquals("the settings are restored last and must not be skipped", ReminderSettings(true, 30, false), store.settings)
+    }
+
+    @Test fun aDeletionThatHasStartedFinishesWhenItsScreenGoesAway() = runBlocking {
+        val db = filled(); val store = ReminderStore(context)
+        store.settings = ReminderSettings(enabled = true)
+        startedThenAbandoned { DataFiles(context, GarageBackup(db, clock, store), null).deleteEverything() }
+        assertNull(db.vehicles().getProfile())
+        assertFalse("the settings are part of what was to be deleted", store.settings.enabled)
+    }
+
+    @Test fun aBackupThatHasStartedIsWrittenWholeWhenItsScreenGoesAway() = runBlocking {
+        val source = filled(); val file = target()
+        startedThenAbandoned { DataFiles(context, GarageBackup(source, clock), null).save(file, null) }
+        val other = database()
+        assertEquals(DataOutcome.RESTORED, DataFiles(context, GarageBackup(other, clock), null).restore(file, null))
+        assertEquals(vehicles(source), vehicles(other))
     }
 
     @Test fun passwordRules() {

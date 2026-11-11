@@ -137,4 +137,36 @@ class ImportReviewTest {
         assertTrue(DraftWarning.NO_READABLE_TEXT in result.draft.warnings)
         assertTrue(result.draft.items.isEmpty())
     }
+
+    @Test fun aReviewLeftHalfwayCanBeWrittenDownAndReadBackExactly() {
+        val draft = draft(invoice)
+        val choice = ImportReview.initialChoice(draft).copy(includeCost = false, acknowledged = draft.warnings)
+        val saved = SavedReview(ReviewPersistence.fingerprint(draft), choice, keepDocument = false)
+        assertEquals(saved, ReviewPersistence.decode(ReviewPersistence.encode(saved)))
+        assertEquals(choice, ReviewPersistence.restore(draft, saved))
+
+        val nothingChosen = SavedReview(ReviewPersistence.fingerprint(draft), ReviewChoice(null, null, emptySet(), false, emptySet()), true)
+        assertEquals(nothingChosen, ReviewPersistence.decode(ReviewPersistence.encode(nothingChosen)))
+    }
+
+    @Test fun savedChoicesAreNotAppliedToADocumentThatReadsDifferently() {
+        val draft = draft(invoice)
+        val saved = SavedReview(ReviewPersistence.fingerprint(draft), ImportReview.initialChoice(draft), true)
+        val other = draft(invoice.replace("Oljeskift inkl. arbeid", "Skift av bremsevæske"))
+        assertNotEquals(ReviewPersistence.fingerprint(draft), ReviewPersistence.fingerprint(other))
+        assertNull(ReviewPersistence.restore(other, saved))
+        // Even with a matching fingerprint, a choice must still be something the draft offers.
+        val forged = saved.copy(choice = saved.choice.copy(selectedItems = setOf(99)))
+        assertNull(ReviewPersistence.restore(draft, forged))
+        assertNull(ReviewPersistence.restore(draft, saved.copy(choice = saved.choice.copy(odometerKm = 1))))
+        assertNull(ReviewPersistence.restore(draft, saved.copy(choice = saved.choice.copy(date = LocalDate.of(2001, 1, 1)))))
+    }
+
+    @Test fun aDamagedSavedReviewIsIgnored() {
+        val draft = draft(invoice)
+        val text = ReviewPersistence.encode(SavedReview(ReviewPersistence.fingerprint(draft), ImportReview.initialChoice(draft), true))
+        for (broken in listOf("", "garbage", text.replaceFirst("1|", "2|"), text.dropLast(1) + "x", text.substringBeforeLast('|'), text.replace(Regex("^1\\|[0-9a-f]{64}"), "1|zz"), "$text|extra")) {
+            assertNull(broken, ReviewPersistence.decode(broken))
+        }
+    }
 }

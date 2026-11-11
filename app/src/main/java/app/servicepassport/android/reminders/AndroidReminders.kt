@@ -16,6 +16,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import app.servicepassport.android.AppLanguage
 import app.servicepassport.android.CarServiceApplication
 import app.servicepassport.android.MainActivity
 import app.servicepassport.android.R
@@ -74,16 +75,18 @@ class AndroidReminderNotifier(private val context: Context) : ReminderNotifier {
 
     override fun post(reminder: Reminder, task: DashboardTask?, vehicleName: String, odometerAgeDays: Long?) {
         if (!canPost()) return
+        // A notification is built in the background, where older Android versions do not apply the app's own language.
+        val texts = AppLanguage.localized(context)
         manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, context.getString(R.string.reminder_channel), NotificationManager.IMPORTANCE_DEFAULT).apply { description = context.getString(R.string.reminder_channel_description) },
+            NotificationChannel(CHANNEL, texts.getString(R.string.reminder_channel), NotificationManager.IMPORTANCE_DEFAULT).apply { description = texts.getString(R.string.reminder_channel_description) },
         )
-        val content = ReminderText.content(context, reminder, task, vehicleName, odometerAgeDays)
+        val content = ReminderText.content(texts, reminder, task, vehicleName, odometerAgeDays)
         val open = PendingIntent.getActivity(
             context, 0, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val notification = NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_car_service)
+            .setSmallIcon(R.drawable.ic_stat_service)
             .setContentTitle(content.title).setContentText(content.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content.text))
             .setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)

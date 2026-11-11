@@ -178,6 +178,11 @@ class GarageBackup(
     }
 
     suspend fun restore(input: InputStream, password: CharArray? = null): RestoreOutcome = withContext(Dispatchers.IO) {
+        // Nothing else may move document files while a restore reads, verifies and replaces them.
+        documents?.exclusive { restoreLocked(input, password) } ?: restoreLocked(input, password)
+    }
+
+    private suspend fun restoreLocked(input: InputStream, password: CharArray?): RestoreOutcome {
         // The whole archive is verified before the first row changes. Document files wait in a separate directory until then.
         documents?.abortRestore()
         val result = try {
@@ -189,7 +194,7 @@ class GarageBackup(
             throw failure
         }
         val success = when (result) {
-            is ImportResult.Failure -> { documents?.abortRestore(); return@withContext RestoreOutcome.ArchiveRefused(result.reason) }
+            is ImportResult.Failure -> { documents?.abortRestore(); return RestoreOutcome.ArchiveRefused(result.reason) }
             is ImportResult.Success -> result
         }
         val data = success.data
@@ -197,7 +202,7 @@ class GarageBackup(
             BackupMapper.rows(data, success.manifest.files).also { if (it.documents.isNotEmpty() && documents == null) throw BackupRefused(RestoreProblem.UNSUPPORTED_CONTENT) }
         } catch (refused: BackupRefused) {
             documents?.abortRestore()
-            return@withContext RestoreOutcome.ContentRefused(refused.problem)
+            return RestoreOutcome.ContentRefused(refused.problem)
         }
         database.withTransaction {
             dao.deleteAllVehicles()
@@ -212,6 +217,6 @@ class GarageBackup(
         }
         documents?.commitRestore(rows.documents.map { it.fileName }.toSet())
         settings?.importSettings(data.settings)
-        RestoreOutcome.Restored
+        return RestoreOutcome.Restored
     }
 }

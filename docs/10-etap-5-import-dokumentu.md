@@ -16,7 +16,7 @@ Data: **10 listopada 2026**.
 | Podgląd dokumentu | Otwarcie zapisanego pliku w innej aplikacji z jednorazowym dostępem tylko do odczytu. **Niesprawdzone na telefonie.** Podświetlenia fragmentu, z którego pochodzi wartość, **nie ma** |
 | Wykrywanie duplikatów | **Zaimplementowane** jako ostrzeżenie (nie blokada): ten sam plik (skrót SHA-256) albo wpis z tą samą datą i przebiegiem |
 | Dokumenty w kopii zapasowej | **Zaimplementowane**: pliki trafiają do kopii (także szyfrowanej) i wracają przy przywracaniu; test porównuje bajty |
-| Wznowienie po zamknięciu aplikacji w trakcie sprawdzania | **Częściowo**: kopia dokumentu zostaje i ekran importu proponuje odczytanie jej ponownie albo odrzucenie. Wybory z ekranu sprawdzenia **nie są** zachowywane. Niesprawdzone na telefonie |
+| Wznowienie po zamknięciu aplikacji w trakcie sprawdzania | **Zaimplementowane**: kopia dokumentu zostaje razem z wyborami z ekranu sprawdzenia (data, przebieg, pozycje, kwota, potwierdzenia, „zachowaj kopię”). Po wznowieniu dokument jest odczytywany ponownie, a wybory wracają tylko wtedy, gdy odczyt jest identyczny; inaczej ekran zaczyna od ostrożnych wartości domyślnych. Niesprawdzone na telefonie |
 
 Etap 5 **nie jest ukończony**.
 
@@ -35,7 +35,21 @@ Etap 5 **nie jest ukończony**.
 - Kopia zapasowa pomija dokument, którego pliku nie ma już na telefonie — wpis zostaje, a ekran szczegółów pokazuje „brak pliku”. Kopia nie udaje, że plik istnieje.
 - Przywracanie odmawia, gdy dokument nie należy do dokładnie jednego wpisu albo ma nieobsługiwany typ. Przy każdej odmowie baza i pliki zostają bez zmian.
 - Pliki dokumentów nie trafiają do kopii systemowych Androida ani transferu między urządzeniami (jak reszta danych).
-- Ograniczenie: gdy aplikacja zostanie przerwana dokładnie między zapisem bazy a przeniesieniem plików przy przywracaniu, wpisy mogą wskazywać brakujące pliki; trzeba wtedy przywrócić kopię ponownie.
+- Przerwanie aplikacji dokładnie między zapisem bazy a przeniesieniem plików przy przywracaniu jest naprawiane przy następnym uruchomieniu: zweryfikowane pliki, które czekają, trafiają na miejsce tylko wtedy, gdy rozmiar i skrót zgadzają się z wpisem. Pliki, do których nie odwołuje się żaden wpis, są wtedy usuwane.
+- Wybór pliku, którego nie da się odczytać, oraz anulowanie aparatu nie kasują dokumentu, którego sprawdzanie przerwano wcześniej.
+
+## Słownik i reguły odczytu — poprawki z 11 listopada 2026
+
+Sprawdzenie typowych norweskich sformułowań (wpisanych z pamięci, **nie z prawdziwych faktur**) wykazało błąd i braki:
+
+- **Błąd:** linie o innym oleju („Skift olje girkasse”, „Skift olje bakaksel”, „Skift olje automatgir”) były proponowane jako wykonana wymiana oleju silnikowego. Teraz słowo wskazujące inny olej, opłatę środowiskową itp. wyklucza olej silnikowy w tej linii; olej skrzyni jest rozpoznawany jako olej skrzyni, a olej osi czy sprzęgła Haldex nie jest przypisywany do niczego. Zasada: pominięcie pozycji jest bezpieczniejsze niż przypisanie jej do złej czynności.
+- **Dodane słowa:** oljeservice, bremsebelegg, klosser, tannreim, kamreim, friskluftfilter, kabinfilter, bensinfilter, drivstofffilter, automatgirolje, bremsesjekk, batterisjekk, „stor/liten service”, „Service 60 000 km”, „service iht.” i podobne; „montert/installert” jako wykonanie wymiany.
+- **Przebieg:** etykiety „Km.stand”, „Km.st.”, „KM:” oraz etykieta i wartość w osobnych liniach tabeli. „km:” przy stawce lub krótkiej odległości nie jest stanem licznika.
+- **Kwota i data:** „Totalsum”, „Totalbeløp”, „Fakturabeløp”, „Sluttsum”; „Ferdig dato”, „ferdigstilt”, „Reparasjonsdato” jako data wykonania.
+- **Drugi błąd przypisania:** „Luftfilter kupé” (filtr kabinowy zapisany dwoma słowami) był odczytywany jako filtr powietrza silnika; teraz jest filtrem kabinowym.
+- **Celowo nierozpoznawane:** samo „batteri” (bateria w kluczyku, akumulator trakcyjny), „EU-kontroll”, „AC-service”, wymiana opon, samo słowo „Service”.
+
+To nadal nie jest pomiar skuteczności — ten wymaga prawdziwych dokumentów.
 
 ## Koszt
 

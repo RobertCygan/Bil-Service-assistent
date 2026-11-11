@@ -1,7 +1,6 @@
 package app.servicepassport.android.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -11,13 +10,14 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
@@ -25,6 +25,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import app.servicepassport.android.AppLanguage
 import app.servicepassport.android.R
 import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.documents.DocumentAnalyzer
@@ -46,7 +47,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
         }
     }
     LaunchedEffect(state.dashboard) { if (state.dashboard != null) onDataChanged() }
-    val imports = remember { ImportSession(documentStore) }
+    val imports = model.imports
     val nav = rememberNavController()
     val entry by nav.currentBackStackEntryAsState()
     val route = entry?.destination?.route ?: "overview"
@@ -96,6 +97,9 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                 }
                 composable("vehicle") { ProfileEditor(state, model.today, { dirty = it }) { input -> model.save(input) { saved("overview") } } }
                 composable("service/new") {
+                    // The form's fields are restored after the app was closed in the background; so is its document.
+                    val attachedId = rememberSaveable { imports.attachment?.id.orEmpty() }
+                    LaunchedEffect(attachedId) { imports.reattach(attachedId.ifEmpty { null }) }
                     ServiceEditor(state, null, model.today, { dirty = it }, imports.prefill, imports.attachment != null) { input -> model.saveService(input, imports.attachment) { imports.clear(); saved("history") } }
                 }
                 composable("import") { ImportPage(state, imports, documents, documentStore, model.today, ::go) }
@@ -122,12 +126,13 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
 
 @Composable internal fun LanguageSelector() {
     val locale = LocalConfiguration.current.locales[0]; val norwegian = locale.language in setOf("nb", "no")
+    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.language_help), style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(modifier = Modifier.testTag("language_nb"), selected = norwegian, onClick = { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("nb-NO")) }, label = { Text(stringResource(R.string.language_norwegian)) })
-            FilterChip(modifier = Modifier.testTag("language_en"), selected = !norwegian, onClick = { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en")) }, label = { Text(stringResource(R.string.language_english)) })
+            FilterChip(modifier = Modifier.testTag("language_nb"), selected = norwegian, onClick = { AppLanguage.choose(context, "nb-NO") }, label = { Text(stringResource(R.string.language_norwegian)) })
+            FilterChip(modifier = Modifier.testTag("language_en"), selected = !norwegian, onClick = { AppLanguage.choose(context, "en") }, label = { Text(stringResource(R.string.language_english)) })
         }
     }
 }

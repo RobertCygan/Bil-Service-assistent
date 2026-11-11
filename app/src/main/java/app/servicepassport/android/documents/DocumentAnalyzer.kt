@@ -34,12 +34,12 @@ class MlKitOcr : TextOcr {
     private val recognizer by lazy { TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS) }
 
     override suspend fun recognize(context: Context, page: PageImage): List<OcrLine> {
-        val image = when (page) {
-            is PageImage.FromUri -> InputImage.fromFilePath(context, page.uri)
-            is PageImage.FromBitmap -> InputImage.fromBitmap(page.bitmap, 0)
-        }
+        // A picked photo is loaded here, at a bounded size and with its stored orientation; a PDF page arrives rendered.
+        val photo = (page as? PageImage.FromUri)?.let { PhotoLoader.load(context, it.uri) }
+        val image = if (photo != null) InputImage.fromBitmap(photo.bitmap, photo.rotationDegrees) else InputImage.fromBitmap((page as PageImage.FromBitmap).bitmap, 0)
         return suspendCancellableCoroutine { continuation ->
             recognizer.process(image)
+                .addOnCompleteListener { photo?.bitmap?.recycle() }
                 .addOnSuccessListener { text ->
                     val lines = text.textBlocks.flatMap { it.lines }
                         .sortedWith(compareBy({ it.boundingBox?.top ?: 0 }, { it.boundingBox?.left ?: 0 }))
@@ -91,6 +91,8 @@ class DocumentAnalyzer(private val context: Context, private val ocr: TextOcr, p
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) {
             throw cancelled
+        } catch (_: OutOfMemoryError) {
+            DocumentAnalysis.Failed(AnalysisProblem.TOO_LARGE)
         } catch (_: Exception) {
             // Encrypted or damaged PDFs, unreadable images and recognition failures end here. Details are not logged:
             // file names and contents are private.

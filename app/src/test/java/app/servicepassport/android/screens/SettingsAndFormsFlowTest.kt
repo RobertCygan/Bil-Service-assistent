@@ -65,7 +65,7 @@ class SettingsAndFormsFlowTest {
 
     private fun start(backupFile: Uri? = null) {
         val files = DataFiles(context, GarageBackup(db, clock, reminders, store), null)
-        compose.setAppContent(Answering { backupFile }) { CarServiceApp(repository, reminders, dataFiles = files, documentStore = store) }
+        compose.setAppContent(Answering { _, _ -> backupFile }) { CarServiceApp(repository, reminders, dataFiles = files, documentStore = store) }
         compose.await("profile_name")
     }
 
@@ -148,6 +148,20 @@ class SettingsAndFormsFlowTest {
         // 1 200 km left is inside the 1 500 km "due soon" window; the task is labelled as coming from the car's display.
         compose.awaitText("count_DUE_SOON", "1")
         compose.onNodeWithText(text(R.string.indicator_source)).assertExists()
+    }
+
+    @Test fun aCarWithNothingToCalculateFromIsPointedToBothWaysOfGettingAResult() {
+        start()
+        compose.await("getting_started")
+        compose.click("start_interval"); compose.await("save_interval")
+        compose.tap("back"); compose.await("getting_started")
+        compose.click("start_indicator"); compose.await("save_indicator")
+        compose.onNodeWithTag("indicator_km").performScrollTo().performTextInput("1200")
+        compose.click("save_indicator"); compose.await("indicator_latest")
+        // With something to show, the hint gives way to the result.
+        compose.tap("nav_overview"); compose.await("profile_name")
+        compose.awaitGone("getting_started")
+        compose.awaitText("count_DUE_SOON", "1")
     }
 
     @Test fun makeAndModelSuggestionsFillTheFormAndABadVinIsExplained() {

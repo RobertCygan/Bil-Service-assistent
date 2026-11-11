@@ -205,6 +205,53 @@ class DocumentStoreTest {
         assertTrue(record(target, car, event).documents.isEmpty())
     }
 
+    @Test fun aRestoreCutShortAfterTheDatabaseChangedIsFinishedAtTheNextStart() = runBlocking {
+        val install = installation(); val car = car(install); val event = service(install, car)
+        val content = "restored invoice".toByteArray()
+        val staged = requireNotNull(install.store.stage(picked(content)))
+        assertTrue(install.store.attach(staged, car, event))
+        // The state after such an interruption: the entry is in the database, its verified file still waits.
+        val waiting = File(install.base, DocumentStore.RESTORE).also { it.mkdirs() }
+        assertTrue(File(File(install.base, DocumentStore.LIVE), staged.fileName).renameTo(File(waiting, staged.fileName)))
+        File(waiting, "stranger.pdf").writeText("belongs to no entry")
+        File(File(install.base, DocumentStore.LIVE), "orphan.pdf").writeText("belongs to no entry")
+        assertFalse(install.store.exists(record(install, car, event).documents.single()))
+
+        DocumentStore(context, install.db, clock, install.base).repair()
+
+        assertEquals(listOf(staged.fileName), install.live())
+        assertArrayEquals(content, install.store.open(record(install, car, event).documents.single()).use { it.readBytes() })
+        assertTrue(install.waiting().isEmpty())
+    }
+
+    @Test fun aWaitingFileThatDoesNotMatchItsEntryIsNotPutInPlace() = runBlocking {
+        val install = installation(); val car = car(install); val event = service(install, car)
+        val staged = requireNotNull(install.store.stage(picked("the real invoice".toByteArray())))
+        assertTrue(install.store.attach(staged, car, event))
+        File(File(install.base, DocumentStore.LIVE), staged.fileName).delete()
+        // Same name, different content: for example a file from an archive that was never verified.
+        File(File(install.base, DocumentStore.RESTORE).also { it.mkdirs() }, staged.fileName).writeText("something else entirely")
+
+        install.store.repair()
+
+        assertTrue(install.live().isEmpty()); assertTrue(install.waiting().isEmpty())
+        assertFalse(install.store.exists(record(install, car, event).documents.single()))
+    }
+
+    @Test fun choicesFromTheReviewScreenAreKeptWithTheStagedCopyAndGoWithIt() = runBlocking {
+        val install = installation()
+        val staged = requireNotNull(install.store.stage(picked("a".toByteArray())))
+        assertNull(install.store.loadReview(staged))
+        install.store.saveReview(staged, "state one"); install.store.saveReview(staged, "state two")
+        assertEquals("state two", install.store.loadReview(staged))
+        // The saved state never counts as a document, and it does not survive the copy it describes.
+        assertEquals(staged, DocumentStore(context, install.db, clock, install.base).pending())
+        val next = requireNotNull(install.store.stage(picked("b".toByteArray())))
+        assertNull(install.store.loadReview(next)); assertNull(install.store.loadReview(staged))
+        install.store.saveReview(next, "state three"); install.store.discardStaged()
+        assertNull(install.store.loadReview(next)); assertNull(install.store.pending())
+    }
+
     @Test fun deletingEverythingRemovesTheFiles() = runBlocking {
         val install = installation(); val car = car(install)
         assertTrue(install.store.attach(requireNotNull(install.store.stage(picked("a".toByteArray()))), car, service(install, car)))

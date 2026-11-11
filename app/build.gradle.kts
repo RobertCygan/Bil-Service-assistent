@@ -14,8 +14,8 @@ android {
         applicationId = "app.servicepassport.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 10
+        versionName = "0.9.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // -PapkAbi=arm64-v8a builds a test APK for one processor type only (about half the size, for sending to a phone).
         providers.gradleProperty("apkAbi").orNull?.let { abi -> ndk { abiFilters += abi } }
@@ -96,6 +96,8 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     // On-device text recognition with the Latin model bundled in the APK: documents are not uploaded.
     implementation(libs.mlkit.text.recognition)
+    // Reads which way up a photo was taken. Already shipped inside the text-recognition library; named here because the app uses it directly.
+    implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.androidx.room.compiler)
     debugImplementation(libs.androidx.compose.tooling)

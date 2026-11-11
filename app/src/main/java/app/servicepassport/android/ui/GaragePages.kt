@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import app.servicepassport.android.BuildConfig
 import app.servicepassport.android.R
 import app.servicepassport.android.dashboard.DashboardState
 import app.servicepassport.android.data.*
@@ -58,7 +59,7 @@ import java.time.LocalDate
             if (dashboard != null) {
                 if (dashboard.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else {
                     DashboardCounts(dashboard)
-                    if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
+                    if (dashboard.tasks.isEmpty()) GettingStarted(go)
                     dashboard.tasks.sortedBy { it.category.ordinal }.take(3).forEach { task -> TaskCard(task, compact = true) { go("forecast/${android.net.Uri.encode(task.id)}") } }
                 }
             }
@@ -87,7 +88,7 @@ import java.time.LocalDate
                 vehicle.registrationNumber?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
                 Spacer(Modifier.weight(1f, fill = false).heightIn(min = 8.dp))
                 Text(stringResource(R.string.edit_car), style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.testTag("edit_car").clip(MaterialTheme.shapes.extraSmall).clickable(role = Role.Button) { go("vehicle") }.padding(vertical = 10.dp))
+                    modifier = Modifier.testTag("edit_car").minimumInteractiveComponentSize().clip(MaterialTheme.shapes.extraSmall).clickable(role = Role.Button) { go("vehicle") }.padding(vertical = 10.dp))
             }
         }
     }
@@ -95,7 +96,8 @@ import java.time.LocalDate
         Surface(color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = modifier) {
             // Three separate groups: the most recent recorded service, the selected current reading, the nearest distance limit.
             Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                val previous = snapshot.history.firstNotNullOfOrNull { it.reading }
+                // The mileage of the most recent entry only; an older entry's mileage would not be the "last service".
+                val previous = snapshot.history.firstOrNull()?.reading
                 OdometerGroup(stringResource(R.string.previous_service_km)) {
                     FittingText(previous?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.no_value), MaterialTheme.typography.titleMedium, scheme.onSurface, 12.sp)
                 }
@@ -146,6 +148,17 @@ import java.time.LocalDate
 @Composable private fun FittingText(text: String, style: TextStyle, color: Color, smallest: TextUnit, modifier: Modifier = Modifier) {
     BasicText(text, modifier, style.copy(color = color), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(minFontSize = smallest, maxFontSize = style.fontSize, stepSize = 1.sp))
+}
+
+/** A new car has nothing to calculate from. Both ways of getting a first result are one tap away. */
+@Composable private fun GettingStarted(go: (String) -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth().testTag("getting_started")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.getting_started), style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("start_indicator")) { Text(stringResource(R.string.indicator_title)) }
+            OutlinedButton(onClick = { go("interval/new") }, modifier = Modifier.fillMaxWidth().testTag("start_interval")) { Text(stringResource(R.string.add_interval)) }
+        }
+    }
 }
 
 @Composable private fun OdometerGroup(label: String, content: @Composable ColumnScope.() -> Unit) {
@@ -307,4 +320,6 @@ import java.time.LocalDate
     HorizontalDivider()
     Text(stringResource(R.string.data_sources_title), style = MaterialTheme.typography.titleMedium)
     Text(stringResource(R.string.data_sources_note), style = MaterialTheme.typography.bodySmall)
+    // Lets a tester say exactly which build a remark is about.
+    Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("app_version"))
 }

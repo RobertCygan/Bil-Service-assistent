@@ -79,6 +79,8 @@ public data class VehicleIdentity(val vin: String? = null, val plate: String? = 
  * [operationPhrases]: frazy, które same oznaczają wykonanie danej operacji („oljeskift” → replace,
  * „bremsekontroll” → inspect). [partPhrases]: nazwa części lub materiału — operację wskazuje dopiero
  * czasownik w tej samej linii („skiftet”, „kontrollert”, „testet”); sama nazwa to tylko zakup części.
+ * [unless]: słowa, które wykluczają tę czynność w danej linii („olje” obok „girkasse” to nie olej silnikowy).
+ * Pominięcie pozycji jest bezpieczniejsze niż przypisanie jej do złej czynności.
  */
 public data class TaskTerm(
     val action: String,
@@ -86,6 +88,7 @@ public data class TaskTerm(
     val operations: List<String>,
     val operationPhrases: Map<String, List<String>> = emptyMap(),
     val partPhrases: List<String> = emptyList(),
+    val unless: List<String> = emptyList(),
 ) {
     init {
         require(operations.isNotEmpty()) { "Task needs at least one operation" }

@@ -219,6 +219,7 @@
     <string name="reminders_help">Get a notification when something is due soon or overdue. Reminders follow the same result as the service overview.</string>
     <string name="reminders_enable">Service reminders</string>
     <string name="reminders_blocked">Notifications are turned off for this app in the system settings, so no reminder can be shown. The rest of the app works as before.</string>
+    <string name="reminders_open_settings">Open notification settings</string>
     <string name="reminders_repeat">Repeat the same reminder</string>
     <string name="reminders_repeat_never">Never</string>
     <string name="reminders_repeat_7">Every 7 days</string>
@@ -353,4 +354,6 @@
     <string name="previous_service_km">Last service</string>
     <string name="next_limit_km">Next limit</string>
     <string name="no_value">—</string>
+    <string name="app_version">Version %1$s</string>
+    <string name="getting_started">Nothing to calculate yet. The quickest start is to enter what your car\'s own service display shows. You can also add your own intervals; they are your settings, not manufacturer recommendations.</string>
 </resources>

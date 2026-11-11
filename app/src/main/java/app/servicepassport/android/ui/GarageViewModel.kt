@@ -32,6 +32,8 @@ class GarageViewModel(private val repository: ProfileRepository, private val eva
     val today get() = repository.today
     private var observer: Job? = null
     private val day = MutableStateFlow(repository.today)
+    /** The document being imported. Kept here so that it survives the screen being rebuilt. */
+    val imports = ImportSession(documents, viewModelScope)
     init { reload() }
     fun clearProblem() { mutableState.update { it.copy(problem = it.problem?.takeIf { problem -> problem == StorageProblem.READ }, inputProblem = null) } }
     fun reload() {

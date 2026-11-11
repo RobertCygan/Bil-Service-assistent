@@ -17,17 +17,68 @@ import app.servicepassport.android.data.WorkInput
 import app.servicepassport.android.documents.*
 import app.servicepassport.extraction.*
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-/** Holds the draft being reviewed and the prefill handed to the service form. Lives only while the app is open. */
-class ImportSession(private val store: DocumentStore? = null) {
+/**
+ * Holds the draft being reviewed and the prefill handed to the service form. It is kept by the view model and reads
+ * documents in the view model's scope, so turning the phone or switching the theme neither loses the review nor stops
+ * a reading that is under way. Closing the app loses it; the private copy of the document stays and is offered again.
+ */
+class ImportSession(private val store: DocumentStore?, private val scope: CoroutineScope) {
     var analysis by mutableStateOf<DocumentAnalysis?>(null)
     var prefill by mutableStateOf<ServicePrefill?>(null)
     /** The private copy of the document under review; null when it could not be copied. */
     var staged by mutableStateOf<StagedDocument?>(null)
     /** The copy to save with the entry, when the driver chose to keep it. */
     var attachment by mutableStateOf<StagedDocument?>(null)
-    fun clear() { analysis = null; prefill = null; staged = null; attachment = null; store?.discardStaged() }
+    /** The review screen as last seen, so that coming back to it (also after the app was closed) keeps the choices. */
+    var savedReview by mutableStateOf<SavedReview?>(null)
+    /** A document is being read. */
+    var busy by mutableStateOf(false); private set
+    /** A review interrupted by closing the app can be picked up again: the private copy is still there. */
+    var pending by mutableStateOf<StagedDocument?>(null)
+
+    private fun start(work: suspend () -> Unit) {
+        if (busy) return
+        busy = true; pending = null; reset()
+        scope.launch { try { work() } finally { busy = false } }
+    }
+
+    fun read(analyzer: DocumentAnalyzer, uri: Uri, vehicle: VehicleIdentity, today: LocalDate) = start {
+        val result = analyzer.analyse(uri, vehicle, today)
+        // A private copy is made only for a document that could be read; it replaces an earlier unfinished one.
+        // A file that could not be read changes nothing: a document that was waiting is offered again.
+        if (result is DocumentAnalysis.Ready) staged = store?.stage(uri) else pending = store?.pending()
+        analysis = result
+    }
+
+    fun resume(analyzer: DocumentAnalyzer, document: StagedDocument, vehicle: VehicleIdentity, today: LocalDate) = start {
+        val files = requireNotNull(store)
+        staged = document
+        savedReview = files.loadReview(document)?.let(ReviewPersistence::decode)
+        analysis = analyzer.analyse(files.stagedUri(document), vehicle, today)
+    }
+
+    /** Looks for a document whose review was not finished. */
+    fun offerPending() {
+        if (analysis != null || busy) return
+        scope.launch { val waiting = store?.pending(); if (analysis == null && !busy) pending = waiting }
+    }
+
+    fun discardPending() { pending = null; store?.discardStaged() }
+
+    /**
+     * The service form keeps its fields when the app is closed in the background. The document that was to be saved
+     * with the entry is found again by its id, so the entry is not saved without it.
+     */
+    fun reattach(id: String?) {
+        if (id == null || attachment != null) return
+        scope.launch { store?.pending()?.takeIf { it.id == id }?.let { if (attachment == null) attachment = it } }
+    }
+    /** Forgets what is on screen; the private copy stays until [clear]. */
+    fun reset() { analysis = null; prefill = null; staged = null; attachment = null; savedReview = null }
+    fun clear() { reset(); store?.discardStaged() }
 }
 
 private fun problemMessage(problem: AnalysisProblem): Int = when (problem) {
@@ -62,65 +113,59 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     val snapshot = state.snapshot
     if (snapshot == null || analyzer == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     val scope = rememberCoroutineScope()
-    var busy by remember { mutableStateOf(false) }
-    // A review interrupted by closing the app can be picked up again: the private copy is still there.
-    var pending by remember { mutableStateOf<StagedDocument?>(null) }
-    fun read(uri: Uri, fresh: Boolean) {
-        busy = true; pending = null
-        if (fresh) session.clear()
-        scope.launch {
-            try {
-                val analysis = analyzer.analyse(uri, VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
-                // The private copy is made only for a document that could be read; it is discarded unless an entry is saved with it.
-                session.staged = if (analysis is DocumentAnalysis.Ready) store?.stage(uri) else null
-                session.analysis = analysis
-            } finally { busy = false }
-        }
-    }
-    LaunchedEffect(Unit) { if (session.analysis == null) pending = store?.pending() }
-    fun resume(document: StagedDocument) {
-        busy = true; pending = null
-        scope.launch {
-            try {
-                session.staged = document
-                session.analysis = analyzer.analyse(requireNotNull(store).stagedUri(document), VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber), today)
-            } finally { busy = false }
-        }
-    }
-    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) read(uri, fresh = true) }
-    var photo by remember { mutableStateOf<Uri?>(null) }
+    val busy = session.busy
+    val vehicle = VehicleIdentity(snapshot.vehicle.vin, snapshot.vehicle.registrationNumber)
+    fun read(uri: Uri) = session.read(analyzer, uri, vehicle, today)
+    LaunchedEffect(Unit) { session.offerPending() }
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) read(uri) }
     var noCamera by remember { mutableStateOf(false) }
-    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> photo?.takeIf { taken }?.let { read(it, fresh = false) } }
+    // The photo always lands in the same private file. Nothing has to be remembered while the camera is open, so the
+    // photo is read even when Android closed this app in the meantime and has just started it again.
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> if (taken && store != null) read(store.cameraUri()) }
     NoteCard(stringResource(R.string.import_explanation))
-    pending?.takeIf { !busy && session.analysis == null }?.let { document ->
+    session.pending?.takeIf { !busy && session.analysis !is DocumentAnalysis.Ready }?.let { document ->
         OutlinedCard(Modifier.fillMaxWidth().testTag("import_pending")) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.import_pending))
-                Button(onClick = { resume(document) }, modifier = Modifier.testTag("import_resume")) { Text(stringResource(R.string.import_resume)) }
-                TextButton(onClick = { pending = null; store?.discardStaged() }) { Text(stringResource(R.string.import_discard)) }
+                Button(onClick = { session.resume(analyzer, document, vehicle, today) }, modifier = Modifier.testTag("import_resume")) { Text(stringResource(R.string.import_resume)) }
+                TextButton(onClick = { session.discardPending() }) { Text(stringResource(R.string.import_discard)) }
             }
         }
     }
     Button(onClick = { pick.launch(arrayOf("image/*", "application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("pick_document")) { Text(stringResource(R.string.import_pick)) }
     if (store != null) OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("take_photo"), onClick = {
-        session.clear(); noCamera = false
-        try { store.cameraTarget().also { photo = it; camera.launch(it) } } catch (_: Exception) { noCamera = true }
+        // Nothing is given up until a photo has actually been taken and read.
+        noCamera = false
+        try { camera.launch(store.cameraTarget()) } catch (_: Exception) { noCamera = true }
     }) { Text(stringResource(R.string.import_take_photo)) }
     if (noCamera) Text(stringResource(R.string.import_no_camera), color = MaterialTheme.colorScheme.error)
     if (busy) { CircularProgressIndicator(); Text(stringResource(R.string.import_reading)) }
     when (val analysis = session.analysis) {
         null -> Unit
         is DocumentAnalysis.Failed -> Text(stringResource(problemMessage(analysis.problem)), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("import_problem"))
-        is DocumentAnalysis.Ready -> DraftReview(analysis.draft, today, snapshot.events, session.staged, store != null) { prefill, keep ->
-            session.prefill = prefill; session.attachment = session.staged.takeIf { keep }; go("service/new")
+        is DocumentAnalysis.Ready -> {
+            val staged = session.staged
+            val fingerprint = remember(analysis) { ReviewPersistence.fingerprint(analysis.draft) }
+            val restored = remember(analysis) { session.savedReview?.let { saved -> ReviewPersistence.restore(analysis.draft, saved)?.let { it to saved.keepDocument } } }
+            DraftReview(analysis.draft, today, snapshot.events, staged, store != null, restored?.first, restored?.second ?: true, onChanged = { choice, keep ->
+                val current = SavedReview(fingerprint, choice, keep)
+                session.savedReview = current
+                if (staged != null && store != null) scope.launch { store.saveReview(staged, ReviewPersistence.encode(current)) }
+            }) { prefill, keep ->
+                session.prefill = prefill; session.attachment = staged.takeIf { keep }; go("service/new")
+            }
         }
     }
 }
 
-@Composable private fun DraftReview(draft: DraftProposal, today: LocalDate, history: List<ServiceRecord>, staged: StagedDocument?, canKeep: Boolean, onContinue: (ServicePrefill, Boolean) -> Unit) {
-    var keep by remember(draft) { mutableStateOf(true) }
+@Composable private fun DraftReview(
+    draft: DraftProposal, today: LocalDate, history: List<ServiceRecord>, staged: StagedDocument?, canKeep: Boolean,
+    startChoice: ReviewChoice?, startKeep: Boolean, onChanged: (ReviewChoice, Boolean) -> Unit, onContinue: (ServicePrefill, Boolean) -> Unit,
+) {
+    var keep by remember(draft) { mutableStateOf(startKeep) }
     val locale = uiLocale()
-    var choice by remember(draft) { mutableStateOf(ImportReview.initialChoice(draft)) }
+    var choice by remember(draft) { mutableStateOf(startChoice ?: ImportReview.initialChoice(draft)) }
+    LaunchedEffect(choice, keep) { onChanged(choice, keep) }
     var errors by remember(draft) { mutableStateOf<Set<ConfirmationError>>(emptySet()) }
     HorizontalDivider()
     Text(stringResource(R.string.import_review_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("import_review"))

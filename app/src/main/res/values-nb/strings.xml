@@ -216,6 +216,7 @@
     <string name="reminders_help">Få et varsel når noe nærmer seg eller er forfalt. Påminnelsene følger samme resultat som serviceoversikten.</string>
     <string name="reminders_enable">Servicepåminnelser</string>
     <string name="reminders_blocked">Varsler er slått av for denne appen i systeminnstillingene, så ingen påminnelse kan vises. Resten av appen fungerer som før.</string>
+    <string name="reminders_open_settings">Åpne varslingsinnstillingene</string>
     <string name="reminders_repeat">Gjenta samme påminnelse</string>
     <string name="reminders_repeat_never">Aldri</string>
     <string name="reminders_repeat_7">Hver 7. dag</string>
@@ -350,4 +351,6 @@
     <string name="previous_service_km">Forrige service</string>
     <string name="next_limit_km">Neste frist</string>
     <string name="no_value">—</string>
+    <string name="app_version">Versjon %1$s</string>
+    <string name="getting_started">Ingenting å beregne ennå. Den raskeste starten er å legge inn det bilens egen serviceindikator viser. Du kan også legge inn dine egne intervaller; de er dine innstillinger, ikke produsentens anbefalinger.</string>
 </resources>
