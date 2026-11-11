@@ -14,8 +14,8 @@ android {
         applicationId = "app.servicepassport.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.9.0"
+        versionCode = 10
+        versionName = "0.9.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // -PapkAbi=arm64-v8a builds a test APK for one processor type only (about half the size, for sending to a phone).
         providers.gradleProperty("apkAbi").orNull?.let { abi -> ndk { abiFilters += abi } }
