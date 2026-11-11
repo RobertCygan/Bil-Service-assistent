@@ -75,7 +75,7 @@ private fun outcomeMessage(outcome: DataOutcome): Int = when (outcome) {
             text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(if (hasVehicle) R.string.data_restore_replaces else R.string.data_restore_body))
                 if (needsPassword) OutlinedTextField(restorePassword, { restorePassword = it }, Modifier.fillMaxWidth().testTag("restore_password"), label = { Text(stringResource(R.string.data_password)) }, singleLine = true, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
-                outcome?.takeIf { needsPassword }?.let { Text(stringResource(outcomeMessage(it)), color = MaterialTheme.colorScheme.error) }
+                outcome?.takeIf { needsPassword }?.let { Text(stringResource(outcomeMessage(it)), Modifier.testTag("restore_problem_${it.name}"), color = MaterialTheme.colorScheme.error) }
             } },
             confirmButton = { TextButton(enabled = !busy, modifier = Modifier.testTag("confirm_restore"), onClick = {
                 val chosen = restorePassword
