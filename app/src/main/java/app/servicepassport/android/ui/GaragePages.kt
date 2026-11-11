@@ -4,6 +4,17 @@ import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.documents.DocumentStore
 import app.servicepassport.android.reminders.ReminderStore
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -60,53 +71,81 @@ import java.time.LocalDate
     }
 }
 
-/** Two tiles side by side: the car on the left, its mileage around the nearest service on the right. */
+/**
+ * The car and its mileage around the nearest service. Side by side when there is room; one above the other on a narrow
+ * screen or with large text, so that no word or number is broken or cut off.
+ */
 @Composable private fun HeroCard(snapshot: GarageSnapshot, dashboard: DashboardState?, today: LocalDate, go: (String) -> Unit) {
     val colors = LocalAppColors.current; val scheme = MaterialTheme.colorScheme; val locale = uiLocale(); val vehicle = snapshot.vehicle
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Surface(color = colors.hero, contentColor = colors.onHero, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f).fillMaxHeight()) {
+    val carTile: @Composable (Modifier) -> Unit = { modifier ->
+        Surface(color = colors.hero, contentColor = colors.onHero, shape = MaterialTheme.shapes.medium, modifier = modifier) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(vehicle.displayName, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("profile_name"))
+                FittingText(vehicle.displayName, MaterialTheme.typography.titleLarge, colors.onHero, 16.sp, Modifier.testTag("profile_name"))
                 val model = listOfNotNull(vehicle.make, vehicle.model).joinToString(" ")
                 if (model.isNotEmpty()) Text(model, color = colors.onHeroMuted)
                 vehicle.modelYear?.let { Text(stringResource(R.string.model_year_value, it.toString()), color = colors.onHeroMuted, style = MaterialTheme.typography.bodyMedium) }
                 vehicle.registrationNumber?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { go("vehicle") }, colors = ButtonDefaults.textButtonColors(contentColor = colors.onHero), contentPadding = PaddingValues(0.dp), modifier = Modifier.testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
+                Spacer(Modifier.weight(1f, fill = false).heightIn(min = 8.dp))
+                Text(stringResource(R.string.edit_car), style = MaterialTheme.typography.labelLarge,
+                    modifier = Modifier.testTag("edit_car").clip(MaterialTheme.shapes.extraSmall).clickable(role = Role.Button) { go("vehicle") }.padding(vertical = 10.dp))
             }
         }
-        Surface(color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = Modifier.weight(1f).fillMaxHeight()) {
+    }
+    val odometerTile: @Composable (Modifier) -> Unit = { modifier ->
+        Surface(color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = modifier) {
             // Three separate groups: the most recent recorded service, the selected current reading, the nearest distance limit.
             Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 val previous = snapshot.history.firstNotNullOfOrNull { it.reading }
                 OdometerGroup(stringResource(R.string.previous_service_km)) {
-                    Text(previous?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium)
+                    FittingText(previous?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.no_value), MaterialTheme.typography.titleMedium, scheme.onSurface, 12.sp)
                 }
                 HorizontalDivider(color = scheme.outlineVariant)
                 OdometerGroup(stringResource(R.string.current_odometer)) {
                     val reading = snapshot.currentReading
                     if (reading == null) Text(stringResource(R.string.odometer_missing), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("no_current_reading")) else {
-                        Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("current_km"))
+                        FittingText(formattedKm(reading.km, locale) + " km", MaterialTheme.typography.headlineSmall, scheme.onSurface, 14.sp, Modifier.testTag("current_km"))
                         Text(LocalDates.text(reading.observedDay, locale), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.testTag("current_reading_date"))
                     }
                 }
                 HorizontalDivider(color = scheme.outlineVariant)
                 val next = dashboard?.takeIf { !it.calculationUnavailable }?.tasks?.filter { it.dueKm != null }?.minByOrNull { it.dueKm!! }
                 OdometerGroup(stringResource(R.string.next_limit_km)) {
-                    Text(next?.dueKm?.let { formattedKm(it.toLong(), locale) + " km" } ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium, color = next?.let { colors.status(it.category).accent } ?: scheme.onSurface)
+                    FittingText(next?.dueKm?.let { formattedKm(it.toLong(), locale) + " km" } ?: stringResource(R.string.no_value), MaterialTheme.typography.titleMedium, next?.let { colors.status(it.category).accent } ?: scheme.onSurface, 12.sp)
                     next?.let { Text(workLabel(WorkInput(it.task.action.code, it.task.operation.code)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis) }
                 }
             }
         }
     }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // Room is judged in text units: large text needs more width for the same words.
+        if (maxWidth / LocalDensity.current.fontScale >= 300.dp) {
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                carTile(Modifier.weight(1f).fillMaxHeight()); odometerTile(Modifier.weight(1f).fillMaxHeight())
+            }
+        } else Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { carTile(Modifier.fillMaxWidth()); odometerTile(Modifier.fillMaxWidth()) }
+    }
     snapshot.currentReading?.let { reading ->
         if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale), style = MaterialTheme.typography.bodySmall)
         if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded), style = MaterialTheme.typography.bodySmall)
     }
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        FilledTonalButton(onClick = { go("reading/new") }, modifier = Modifier.weight(1f).testTag("add_reading")) { Text(stringResource(R.string.update_odometer), maxLines = 1, overflow = TextOverflow.Ellipsis) }
-        FilledTonalButton(onClick = { go("readings") }, modifier = Modifier.weight(1f).testTag("reading_history")) { Text(stringResource(R.string.reading_history), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+    val update = stringResource(R.string.update_odometer); val readings = stringResource(R.string.reading_history)
+    val measurer = rememberTextMeasurer(); val labelStyle = MaterialTheme.typography.labelLarge
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        // Next to each other only when both labels fit in full; a label is never shortened.
+        val widest = with(LocalDensity.current) { listOf(update, readings).maxOf { measurer.measure(it, labelStyle, maxLines = 1).size.width }.toDp() }
+        val buttons: @Composable (Modifier) -> Unit = { modifier ->
+            FilledTonalButton(onClick = { go("reading/new") }, modifier = modifier.testTag("add_reading")) { Text(update) }
+            FilledTonalButton(onClick = { go("readings") }, modifier = modifier.testTag("reading_history")) { Text(readings) }
+        }
+        if (widest + 48.dp <= (maxWidth - 12.dp) / 2) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons(Modifier.weight(1f)) }
+        else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { buttons(Modifier.fillMaxWidth()) }
     }
+}
+
+/** One line that shrinks before it would wrap: a mileage or a name must not be broken in the middle. */
+@Composable private fun FittingText(text: String, style: TextStyle, color: Color, smallest: TextUnit, modifier: Modifier = Modifier) {
+    BasicText(text, modifier, style.copy(color = color), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(minFontSize = smallest, maxFontSize = style.fontSize, stepSize = 1.sp))
 }
 
 @Composable private fun OdometerGroup(label: String, content: @Composable ColumnScope.() -> Unit) {

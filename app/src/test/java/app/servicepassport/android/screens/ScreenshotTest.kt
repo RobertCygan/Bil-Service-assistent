@@ -66,6 +66,23 @@ class ScreenshotTest {
     @Test fun light() = tour("light", seeded())
     @Test @Config(qualifiers = "+night") fun dark() = tour("dark", seeded())
 
+    /** Norwegian texts are longer than the English ones; large text is what many drivers actually use. */
+    private fun readabilityTour(prefix: String, repository: ProfileRepository) {
+        compose.setContent { CarServiceApp(repository) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
+        shot("$prefix-1-overview")
+        open("open_dashboard"); shot("$prefix-2-dashboard")
+        tab("nav_history"); shot("$prefix-3-history")
+        open("add_service"); shot("$prefix-4-service-form")
+    }
+
+    @Test @Config(qualifiers = "nb-rNO-w411dp-h891dp-420dpi") fun norwegian() = readabilityTour("nb", seeded())
+    @Test @Config(qualifiers = "nb-rNO-w360dp-h740dp-420dpi") fun norwegianOnASmallPhone() = readabilityTour("nb-small", seeded())
+    @Test @Config(qualifiers = "nb-rNO-w360dp-h740dp-420dpi") fun norwegianLargeTextOnASmallPhone() {
+        org.robolectric.RuntimeEnvironment.setFontScale(1.5f)
+        readabilityTour("nb-large", seeded())
+    }
+
     @Test fun welcome() {
         compose.setContent { CarServiceApp(ProfileRepository(db, clock)) }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("add_car").fetchSemanticsNodes().isNotEmpty() }
