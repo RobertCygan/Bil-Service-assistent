@@ -419,6 +419,10 @@ class DocumentExtractorTest {
             "Service iht. produsentens program" to listOf("inspection_service:inspect/PERFORMED"),
         )
         for ((line, items) in expected) assertEquals(items.toSet(), itemsOf(line).toSet(), line)
+        // Filtr kabinowy zapisany dwoma słowami nie jest filtrem powietrza silnika.
+        assertEquals(listOf("cabin_filter:replace/PERFORMED"), itemsOf("Luftfilter kupé byttet"))
+        assertEquals(listOf("cabin_filter:replace/PERFORMED"), itemsOf("Cabin air filter replaced"))
+        assertEquals(listOf("air_filter:replace/PERFORMED"), itemsOf("Luftfilter motor byttet"))
         // Zapowiedź następnego przeglądu to zalecenie, nie wykonana praca.
         assertEquals(listOf("inspection_service:inspect/RECOMMENDED"), itemsOf("Neste service 75 000 km"))
     }
@@ -427,7 +431,8 @@ class DocumentExtractorTest {
     fun `lines that only look related stay out of the draft`() {
         for (line in listOf(
             "Bytte batteri i nøkkel", "Batteri CR2032", "Kontroll av høyvoltsbatteri", "Spylervæske 4 l", "Bremserens", "EU-kontroll", "AC-service",
-            "Service klimaanlegg", "Skift av vinterdekk", "Hjulskift", "Vindusviskere foran", "Servicegebyr",
+            "Service klimaanlegg", "AC-service 60 000 km", "Skift av vinterdekk", "Hjulskift", "Vindusviskere foran", "Servicegebyr",
+            "Multireim byttet", "Registerkjede kontrollert", "Glødeplugger byttet",
         )) assertEquals(emptyList(), itemsOf(line), line)
     }
 

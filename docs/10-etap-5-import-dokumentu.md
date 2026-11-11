@@ -46,6 +46,7 @@ Sprawdzenie typowych norweskich sformułowań (wpisanych z pamięci, **nie z pra
 - **Dodane słowa:** oljeservice, bremsebelegg, klosser, tannreim, kamreim, friskluftfilter, kabinfilter, bensinfilter, drivstofffilter, automatgirolje, bremsesjekk, batterisjekk, „stor/liten service”, „Service 60 000 km”, „service iht.” i podobne; „montert/installert” jako wykonanie wymiany.
 - **Przebieg:** etykiety „Km.stand”, „Km.st.”, „KM:” oraz etykieta i wartość w osobnych liniach tabeli. „km:” przy stawce lub krótkiej odległości nie jest stanem licznika.
 - **Kwota i data:** „Totalsum”, „Totalbeløp”, „Fakturabeløp”, „Sluttsum”; „Ferdig dato”, „ferdigstilt”, „Reparasjonsdato” jako data wykonania.
+- **Drugi błąd przypisania:** „Luftfilter kupé” (filtr kabinowy zapisany dwoma słowami) był odczytywany jako filtr powietrza silnika; teraz jest filtrem kabinowym.
 - **Celowo nierozpoznawane:** samo „batteri” (bateria w kluczyku, akumulator trakcyjny), „EU-kontroll”, „AC-service”, wymiana opon, samo słowo „Service”.
 
 To nadal nie jest pomiar skuteczności — ten wymaga prawdziwych dokumentów.

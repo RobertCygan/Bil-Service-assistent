@@ -56,11 +56,18 @@ public object DefaultTaskDictionary {
             listOf("registerreimskift", "skift av registerreim", "tannreimskift", "skift av tannreim", "timing belt replacement", "cambelt replacement"),
             listOf("registerreim", "registerreimsett", "tannreim", "tannreimsett", "kamreim", "timing belt", "cambelt"),
         ),
-        part("air_filter", listOf("skift av luftfilter", "air filter change"), listOf("luftfilter", "air filter")),
+        // „Luftfilter kupé” to filtr kabinowy zapisany dwoma słowami, nie filtr powietrza silnika.
+        part(
+            "air_filter", listOf("skift av luftfilter", "air filter change"), listOf("luftfilter", "air filter"),
+            unless = listOf("kupe", "kupé", "kabin", "pollen", "innvendig", "cabin", "interior"),
+        ),
         part(
             "cabin_filter",
             listOf("skift av kupefilter", "skift av pollenfilter", "cabin filter change"),
-            listOf("kupefilter", "kupéfilter", "kupeluftfilter", "pollenfilter", "friskluftfilter", "kabinfilter", "cabin filter", "pollen filter"),
+            listOf(
+                "kupefilter", "kupéfilter", "kupeluftfilter", "pollenfilter", "friskluftfilter", "kabinfilter", "luftfilter kupe", "luftfilter kupé",
+                "luftfilter kabin", "cabin filter", "cabin air filter", "pollen filter",
+            ),
         ),
         part("fuel_filter", listOf("skift av drivstoffilter", "fuel filter change"), listOf("drivstoffilter", "drivstofffilter", "dieselfilter", "bensinfilter", "brennstoffilter", "fuel filter", "diesel filter")),
         part("brake_pads", listOf("skift av bremseklosser", "brake pad replacement"), listOf("bremsekloss", "bremseklosser", "bremsebelegg", "klosser", "brake pad")),

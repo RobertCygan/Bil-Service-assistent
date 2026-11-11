@@ -329,7 +329,8 @@ public class DocumentExtractor(private val dictionary: List<TaskTerm> = DefaultT
             "bør|må|anbefal\\p{L}*|should|needs?|recommend\\p{L}*|advis\\p{L}*|neste|next|snart|soon|due",
         )
         val NOT_DONE = words("ikke utført|ikke skiftet|ikke byttet|not performed|not done|not replaced|declined|avslått|utsatt|deferred")
-        val SERVICE_AT_KM = Regex("${W}service\\s+(?:ved\\s+|at\\s+)?\\d{1,3}(?:[ .]?\\d{3})\\s*km$E")
+        /** Bez łącznika przed słowem: „AC-service 60 000 km” to nie przegląd serwisowy. */
+        val SERVICE_AT_KM = Regex("(?<![\\p{L}\\d-])service\\s+(?:ved\\s+|at\\s+)?\\d{1,3}(?:[ .]?\\d{3})\\s*km$E")
         val RECOMMENDED_HEADING = words(
             "anbefal\\p{L}*|bør utføres|recommend\\p{L}*|advisor(?:y|ies)|future work|ved neste service|at next service",
         )
