@@ -43,10 +43,10 @@ def tap(root, label):
 
 
 def dashboard_counts(text):
-    # Compose may expose a card's label/value separately or as one merged accessibility node.
+    # Each tile shows the number above its label. Compose may expose them separately or as one merged node.
     for label in ["Forfalt", "Snart frist", "Trenger opplysninger", "Ingen hast"]:
-        if not any((value == label and i + 1 < len(text) and text[i + 1] == "1")
-                   or re.fullmatch(re.escape(label) + r"\s+1", value)
+        if not any((value == label and i > 0 and text[i - 1] == "1")
+                   or re.fullmatch(r"1\s+" + re.escape(label), value)
                    for i, value in enumerate(text)):
             return False
     return True
@@ -61,7 +61,7 @@ root = wait_for(
     "Fresh process did not restore the profile, explicit current reading and Bokmål UI",
 )
 (OUT / "overview-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
-tap(root, "Serviceoversikt")
+tap(root, "Se alle")  # the link next to the "Serviceoversikt" heading
 wait_for(
     lambda text: "Ingen bekreftet serviceplan" in text and dashboard_counts(text),
     "Fresh process did not restore all four driver intervals and their separate categories",

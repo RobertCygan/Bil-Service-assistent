@@ -119,10 +119,11 @@ private fun originResource(origin: TaskOrigin): Int = when (origin) {
         Button(onClick = retry) { Text(stringResource(R.string.retry)) }
         return@Page
     }
+    // The missing manufacturer schedule is the first thing to know about every figure below.
+    CatalogNotice(dashboard, go)
     DashboardCounts(dashboard)
     FilledTonalButton(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
     OutlinedButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
-    CatalogNotice(dashboard, go)
     if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
     Category.entries.forEach { category ->
         val tasks = dashboard.tasks.filter { it.category == category }
