@@ -57,7 +57,7 @@ data class PreparedEnginePolicy(
 
 /**
  * Maps a transactional Room snapshot to the factual input used by EngineAdapter.
- * Room v3 service_events contains confirmed manual history only; future OCR drafts need a separate store.
+ * service_events contains confirmed history only: a document that was read becomes an entry when the driver saves it.
  * No engine dependency or hidden reconstruction of current mileage is allowed at this boundary.
  */
 object EngineFactsMapper {
