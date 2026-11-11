@@ -1,7 +1,6 @@
 package app.servicepassport.android.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -14,10 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.Lifecycle
@@ -25,6 +24,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
+import app.servicepassport.android.AppLanguage
 import app.servicepassport.android.R
 import app.servicepassport.android.backup.DataFiles
 import app.servicepassport.android.documents.DocumentAnalyzer
@@ -122,12 +122,13 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
 
 @Composable internal fun LanguageSelector() {
     val locale = LocalConfiguration.current.locales[0]; val norwegian = locale.language in setOf("nb", "no")
+    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(stringResource(R.string.language), style = MaterialTheme.typography.titleMedium)
         Text(stringResource(R.string.language_help), style = MaterialTheme.typography.bodySmall)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(modifier = Modifier.testTag("language_nb"), selected = norwegian, onClick = { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("nb-NO")) }, label = { Text(stringResource(R.string.language_norwegian)) })
-            FilterChip(modifier = Modifier.testTag("language_en"), selected = !norwegian, onClick = { AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("en")) }, label = { Text(stringResource(R.string.language_english)) })
+            FilterChip(modifier = Modifier.testTag("language_nb"), selected = norwegian, onClick = { AppLanguage.choose(context, "nb-NO") }, label = { Text(stringResource(R.string.language_norwegian)) })
+            FilterChip(modifier = Modifier.testTag("language_en"), selected = !norwegian, onClick = { AppLanguage.choose(context, "en") }, label = { Text(stringResource(R.string.language_english)) })
         }
     }
 }
