@@ -9,7 +9,7 @@ Data: **10 listopada 2026**. Stan kodu: Room v5, dokumenty przy wpisach.
 | Przegląd uprawnień, bibliotek i logów | **Wykonany** na scalonym manifeście wersji debug i na kodzie źródłowym |
 | Brak dostępu do sieci | **Wymuszony w manifeście i pilnowany testami** (test jednostkowy i test na emulatorze) |
 | Projekt polityki prywatności (EN) | **Projekt** — wymaga uzupełnienia danych administratora i przeglądu prawnego |
-| Wersja norweska polityki | **Nie ma** |
+| Wersja norweska polityki | **Projekt** — tłumaczenie poniżej, wymaga sprawdzenia przez osobę znającą norweski |
 | Formularz „Data safety” w Google Play | **Nie wypełniony** — propozycja odpowiedzi poniżej |
 | Przegląd prawny (RODO / norweska personopplysningsloven) | **Niewykonany** — nie jestem prawnikiem; tekst jest opisem działania, nie opinią prawną |
 
@@ -84,6 +84,34 @@ Baza i pliki **nie są dodatkowo szyfrowane** przez aplikację; chroni je szyfro
 > **Not a manufacturer's schedule.** The app does not contain manufacturer service schedules. Dates and distances it shows come from what you entered.
 >
 > **Changes.** If a later version adds an online feature (for example looking up a car by registration number), this policy will change before that feature is released, and the feature will be optional.
+
+## Projekt polityki prywatności (NO)
+
+Tłumaczenie projektu angielskiego. **Niesprawdzone przez osobę znającą norweski.**
+
+> **Personvernerklæring – CarServiceAssistent** (utkast)
+>
+> **Hvem som er ansvarlig.** [Utgiverens navn og kontaktadresse – fylles ut.]
+>
+> **Kort fortalt.** Appen fungerer uten konto og uten internettforbindelse. Alt du legger inn, blir på telefonen din. Vi mottar ingenting.
+>
+> **Hva appen lagrer på telefonen din.** Opplysningene om bilen som du selv legger inn (navn, merke, modell, årsmodell og – hvis du vil – understellsnummer og registreringsnummer), kilometerstander, serviceoppføringer med kostnader og notater, dine egne serviceintervaller, avlesninger av bilens serviceindikator, innstillinger for påminnelser og kopier av fakturaer eller sider fra serviceheftet som du velger å ta vare på sammen med en oppføring.
+>
+> **Lesing av dokumenter.** Når du velger eller fotograferer et dokument, gjenkjennes teksten på telefonen din. Dokumentet lastes ikke opp. En kopi beholdes bare hvis du lagrer oppføringen og lar «lagre en kopi» stå på.
+>
+> **Ingen nettverkstilgang.** Appen ber ikke om internettilgang. Derfor kan verken appen eller bibliotekene i den sende data noe sted.
+>
+> **Sikkerhetskopier.** Appens data er unntatt fra Androids skysikkerhetskopi og overføring mellom enheter. Du kan selv lage en sikkerhetskopifil og velge hvor den lagres; du kan beskytte den med passord. Uten passord kan filen leses av alle som får tak i den. Et glemt passord kan ikke gjenopprettes.
+>
+> **Varsler.** Hvis du slår på påminnelser, viser appen varsler som nevner bilen og serviceoppgaven. De kan være synlige på låseskjermen, avhengig av innstillingene på telefonen.
+>
+> **Andre apper.** Når du åpner et lagret dokument, får appen du velger, lesetilgang til denne ene filen. Bilder tas av telefonens kameraapp, som følger sine egne regler.
+>
+> **Sletting av data.** «Slett alle data» i innstillingene fjerner bilen, historikken, dokumentene og innstillingene fra telefonen. Det samme skjer når du avinstallerer appen. Sikkerhetskopifiler du har lagret andre steder, må du slette selv.
+>
+> **Ikke produsentens serviceprogram.** Appen inneholder ikke produsentenes serviceprogrammer. Datoer og kilometerstander den viser, kommer fra det du selv har lagt inn.
+>
+> **Endringer.** Hvis en senere versjon får en nettbasert funksjon (for eksempel oppslag av bil på registreringsnummer), blir denne erklæringen endret før funksjonen lanseres, og funksjonen blir valgfri.
 
 ## Propozycja odpowiedzi w „Data safety” (Google Play)
 

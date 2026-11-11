@@ -28,12 +28,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
       - run: ./gradlew :service-contract:test :service-engine:check :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+      # The store package (unsigned here: the upload key is never in the repository) must build on every change,
+      # and its native libraries must keep working with 16 KB memory pages, which Google Play requires.
+      - run: ./gradlew :app:bundleRelease
+      - run: python3 scripts/check_native_alignment.py app/build/outputs/apk/debug/app-debug.apk app/build/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-foundation
           path: |
             app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
             app/build/reports/
             app/build/test-results/testDebugUnitTest/
             service-contract/build/reports/tests/
