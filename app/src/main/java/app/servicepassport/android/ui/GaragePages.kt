@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.servicepassport.android.R
+import app.servicepassport.android.dashboard.DashboardState
 import app.servicepassport.android.data.*
 import app.servicepassport.contract.AppPolicy
 import java.time.LocalDate
@@ -36,8 +38,8 @@ import java.time.LocalDate
         }
         else -> {
             val snapshot = requireNotNull(state.snapshot)
-            HeroCard(snapshot, today, go)
             val dashboard = state.dashboard
+            HeroCard(snapshot, dashboard, today, go)
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.service_overview), style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
                 TextButton(onClick = { go("dashboard") }, modifier = Modifier.testTag("open_dashboard")) { Text(stringResource(R.string.see_all)) }
@@ -54,36 +56,57 @@ import java.time.LocalDate
                 ActionTile(stringResource(R.string.import_document), Icons.Default.Search, primary = false, modifier = Modifier.weight(1f).testTag("import_document")) { go("import") }
             }
             if (dashboard != null && !dashboard.calculationUnavailable) CatalogNotice(dashboard, go)
-            TextButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
         }
     }
 }
 
-/** The car and its mileage: the first thing on the first screen. */
-@Composable private fun HeroCard(snapshot: GarageSnapshot, today: LocalDate, go: (String) -> Unit) {
-    val colors = LocalAppColors.current; val locale = uiLocale(); val vehicle = snapshot.vehicle
-    Surface(color = colors.hero, contentColor = colors.onHero, shape = MaterialTheme.shapes.large, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(vehicle.displayName, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("profile_name"))
-            val model = listOfNotNull(vehicle.make, vehicle.model).joinToString(" ")
-            val subtitle = listOfNotNull(model.takeIf { it.isNotEmpty() }, vehicle.modelYear?.let { if (model.isEmpty()) stringResource(R.string.model_year_value, it.toString()) else it.toString() }).joinToString(" · ")
-            if (subtitle.isNotEmpty()) Text(subtitle, color = colors.onHeroMuted)
-            Spacer(Modifier.height(12.dp))
-            Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.labelLarge, color = colors.onHeroMuted)
-            val reading = snapshot.currentReading
-            if (reading == null) Text(stringResource(R.string.odometer_missing), Modifier.testTag("no_current_reading")) else {
-                Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.displaySmall, modifier = Modifier.testTag("current_km"))
-                Text(LocalDates.text(reading.observedDay, locale), color = colors.onHeroMuted, modifier = Modifier.testTag("current_reading_date"))
-                if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale), style = MaterialTheme.typography.bodySmall)
-                if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded), style = MaterialTheme.typography.bodySmall)
+/** Two tiles side by side: the car on the left, its mileage around the nearest service on the right. */
+@Composable private fun HeroCard(snapshot: GarageSnapshot, dashboard: DashboardState?, today: LocalDate, go: (String) -> Unit) {
+    val colors = LocalAppColors.current; val scheme = MaterialTheme.colorScheme; val locale = uiLocale(); val vehicle = snapshot.vehicle
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Surface(color = colors.hero, contentColor = colors.onHero, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f).fillMaxHeight()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(vehicle.displayName, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("profile_name"))
+                val model = listOfNotNull(vehicle.make, vehicle.model).joinToString(" ")
+                if (model.isNotEmpty()) Text(model, color = colors.onHeroMuted)
+                vehicle.modelYear?.let { Text(stringResource(R.string.model_year_value, it.toString()), color = colors.onHeroMuted, style = MaterialTheme.typography.bodyMedium) }
+                vehicle.registrationNumber?.let { Text(it, style = MaterialTheme.typography.labelLarge) }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { go("vehicle") }, colors = ButtonDefaults.textButtonColors(contentColor = colors.onHero), contentPadding = PaddingValues(0.dp), modifier = Modifier.testTag("edit_car")) { Text(stringResource(R.string.edit_car)) }
             }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { go("reading/new") }, colors = ButtonDefaults.buttonColors(containerColor = colors.onHero, contentColor = colors.hero), modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
-                TextButton(onClick = { go("readings") }, colors = ButtonDefaults.textButtonColors(contentColor = colors.onHero), modifier = Modifier.testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
+        }
+        Surface(color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = Modifier.weight(1f).fillMaxHeight()) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                // Mileage at the most recent recorded service, the selected current reading, and the nearest distance limit.
+                val previous = snapshot.history.firstNotNullOfOrNull { it.reading }
+                OdometerLine(stringResource(R.string.previous_service_km), previous?.let { formattedKm(it.km, locale) + " km" }, scheme.onSurface)
+                Spacer(Modifier.height(4.dp))
+                Text(stringResource(R.string.current_odometer), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+                val reading = snapshot.currentReading
+                if (reading == null) Text(stringResource(R.string.odometer_missing), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.testTag("no_current_reading")) else {
+                    Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.testTag("current_km"))
+                    Text(LocalDates.text(reading.observedDay, locale), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, modifier = Modifier.testTag("current_reading_date"))
+                }
+                Spacer(Modifier.height(4.dp))
+                val next = dashboard?.takeIf { !it.calculationUnavailable }?.tasks?.filter { it.dueKm != null }?.minByOrNull { it.dueKm!! }
+                OdometerLine(stringResource(R.string.next_limit_km), next?.dueKm?.let { formattedKm(it.toLong(), locale) + " km" }, next?.let { colors.status(it.category).accent } ?: scheme.onSurface)
+                next?.let { Text(workLabel(WorkInput(it.task.action.code, it.task.operation.code)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
         }
     }
+    snapshot.currentReading?.let { reading ->
+        if (today.toEpochDay() - reading.observedDay > AppPolicy.ODOMETER_STALE_AFTER_DAYS) Text(stringResource(R.string.odometer_stale), style = MaterialTheme.typography.bodySmall)
+        if (reading.exceptionReason.isNotEmpty()) Text(stringResource(R.string.exception_recorded), style = MaterialTheme.typography.bodySmall)
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilledTonalButton(onClick = { go("reading/new") }, modifier = Modifier.weight(1f).testTag("add_reading")) { Text(stringResource(R.string.update_odometer)) }
+        TextButton(onClick = { go("readings") }, modifier = Modifier.weight(1f).testTag("reading_history")) { Text(stringResource(R.string.reading_history)) }
+    }
+}
+
+@Composable private fun OdometerLine(label: String, value: String?, color: androidx.compose.ui.graphics.Color) {
+    Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(value ?: stringResource(R.string.no_value), style = MaterialTheme.typography.titleMedium, color = color)
 }
 
 @Composable private fun ActionTile(label: String, icon: ImageVector, primary: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
