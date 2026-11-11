@@ -351,4 +351,5 @@
     <string name="next_limit_km">Neste frist</string>
     <string name="no_value">—</string>
     <string name="app_version">Versjon %1$s</string>
+    <string name="getting_started">Ingenting å beregne ennå. Den raskeste starten er å legge inn det bilens egen serviceindikator viser. Du kan også legge inn dine egne intervaller; de er dine innstillinger, ikke produsentens anbefalinger.</string>
 </resources>

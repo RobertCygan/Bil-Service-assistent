@@ -354,4 +354,5 @@
     <string name="next_limit_km">Next limit</string>
     <string name="no_value">—</string>
     <string name="app_version">Version %1$s</string>
+    <string name="getting_started">Nothing to calculate yet. The quickest start is to enter what your car\'s own service display shows. You can also add your own intervals; they are your settings, not manufacturer recommendations.</string>
 </resources>

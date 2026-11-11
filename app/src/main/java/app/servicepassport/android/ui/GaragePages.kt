@@ -59,7 +59,7 @@ import java.time.LocalDate
             if (dashboard != null) {
                 if (dashboard.calculationUnavailable) NoteCard(stringResource(R.string.dashboard_unavailable)) else {
                     DashboardCounts(dashboard)
-                    if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
+                    if (dashboard.tasks.isEmpty()) GettingStarted(go)
                     dashboard.tasks.sortedBy { it.category.ordinal }.take(3).forEach { task -> TaskCard(task, compact = true) { go("forecast/${android.net.Uri.encode(task.id)}") } }
                 }
             }
@@ -148,6 +148,17 @@ import java.time.LocalDate
 @Composable private fun FittingText(text: String, style: TextStyle, color: Color, smallest: TextUnit, modifier: Modifier = Modifier) {
     BasicText(text, modifier, style.copy(color = color), maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(minFontSize = smallest, maxFontSize = style.fontSize, stepSize = 1.sp))
+}
+
+/** A new car has nothing to calculate from. Both ways of getting a first result are one tap away. */
+@Composable private fun GettingStarted(go: (String) -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth().testTag("getting_started")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.getting_started), style = MaterialTheme.typography.bodyMedium)
+            Button(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("start_indicator")) { Text(stringResource(R.string.indicator_title)) }
+            OutlinedButton(onClick = { go("interval/new") }, modifier = Modifier.fillMaxWidth().testTag("start_interval")) { Text(stringResource(R.string.add_interval)) }
+        }
+    }
 }
 
 @Composable private fun OdometerGroup(label: String, content: @Composable ColumnScope.() -> Unit) {

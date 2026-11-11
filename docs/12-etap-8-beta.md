@@ -18,7 +18,7 @@ Etap 8 **nie jest ukończony**: bez testu na telefonie nie można uznać aplikac
 
 | Zestaw | Liczba testów | Gdzie działa |
 | --- | --- | --- |
-| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 153 | JVM (Robolectric) |
+| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 154 | JVM (Robolectric) |
 | Aplikacja — testy na emulatorze (start, migracje bazy, pliki dokumentów, prawdziwy ML Kit, brak sieci, kopia z hasłem przez ekran ustawień) | 9 | Emulator w CI, API 26 i nowsze |
 | Silnik (obliczenia, ekstrakcja, przypomnienia, eksport, szyfrowanie, VIN) | 113 | JVM |
 | Wspólny kontrakt | 3 | JVM |
