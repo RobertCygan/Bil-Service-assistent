@@ -344,4 +344,10 @@
     <string name="import_pending">You started reading a document and did not finish. The copy is still on this phone; your choices on the review screen were not kept.</string>
     <string name="import_resume">Read it again</string>
     <string name="import_discard">Discard the document</string>
+    <string name="see_all">See all</string>
+    <string name="km_left">%1$s km left</string>
+    <string name="km_over">%1$s km over</string>
+    <string name="days_left">%1$s days left</string>
+    <string name="days_over">%1$s days over</string>
+    <string name="documents_count">Documents: %1$d</string>
 </resources>

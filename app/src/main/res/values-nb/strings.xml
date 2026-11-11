@@ -341,4 +341,10 @@
     <string name="import_pending">Du begynte å lese et dokument og ble ikke ferdig. Kopien ligger fortsatt på denne telefonen; valgene dine på kontrollskjermen ble ikke lagret.</string>
     <string name="import_resume">Les det på nytt</string>
     <string name="import_discard">Forkast dokumentet</string>
+    <string name="see_all">Se alle</string>
+    <string name="km_left">%1$s km igjen</string>
+    <string name="km_over">%1$s km over</string>
+    <string name="days_left">%1$s dager igjen</string>
+    <string name="days_over">%1$s dager over</string>
+    <string name="documents_count">Dokumenter: %1$d</string>
 </resources>

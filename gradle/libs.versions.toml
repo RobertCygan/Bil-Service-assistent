@@ -18,6 +18,7 @@ espresso = "3.6.1"
 serialization = "1.8.1"
 work = "2.10.0"
 mlkitText = "16.0.1"
+roborazzi = "1.46.1"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
@@ -46,6 +47,8 @@ androidx-test-espresso = { module = "androidx.test.espresso:espresso-core", vers
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 mlkit-text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitText" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
