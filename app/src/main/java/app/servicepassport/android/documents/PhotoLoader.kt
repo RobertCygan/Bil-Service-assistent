@@ -37,7 +37,9 @@ object PhotoLoader {
     fun load(context: Context, uri: Uri, maxSide: Int = MAX_SIDE): LoadedPhoto {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: throw IOException("cannot open")
+        // Asking only for the size returns no bitmap, so the result of this call says nothing; the size is checked below.
+        val header = resolver.openInputStream(uri) ?: throw IOException("cannot open")
+        header.use { BitmapFactory.decodeStream(it, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) throw IOException("not an image")
         val orientation = try {
             resolver.openInputStream(uri)?.use { ExifInterface(it).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL) }
