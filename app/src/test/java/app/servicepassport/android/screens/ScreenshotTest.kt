@@ -78,6 +78,7 @@ class ScreenshotTest {
         compose.setContent { CarServiceApp(repository, reminders, dataFiles = files, documents = reader, documentStore = store) }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
         fun back() = tab("back")
+        shot("all-overview")
         open("open_dashboard")
         compose.onAllNodes(hasText("Cabin filter · Replacement") and hasClickAction()).onFirst().performScrollTo().performClick(); compose.waitForIdle()
         shot("all-forecast"); back()

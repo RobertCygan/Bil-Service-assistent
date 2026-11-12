@@ -177,18 +177,16 @@ class SettingsAndFormsFlowTest {
         compose.onAllNodesWithTag("confirmed_work").assertCountEquals(1)
     }
 
-    @Test fun theLanguageSwitchAtTheTopIsOneTapOnTheMainScreensOnly() {
+    @Test fun theLanguageIsChangedInTheSettings() {
         start()
         compose.await("profile_name")
-        compose.onNodeWithTag("switch_language_en").assertIsSelected()
-        compose.tap("switch_language_nb")
+        compose.onAllNodesWithTag("switch_language_nb").assertCountEquals(0)
+        compose.tap("nav_settings"); compose.await("language_nb")
+        compose.click("language_nb")
         try {
             assertEquals("nb-NO", androidx.appcompat.app.AppCompatDelegate.getApplicationLocales().toLanguageTags())
             assertEquals("the choice is remembered for notifications too", "Oversikt", app.servicepassport.android.AppLanguage.localized(context).getString(R.string.overview))
         } finally { androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(androidx.core.os.LocaleListCompat.getEmptyLocaleList()) }
-        // A form is not the place to change the language of what is being typed.
-        compose.click("add_service"); compose.await("save_service")
-        compose.onAllNodesWithTag("switch_language_nb").assertCountEquals(0)
     }
 
     @Test fun aCarWithNothingToCalculateFromIsPointedToBothWaysOfGettingAResult() {

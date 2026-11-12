@@ -18,7 +18,7 @@ Etap 8 **nie jest ukończony**: bez testu na telefonie nie można uznać aplikac
 
 | Zestaw | Liczba testów | Gdzie działa |
 | --- | --- | --- |
-| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 197 | JVM (Robolectric) |
+| Aplikacja — testy jednostkowe (baza, historia, pulpit, przypomnienia, kopia, dokumenty, katalog, prywatność) oraz testy przepływów przez prawdziwe ekrany z atrapą okien systemowych | 200 | JVM (Robolectric) |
 | Aplikacja — testy na emulatorze (start, migracje bazy, pliki dokumentów, prawdziwy ML Kit na pliku PDF, na zdjęciu zapisanym bokiem i na narysowanym zestawie wskaźników, brak sieci, kopia z hasłem przez ekran ustawień) | 12 | Emulator w CI, API 26 i nowsze |
 | Silnik (obliczenia, ekstrakcja, przypomnienia, eksport, szyfrowanie, VIN) | 113 | JVM |
 | Wspólny kontrakt | 3 | JVM |
@@ -58,7 +58,7 @@ Instalacja: plik `app-debug.apk` z artefaktów CI. Wszystkie dane testowe wymyś
 2. **Auto** — podpowiedzi marki i modelu pojawiają się podczas pisania; błędny VIN daje komunikat; zapis działa.
 3. **Przebieg i wpis serwisowy** — dodanie odczytu, dodanie wpisu ręcznie, edycja, usunięcie.
 4. **Własny interwał i pulpit** — po dodaniu interwału pulpit pokazuje termin; bez interwału pokazuje brak potwierdzonego harmonogramu.
-4a. **Zdjęcie licznika** — w formularzu przebiegu „Zrób zdjęcie licznika”: po zdjęciu zegarów liczba pojawia się w polu; sprawdzić na własnym aucie przy świetle dziennym i w nocy, z bliska i z miejsca kierowcy; błędny odczyt da się poprawić ręcznie albo wybrać inną liczbę z tego samego zdjęcia.
+4a. **Zdjęcie licznika** — ikona aparatu w prawym górnym rogu albo dotknięcie przebiegu na ekranie głównym otwiera aparat (także przycisk w formularzu przebiegu): po zdjęciu zegarów liczba pojawia się w polu; sprawdzić na własnym aucie przy świetle dziennym i w nocy, z bliska i z miejsca kierowcy; błędny odczyt da się poprawić ręcznie albo wybrać inną liczbę z tego samego zdjęcia.
 5. **Wskaźnik serwisowy** — wpisanie odczytu z wyświetlacza auta zmienia pulpit.
 6. **Dokument z pliku** — wybór zdjęcia i PDF; ekran sprawdzenia pokazuje datę, przebieg i pozycje ze źródłem; zapis wpisu.
 7. **Zdjęcie aparatem** — przycisk otwiera aparat; po zrobieniu zdjęcia pojawia się ekran sprawdzenia. Sprawdzić też z telefonem obróconym poziomo podczas robienia zdjęcia oraz obrót telefonu na ekranie sprawdzenia i w formularzu wpisu — dokument nie może zniknąć.

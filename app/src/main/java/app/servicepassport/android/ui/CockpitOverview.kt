@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -184,17 +185,24 @@ private var introPlayed = false
             }
 
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(stringResource(R.string.current_odometer).uppercase(), color = Cockpit.muted, fontSize = 11.sp, letterSpacing = 2.sp)
+                // Every line about the mileage opens the camera for a photo of the odometer. Each line stays its own
+                // element, so it can still be read and found on its own.
+                val photo = stringResource(R.string.odometer_photo)
+                val toCamera = Modifier.clip(MaterialTheme.shapes.extraSmall).clickable(onClickLabel = photo, role = Role.Button) { go("reading/photo") }
+                Row(toCamera.testTag("odometer_label"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(painterResource(R.drawable.ic_camera), contentDescription = null, tint = Cockpit.cyan, modifier = Modifier.size(14.dp))
+                    Text(stringResource(R.string.current_odometer).uppercase(), color = Cockpit.muted, fontSize = 11.sp, letterSpacing = 2.sp)
+                }
                 val reading = snapshot.currentReading
-                if (reading == null) Text(stringResource(R.string.odometer_missing), color = Cockpit.text, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("no_current_reading")) else {
+                if (reading == null) Text(stringResource(R.string.odometer_missing), color = Cockpit.cyan, style = MaterialTheme.typography.titleMedium, modifier = toCamera.testTag("no_current_reading").padding(vertical = 10.dp, horizontal = 8.dp)) else {
                     BasicText(
                         buildAnnotatedString {
                             append(formattedKm(reading.km, locale))
                             withStyle(SpanStyle(fontSize = 16.sp, fontWeight = FontWeight.Normal, color = Cockpit.muted)) { append(" km") }
                         },
-                        Modifier.testTag("current_km"), TextStyle(color = Cockpit.text, fontSize = 44.sp, fontWeight = FontWeight.Bold), maxLines = 1, softWrap = false,
+                        toCamera.testTag("current_km"), TextStyle(color = Cockpit.text, fontSize = 44.sp, fontWeight = FontWeight.Bold), maxLines = 1, softWrap = false,
                     )
-                    Text(LocalDates.text(reading.observedDay, locale), color = Cockpit.muted, fontSize = 12.sp, modifier = Modifier.testTag("current_reading_date"))
+                    Text(LocalDates.text(reading.observedDay, locale), color = Cockpit.muted, fontSize = 12.sp, modifier = toCamera.testTag("current_reading_date"))
                 }
             }
 

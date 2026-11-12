@@ -59,7 +59,10 @@ class OdometerPhotoFlowTest {
     }
     @After fun cleanup() { store.deleteAll(); db.close(); context.deleteDatabase(name) }
 
-    private fun start(seen: List<String>, photoTaken: Boolean = true) {
+    private fun start(seen: List<String>, photoTaken: Boolean = true) { open(seen, photoTaken); compose.click("add_reading"); compose.await("odometer_photo") }
+
+    /** The app on its first screen, with a camera that "takes" a photo showing [seen]. */
+    private fun open(seen: List<String>, photoTaken: Boolean = true) {
         val camera = Answering { contract, input ->
             if (contract !is ActivityResultContracts.TakePicture) null
             else if (!photoTaken) false
@@ -67,7 +70,6 @@ class OdometerPhotoFlowTest {
         }
         compose.setAppContent(camera) { CarServiceApp(repository, documents = DocumentAnalyzer(context, Shows(seen)), documentStore = store) }
         compose.await("profile_name")
-        compose.click("add_reading"); compose.await("odometer_photo")
     }
     private fun currentKm() = runBlocking { requireNotNull(db.vehicles().garage(requireNotNull(db.vehicles().getProfile()).id)).currentReading?.km }
     private fun photoFile() = File(context.filesDir, "${DocumentStore.STAGED}/odometer.jpg")
@@ -81,6 +83,35 @@ class OdometerPhotoFlowTest {
         compose.click("save_reading"); compose.await("profile_name")
         compose.awaitText("current_km", "93,231 km")
         assertEquals(93_231L, currentKm())
+    }
+
+    @Test fun theCameraSymbolAtTheTopGoesStraightToThePhotoAndTheNumber() {
+        open(cluster)
+        compose.tap("scan_odometer"); compose.await("odometer_photo_result")
+        compose.onNodeWithTag("reading_km").assertTextContains("93231")
+        assertEquals("the number still waits for the driver", 92_480L, currentKm())
+        compose.click("save_reading"); compose.await("profile_name")
+        compose.awaitText("current_km", "93,231 km")
+    }
+
+    @Test fun theMileageOnTheFirstScreenIsAWayToTheCameraToo() {
+        open(cluster)
+        compose.onNodeWithTag("current_km").assertHasClickAction()
+        compose.onNodeWithTag("odometer_label").assertHasClickAction()
+        compose.click("current_km"); compose.await("odometer_photo_result")
+        compose.onNodeWithTag("reading_km").assertTextContains("93231")
+    }
+
+    @Test fun theCameraSymbolIsOnEveryMainScreenAndNotInsideForms() {
+        open(cluster, photoTaken = false)
+        compose.onNodeWithTag("scan_odometer").assertExists()
+        compose.tap("nav_history"); compose.await("add_service"); compose.onNodeWithTag("scan_odometer").assertExists()
+        compose.tap("nav_settings"); compose.await("language_nb"); compose.onNodeWithTag("scan_odometer").assertExists()
+        // Leaving the camera without a photo lands on the form, where the number can be typed.
+        compose.tap("scan_odometer"); compose.await("reading_km")
+        compose.onAllNodesWithTag("odometer_photo_result").assertCountEquals(0)
+        compose.onAllNodesWithTag("scan_odometer").assertCountEquals(0)
+        assertEquals(92_480L, currentKm())
     }
 
     @Test fun anotherNumberFromTheSamePhotoIsOneTapAway() {
