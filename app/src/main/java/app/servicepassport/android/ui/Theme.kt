@@ -6,6 +6,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.servicepassport.engine.Category
 
 /** Colours of one urgency group: a strong accent, and a soft container with readable text on it. */
@@ -24,7 +25,7 @@ data class AppColors(
 // One dark scheme, built from the colours of the owner's design. The design has no light version.
 private val CockpitScheme = darkColorScheme(
     primary = Color(0xFF3FD9F7), onPrimary = Color(0xFF00222B), primaryContainer = Color(0xFF0D3A47), onPrimaryContainer = Color(0xFFC8F4FD),
-    secondary = Color(0xFF9FB4C9), onSecondary = Color(0xFF0E1C2A), secondaryContainer = Color(0xFF1A2B3D), onSecondaryContainer = Color(0xFFD5E3F1),
+    secondary = Color(0xFF9FB4C9), onSecondary = Color(0xFF0E1C2A), secondaryContainer = Color(0xFF0F3F4D), onSecondaryContainer = Color(0xFFC8F4FD),
     tertiary = Color(0xFFFFA42B), onTertiary = Color(0xFF3A2200), tertiaryContainer = Color(0xFF4A2F06), onTertiaryContainer = Color(0xFFFFDFB3),
     background = Color(0xFF060A12), onBackground = Color(0xFFF3F6FA), surface = Color(0xFF060A12), onSurface = Color(0xFFF3F6FA),
     surfaceVariant = Color(0xFF1B2939), onSurfaceVariant = Color(0xFFA9B5C3),
@@ -51,7 +52,7 @@ private val AppShapes = Shapes(
 private val AppTypography = Typography().let { base ->
     base.copy(
         displaySmall = base.displaySmall.copy(fontWeight = FontWeight.SemiBold),
-        headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.SemiBold),
+        headlineMedium = base.headlineMedium.copy(fontWeight = FontWeight.Bold, fontSize = 26.sp, lineHeight = 32.sp),
         headlineSmall = base.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
         titleLarge = base.titleLarge.copy(fontWeight = FontWeight.SemiBold),
         titleMedium = base.titleMedium.copy(fontWeight = FontWeight.SemiBold),

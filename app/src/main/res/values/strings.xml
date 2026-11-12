@@ -364,4 +364,5 @@
         <item quantity="one">day</item>
         <item quantity="other">days</item>
     </plurals>
+    <string name="current_odometer_short">Odometer</string>
 </resources>

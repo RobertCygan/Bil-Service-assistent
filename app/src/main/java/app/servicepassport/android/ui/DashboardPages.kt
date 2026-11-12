@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.Alignment
@@ -90,7 +91,7 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
         CatalogState.INVALID_CATALOG -> R.string.catalog_unavailable
         CatalogState.MATCHED -> R.string.catalog_not_available
     }
-    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+    Panel(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -124,27 +125,27 @@ private fun originResource(origin: TaskOrigin): Int = when (origin) {
     if (state.loading) { CircularProgressIndicator(); return@Page }
     if (state.problem == StorageProblem.READ) {
         Text(stringResource(R.string.read_error))
-        Button(onClick = retry) { Text(stringResource(R.string.retry)) }
+        PrimaryButton(onClick = retry) { Text(stringResource(R.string.retry)) }
         return@Page
     }
     if (state.profile == null || dashboard == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     Text(requireNotNull(state.profile).displayName, color = MaterialTheme.colorScheme.onSurfaceVariant)
     if (dashboard.calculationUnavailable) {
         NoteCard(stringResource(R.string.dashboard_unavailable))
-        Button(onClick = retry) { Text(stringResource(R.string.retry)) }
+        PrimaryButton(onClick = retry) { Text(stringResource(R.string.retry)) }
         return@Page
     }
     // The missing manufacturer schedule is the first thing to know about every figure below.
     CatalogNotice(dashboard, go)
     DashboardCounts(dashboard)
-    FilledTonalButton(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
-    OutlinedButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
+    QuietButton(onClick = { go("intervals") }, modifier = Modifier.fillMaxWidth().testTag("manage_intervals")) { Text(stringResource(R.string.your_intervals)) }
+    QuietButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("open_indicator")) { Text(stringResource(R.string.indicator_title)) }
     if (dashboard.tasks.isEmpty()) NoteCard(stringResource(R.string.no_intervals_yet))
     Category.entries.forEach { category ->
         val tasks = dashboard.tasks.filter { it.category == category }
         if (tasks.isNotEmpty()) {
             Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.titleLarge, color = LocalAppColors.current.status(category).accent)
-            tasks.forEach { task -> TaskCard(task, compact = false, modifier = Modifier.testTag("forecast_${task.id}")) { go("forecast/${Uri.encode(task.id)}") } }
+            tasks.forEach { task -> TaskCard(task, modifier = Modifier.testTag("forecast_${task.id}")) { go("forecast/${Uri.encode(task.id)}") } }
         }
     }
 }
@@ -166,26 +167,19 @@ internal fun usedFraction(task: DashboardTask): Float? {
     return parts.takeIf { it.isNotEmpty() }?.joinToString(" · ")
 }
 
-/** One service task: what it is, how urgent, and how much of the interval is used. */
-@Composable internal fun TaskCard(task: DashboardTask, compact: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+/** One service task: what it is, how urgent, and how much of the interval is used. The panel is lit in the colour of its group. */
+@Composable internal fun TaskCard(task: DashboardTask, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val palette = LocalAppColors.current.status(task.category); val scheme = MaterialTheme.colorScheme
-    Surface(onClick = onClick, color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = modifier.fillMaxWidth()) {
-        Column(
-            Modifier.drawBehind { drawRect(palette.accent, size = Size(6.dp.toPx(), size.height)) }.padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Panel(modifier.fillMaxWidth(), accent = palette.accent, lit = task.category == Category.OVERDUE, onClick = onClick) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.size(9.dp).background(palette.accent, CircleShape))
                 Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                if (compact) Surface(color = palette.container, contentColor = palette.onContainer, shape = MaterialTheme.shapes.extraSmall) {
-                    Text(stringResource(categoryResource(task.category)), style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                }
             }
             remainingText(task)?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = palette.accent) }
-            usedFraction(task)?.let { LinearProgressIndicator(progress = { it }, color = palette.accent, trackColor = palette.container, drawStopIndicator = {}, modifier = Modifier.fillMaxWidth().height(6.dp)) }
-            if (!compact) {
-                Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
-                DueValues(task)
-            } else if (task.dueKm == null && task.dueDate == null) Text(stringResource(R.string.no_confirmed_due_value), style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant)
+            usedFraction(task)?.let { LinearProgressIndicator(progress = { it }, color = palette.accent, trackColor = palette.accent.copy(alpha = 0.18f), drawStopIndicator = {}, modifier = Modifier.fillMaxWidth().height(6.dp)) }
+            Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.labelMedium, color = scheme.onSurfaceVariant)
+            DueValues(task)
             task.reasons.forEach { Text(stringResource(reasonResource(it)), style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant) }
         }
     }
@@ -205,19 +199,25 @@ internal fun usedFraction(task: DashboardTask): Float? {
     if (task == null) { Text(stringResource(R.string.entry_not_found)); return@Page }
     val locale = uiLocale()
     Text(workLabel(WorkInput(task.task.action.code, task.task.operation.code)), style = MaterialTheme.typography.headlineMedium)
-    Text(stringResource(categoryResource(task.category)), style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("forecast_category"))
-    Text(stringResource(originResource(task.origin)))
+    val accent = LocalAppColors.current.status(task.category).accent
+    Group(accent = accent, lit = task.category == Category.OVERDUE) {
+        Text(stringResource(categoryResource(task.category)), style = MaterialTheme.typography.titleLarge, color = accent, modifier = Modifier.testTag("forecast_category"))
+        remainingText(task)?.let { Text(it, style = MaterialTheme.typography.bodyLarge, color = accent) }
+        usedFraction(task)?.let { LinearProgressIndicator(progress = { it }, color = accent, trackColor = accent.copy(alpha = 0.18f), drawStopIndicator = {}, modifier = Modifier.fillMaxWidth().height(6.dp)) }
+        DueValues(task)
+        task.remainingKm?.let { Text(stringResource(R.string.distance_to_due, formattedKm(it.toLong(), locale)), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
+        task.remainingDays?.let { Text(stringResource(R.string.days_to_due, it.toString()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
+    }
+    SectionLabel(stringResource(originResource(task.origin)))
     when (task.origin) {
         TaskOrigin.USER -> NoteCard(stringResource(R.string.user_interval_explanation))
         TaskOrigin.VEHICLE_DISPLAY -> NoteCard(stringResource(R.string.indicator_explanation))
         TaskOrigin.MANUFACTURER -> Text(stringResource(R.string.source_version, task.source.title, task.source.version, LocalDates.text(task.source.verifiedOn.toEpochDay(), locale)))
     }
-    DueValues(task)
-    task.remainingKm?.let { Text(stringResource(R.string.distance_to_due, formattedKm(it.toLong(), locale))) }
-    task.remainingDays?.let { Text(stringResource(R.string.days_to_due, it.toString())) }
     task.reasons.forEach { NoteCard(stringResource(reasonResource(it))) }
-    Text(stringResource(R.string.calculation_basis), style = MaterialTheme.typography.titleLarge)
     val basis = task.basis
+    Group {
+    Text(stringResource(R.string.calculation_basis), style = MaterialTheme.typography.titleMedium)
     if (basis == null) Text(stringResource(R.string.no_confirmed_due_value)) else {
         Text(stringResource(when (basis.anchorKind) { AnchorKind.LAST_CONFIRMED_TASK -> R.string.basis_confirmed_action; AnchorKind.VEHICLE_START -> R.string.basis_vehicle_start; AnchorKind.VEHICLE_INDICATOR -> R.string.basis_indicator }))
         basis.anchorDate?.let { Text(LocalDates.text(it.toEpochDay(), locale)) }
@@ -235,11 +235,12 @@ internal fun usedFraction(task: DashboardTask): Float? {
         }
         basis.odometerUsed?.let { Text(stringResource(R.string.basis_current_reading, formattedKm(it.km.toLong(), locale), LocalDates.text(it.date.toEpochDay(), locale))) }
     }
+    }
     task.estimatedMonth?.let { month ->
         NoteCard(stringResource(R.string.estimated_month, month.format(DateTimeFormatter.ofPattern("LLLL uuuu", Locale.forLanguageTag(locale)))))
     }
-    Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_service)) }
-    OutlinedButton(onClick = { go("reading/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.update_odometer)) }
+    PrimaryButton(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.add_service)) }
+    QuietButton(onClick = { go("reading/new") }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.update_odometer)) }
     if (task.origin == TaskOrigin.USER) TextButton(onClick = { go("interval/edit/${task.id.removePrefix("user:")}") }) { Text(stringResource(R.string.edit_interval)) }
     if (task.origin == TaskOrigin.VEHICLE_DISPLAY || task.task.taskCode == "inspection_service:inspect") TextButton(onClick = { go("indicator") }) { Text(stringResource(R.string.indicator_title)) }
 }

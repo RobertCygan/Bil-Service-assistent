@@ -361,4 +361,5 @@
         <item quantity="one">dag</item>
         <item quantity="other">dager</item>
     </plurals>
+    <string name="current_odometer_short">Kilometerstand</string>
 </resources>

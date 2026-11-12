@@ -124,16 +124,16 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken -> if (taken && store != null) read(store.cameraUri()) }
     NoteCard(stringResource(R.string.import_explanation))
     session.pending?.takeIf { !busy && session.analysis !is DocumentAnalysis.Ready }?.let { document ->
-        OutlinedCard(Modifier.fillMaxWidth().testTag("import_pending")) {
+        Panel(Modifier.fillMaxWidth().testTag("import_pending")) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.import_pending))
-                Button(onClick = { session.resume(analyzer, document, vehicle, today) }, modifier = Modifier.testTag("import_resume")) { Text(stringResource(R.string.import_resume)) }
+                PrimaryButton(onClick = { session.resume(analyzer, document, vehicle, today) }, modifier = Modifier.testTag("import_resume")) { Text(stringResource(R.string.import_resume)) }
                 TextButton(onClick = { session.discardPending() }) { Text(stringResource(R.string.import_discard)) }
             }
         }
     }
-    Button(onClick = { pick.launch(arrayOf("image/*", "application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("pick_document")) { Text(stringResource(R.string.import_pick)) }
-    if (store != null) OutlinedButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("take_photo"), onClick = {
+    PrimaryButton(onClick = { pick.launch(arrayOf("image/*", "application/pdf")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("pick_document")) { Text(stringResource(R.string.import_pick)) }
+    if (store != null) QuietButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("take_photo"), onClick = {
         // Nothing is given up until a photo has actually been taken and read.
         noCamera = false
         try { camera.launch(store.cameraTarget()) } catch (_: Exception) { noCamera = true }
@@ -209,7 +209,7 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     if (draft.items.isEmpty()) Text(stringResource(R.string.import_no_items))
     draft.items.forEachIndexed { index, item ->
         val task = ImportReview.contractTask(item)
-        OutlinedCard(Modifier.fillMaxWidth().testTag("import_item")) {
+        Panel(Modifier.fillMaxWidth().testTag("import_item")) {
             Row(Modifier.padding(8.dp)) {
                 Checkbox(checked = index in choice.selectedItems, enabled = task != null, onCheckedChange = { on -> choice = choice.copy(selectedItems = if (on) choice.selectedItems + index else choice.selectedItems - index) })
                 Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -247,7 +247,7 @@ private fun stateMessage(state: FieldState): Int = when (state) {
     if (ConfirmationError.WARNING_NOT_ACKNOWLEDGED in errors) Text(stringResource(R.string.import_error_acknowledge), color = MaterialTheme.colorScheme.error)
     if (ConfirmationError.NO_TASKS in errors) Text(stringResource(R.string.import_error_no_items), color = MaterialTheme.colorScheme.error)
     if ((errors - ConfirmationError.WARNING_NOT_ACKNOWLEDGED - ConfirmationError.NO_TASKS).isNotEmpty()) Text(stringResource(R.string.import_error_values), color = MaterialTheme.colorScheme.error)
-    Button(modifier = Modifier.fillMaxWidth().testTag("import_continue"), onClick = {
+    PrimaryButton(modifier = Modifier.fillMaxWidth().testTag("import_continue"), onClick = {
         when (val result = ImportReview.prefill(draft, choice, today)) {
             is ReviewResult.Ready -> { errors = emptySet(); onContinue(result.prefill, keep && staged != null) }
             is ReviewResult.Blocked -> errors = result.errors

@@ -21,13 +21,13 @@ import java.util.UUID
     if (state.loading) { CircularProgressIndicator(); return@Page }
     if (state.problem == StorageProblem.READ) { Text(stringResource(R.string.read_error)); return@Page }
     val snapshot = state.snapshot ?: return@Page
-    Button(onClick = { go("interval/new") }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("add_interval")) { Text(stringResource(R.string.add_interval)) }
+    PrimaryButton(onClick = { go("interval/new") }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("add_interval")) { Text(stringResource(R.string.add_interval)) }
     TextButton(onClick = { go("dashboard") }, modifier = Modifier.testTag("view_dashboard")) { Text(stringResource(R.string.service_overview)) }
     ErrorPanel(state)
     if (snapshot.intervals.isEmpty()) Text(stringResource(R.string.no_intervals_yet))
     var deleting by remember { mutableStateOf<UserIntervalEntity?>(null) }
     snapshot.intervals.sortedBy { it.actionCode + ":" + it.operationCode }.forEach { interval ->
-        OutlinedCard(Modifier.fillMaxWidth().testTag("interval_entry")) {
+        Panel(Modifier.fillMaxWidth().testTag("interval_entry")) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(workLabel(WorkInput(interval.actionCode, interval.operationCode)), style = MaterialTheme.typography.titleMedium)
                 interval.distanceKm?.let { Text(stringResource(R.string.interval_km_value, formattedKm(it.toLong(), uiLocale()))) }
@@ -82,7 +82,7 @@ import java.util.UUID
     Text(stringResource(R.string.interval_input_help), style = MaterialTheme.typography.bodySmall)
     Text(stringResource(R.string.interval_anchor_help), style = MaterialTheme.typography.bodySmall)
     ErrorPanel(state, issue)
-    Button(enabled = !state.saving, onClick = {
+    PrimaryButton(enabled = !state.saving, onClick = {
         try {
             val km = try { LocalNumbers.kilometers(distance, locale)?.toInt() } catch (_: InputRejected) { throw InputRejected(InputProblem.INVALID_INTERVAL) }
             val time = try { LocalNumbers.kilometers(months, locale)?.toInt() } catch (_: InputRejected) { throw InputRejected(InputProblem.INVALID_INTERVAL) }

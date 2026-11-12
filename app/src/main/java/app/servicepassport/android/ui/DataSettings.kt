@@ -61,9 +61,9 @@ private fun outcomeMessage(outcome: DataOutcome): Int = when (outcome) {
                     isError = problem != null, supportingText = { problem?.let { Text(stringResource(if (it == PasswordProblem.TOO_SHORT) R.string.data_password_too_short else R.string.data_password_mismatch, DataFiles.MIN_PASSWORD_LENGTH)) } })
                 NoteCard(stringResource(R.string.data_password_warning))
             } else Text(stringResource(R.string.data_unencrypted_note), style = MaterialTheme.typography.bodySmall)
-            Button(onClick = { create.launch(files.suggestedName()) }, enabled = !busy && problem == null, modifier = Modifier.fillMaxWidth().testTag("backup_save")) { Text(stringResource(R.string.data_backup_save)) }
+            PrimaryButton(onClick = { create.launch(files.suggestedName()) }, enabled = !busy && problem == null, modifier = Modifier.fillMaxWidth().testTag("backup_save")) { Text(stringResource(R.string.data_backup_save)) }
         }
-        OutlinedButton(onClick = { open.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("backup_restore")) { Text(stringResource(R.string.data_restore)) }
+        QuietButton(onClick = { open.launch(arrayOf("application/zip", "application/octet-stream", "*/*")) }, enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("backup_restore")) { Text(stringResource(R.string.data_restore)) }
         if (hasVehicle) TextButton(onClick = { confirmDelete = true }, enabled = !busy, modifier = Modifier.testTag("delete_all")) { Text(stringResource(R.string.data_delete_all), color = MaterialTheme.colorScheme.error) }
         if (busy) CircularProgressIndicator()
         outcome?.let { Text(stringResource(outcomeMessage(it)), Modifier.testTag("data_outcome"), color = if (it in setOf(DataOutcome.BACKUP_SAVED, DataOutcome.RESTORED, DataOutcome.DELETED)) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error) }
