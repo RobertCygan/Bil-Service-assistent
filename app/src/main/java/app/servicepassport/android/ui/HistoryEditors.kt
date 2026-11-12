@@ -71,7 +71,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     if (warnings.isEmpty() && reason.isNotBlank()) OutlinedTextField(value = reason, onValueChange = { reason = it; reviewedToken = null }, label = { Text(stringResource(R.string.exception_reason)) }, modifier = Modifier.fillMaxWidth())
     Text(stringResource(R.string.completed_work), style = MaterialTheme.typography.titleMedium)
     work.forEachIndexed { index, item ->
-        OutlinedCard(Modifier.fillMaxWidth().testTag("work_row")) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Panel(Modifier.fillMaxWidth().testTag("work_row")) { Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             val choices = ServiceAction.entries.map { it.code to stringResource(actionResource(it.code)) } + ("custom" to stringResource(R.string.custom_work))
             Choice(stringResource(R.string.choose_work), if (item.customLabel != null) "custom" else item.actionCode, choices, "work_action_$index") { code ->
                 val updated = if (code == "custom") WorkInput(null, null, "") else {
@@ -89,11 +89,11 @@ private fun decodeWork(raw: String): List<WorkInput> {
             TextButton(onClick = { workJson = encodeWork(work.toMutableList().also { it.removeAt(index) }) }, modifier = Modifier.testTag("remove_work_$index")) { Text(stringResource(R.string.remove_work)) }
         } }
     }
-    OutlinedButton(onClick = { workJson = encodeWork(work + WorkInput(null, null)) }, enabled = work.size < 30, modifier = Modifier.fillMaxWidth().testTag("add_work")) { Text(stringResource(R.string.add_work)) }
+    QuietButton(onClick = { workJson = encodeWork(work + WorkInput(null, null)) }, enabled = work.size < 30, modifier = Modifier.fillMaxWidth().testTag("add_work")) { Text(stringResource(R.string.add_work)) }
     OutlinedTextField(value = cost, onValueChange = { cost = it; issue = null }, singleLine = true, label = { Text(stringResource(R.string.cost_nok)) }, supportingText = { Text(stringResource(R.string.cost_example)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth().testTag("service_cost"))
     OutlinedTextField(value = note, onValueChange = { note = it; issue = null }, label = { Text(stringResource(R.string.notes_optional)) }, minLines = 2, modifier = Modifier.fillMaxWidth().testTag("service_notes"))
     ErrorPanel(state, issue)
-    Button(enabled = !state.saving, onClick = {
+    PrimaryButton(enabled = !state.saving, onClick = {
         try {
             val input = ServiceInput(id, snapshot.vehicle.id, expectedRevision, requireNotNull(LocalDates.day(date, locale, today)), LocalNumbers.kilometers(km, locale), work, LocalNumbers.moneyMinor(cost, locale), note, current, reason, reviewedToken != null, reviewedToken)
             HistoryValidation.service(input, today); issue = null; save(input)
@@ -135,7 +135,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     OdometerReview(warnings, token, reason, reviewedToken, { reason = it }, { reviewedToken = it })
     if (warnings.isEmpty() && reason.isNotBlank()) OutlinedTextField(value = reason, onValueChange = { reason = it; reviewedToken = null }, label = { Text(stringResource(R.string.exception_reason)) }, modifier = Modifier.fillMaxWidth())
     ErrorPanel(state, issue)
-    Button(enabled = !state.saving, onClick = {
+    PrimaryButton(enabled = !state.saving, onClick = {
         try {
             val day = requireNotNull(LocalDates.day(date, locale, today))
             val value = LocalNumbers.kilometers(km, locale) ?: throw InputRejected(InputProblem.INVALID_KM)
@@ -178,7 +178,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     }
     problem?.let { Text(stringResource(when (it) { ProfileProblem.NAME_REQUIRED -> R.string.name_required; ProfileProblem.NAME_TOO_LONG -> R.string.name_too_long; ProfileProblem.INVALID_YEAR -> R.string.invalid_year }), color = MaterialTheme.colorScheme.error) }
     ErrorPanel(state, issue)
-    Button(enabled = !state.saving, onClick = {
+    PrimaryButton(enabled = !state.saving, onClick = {
         problem = ProfileValidation.problem(name, year, today.year)
         if (problem == null) try {
             val firstDate = LocalDates.day(registrationDate, locale, today, true)

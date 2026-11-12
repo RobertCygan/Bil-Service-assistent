@@ -11,6 +11,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -26,11 +28,11 @@ import java.time.LocalDate
     Page {
         when {
             state.loading -> CircularProgressIndicator(Modifier.testTag("loading"))
-            state.problem == StorageProblem.READ -> { Text(stringResource(R.string.read_error)); Button(onClick = retry) { Text(stringResource(R.string.retry)) } }
+            state.problem == StorageProblem.READ -> { Text(stringResource(R.string.read_error)); PrimaryButton(onClick = retry) { Text(stringResource(R.string.retry)) } }
             else -> {
                 Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.welcome_body)); LanguageSelector()
-                Button(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("add_car")) { Text(stringResource(R.string.add_car)) }
+                PrimaryButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("add_car")) { Text(stringResource(R.string.add_car)) }
                 Text(stringResource(R.string.local_storage_note), style = MaterialTheme.typography.bodySmall)
             }
         }
@@ -43,10 +45,10 @@ import java.time.LocalDate
     if (snapshot == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     val scheme = MaterialTheme.colorScheme
     Text(snapshot.vehicle.displayName, color = scheme.onSurfaceVariant)
-    Button(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
+    PrimaryButton(onClick = { go("service/new") }, modifier = Modifier.fillMaxWidth().testTag("add_service")) { Text(stringResource(R.string.add_service)) }
     if (snapshot.events.isEmpty()) { Text(stringResource(R.string.history_empty_title), style = MaterialTheme.typography.titleMedium); Text(stringResource(R.string.history_empty_body), color = scheme.onSurfaceVariant) }
     snapshot.history.forEach { record ->
-        Surface(onClick = { go("service/${record.event.id}") }, color = scheme.surfaceContainerLow, shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, scheme.outlineVariant), modifier = Modifier.fillMaxWidth().testTag("history_entry")) {
+        Panel(Modifier.fillMaxWidth().testTag("history_entry"), onClick = { go("service/${record.event.id}") }) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(LocalDates.text(record.event.performedDay, locale), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -70,24 +72,34 @@ import java.time.LocalDate
     if (record == null) { Text(stringResource(R.string.entry_not_found)); return@Page }
     var askDelete by remember { mutableStateOf(false) }
     Text(stringResource(R.string.service_details), style = MaterialTheme.typography.headlineMedium)
-    Text(LocalDates.text(record.event.performedDay, locale), style = MaterialTheme.typography.titleMedium)
-    Text(record.reading?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.odometer_unknown))
-    Text(stringResource(R.string.completed_work), style = MaterialTheme.typography.titleMedium)
-    record.orderedActions.forEach { Text(workLabel(WorkInput(it.actionCode, it.operationCode, it.customLabel)), Modifier.testTag("confirmed_work")) }
-    Text(record.event.costMinor?.let { formattedMoney(it, locale) } ?: stringResource(R.string.cost_unknown))
-    if (record.event.note.isNotEmpty()) Text(record.event.note, Modifier.testTag("service_note"))
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Figure(stringResource(R.string.service_date), LocalDates.text(record.event.performedDay, locale), Modifier.weight(1f).fillMaxHeight())
+        Figure(stringResource(R.string.current_odometer_short), record.reading?.let { formattedKm(it.km, locale) + " km" } ?: stringResource(R.string.odometer_unknown), Modifier.weight(1f).fillMaxHeight(), accent = Cockpit.cyan)
+    }
+    Group {
+        Text(stringResource(R.string.completed_work), style = MaterialTheme.typography.titleMedium)
+        record.orderedActions.forEach { work ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Box(Modifier.size(8.dp).background(Cockpit.cyan, CircleShape))
+                Text(workLabel(WorkInput(work.actionCode, work.operationCode, work.customLabel)), Modifier.testTag("confirmed_work"))
+            }
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Text(record.event.costMinor?.let { formattedMoney(it, locale) } ?: stringResource(R.string.cost_unknown), style = MaterialTheme.typography.titleMedium)
+        if (record.event.note.isNotEmpty()) Text(record.event.note, Modifier.testTag("service_note"))
+        Text(stringResource(R.string.confirmed_by_you), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     record.reading?.takeIf { it.exceptionReason.isNotEmpty() }?.let { NoteCard(it.exceptionReason) }
-    Text(stringResource(R.string.confirmed_by_you), style = MaterialTheme.typography.bodySmall)
     if (record.documents.isNotEmpty()) {
         var removing by remember { mutableStateOf<String?>(null) }
         var noViewer by remember { mutableStateOf(false) }
         Text(stringResource(R.string.documents_title), style = MaterialTheme.typography.titleMedium)
         record.documents.sortedWith(compareBy({ it.createdAtUtc }, { it.id })).forEach { document ->
-            OutlinedCard(Modifier.fillMaxWidth().testTag("service_document")) {
+            Panel(Modifier.fillMaxWidth().testTag("service_document")) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.document_added, LocalDates.text(document.addedDay, locale)))
                     val present = remember(document.id, state.snapshot) { store?.exists(document) == true }
-                    if (present) Button(onClick = { noViewer = store?.view(document) != true }, modifier = Modifier.testTag("open_document")) { Text(stringResource(R.string.document_open)) }
+                    if (present) PrimaryButton(onClick = { noViewer = store?.view(document) != true }, modifier = Modifier.testTag("open_document")) { Text(stringResource(R.string.document_open)) }
                     else Text(stringResource(R.string.document_missing), color = MaterialTheme.colorScheme.error)
                     TextButton(onClick = { removing = document.id }, enabled = !state.saving, modifier = Modifier.testTag("remove_document")) { Text(stringResource(R.string.document_remove)) }
                 }
@@ -99,8 +111,8 @@ import java.time.LocalDate
         }
     }
     ErrorPanel(state)
-    Button(onClick = { go("service/edit/$id") }, modifier = Modifier.fillMaxWidth().testTag("edit_service")) { Text(stringResource(R.string.edit_service)) }
-    OutlinedButton(onClick = { askDelete = true }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("delete_service")) { Text(stringResource(R.string.delete)) }
+    PrimaryButton(onClick = { go("service/edit/$id") }, modifier = Modifier.fillMaxWidth().testTag("edit_service")) { Text(stringResource(R.string.edit_service)) }
+    QuietButton(onClick = { askDelete = true }, enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("delete_service")) { Text(stringResource(R.string.delete)) }
     if (askDelete) AlertDialog(onDismissRequest = { askDelete = false }, title = { Text(stringResource(R.string.delete_service_title)) }, text = { Text(stringResource(R.string.delete_service_body)) }, confirmButton = { TextButton(onClick = { askDelete = false; delete(id, record.event.revision) }, modifier = Modifier.testTag("confirm_delete")) { Text(stringResource(R.string.delete)) } }, dismissButton = { TextButton(onClick = { askDelete = false }) { Text(stringResource(R.string.cancel)) } })
 }
 
@@ -110,11 +122,11 @@ import java.time.LocalDate
     var reviewingId by rememberSaveable { mutableStateOf<String?>(null) }
     Text(stringResource(R.string.reading_history), style = MaterialTheme.typography.headlineMedium)
     if (snapshot == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
-    Button(onClick = { go("reading/new") }, modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.add_reading)) }
+    PrimaryButton(onClick = { go("reading/new") }, modifier = Modifier.testTag("add_reading")) { Text(stringResource(R.string.add_reading)) }
     if (snapshot.readings.isEmpty()) Text(stringResource(R.string.no_readings))
     ErrorPanel(state)
     snapshot.readings.sortedWith(compareByDescending<OdometerReadingEntity> { it.observedDay }.thenByDescending { it.createdAtUtc }).forEach { reading ->
-        OutlinedCard(Modifier.fillMaxWidth().testTag("reading_entry")) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Panel(Modifier.fillMaxWidth().testTag("reading_entry")) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(formattedKm(reading.km, locale) + " km", style = MaterialTheme.typography.titleLarge)
             Text(LocalDates.text(reading.observedDay, locale))
             if (snapshot.currentReading?.id == reading.id) Text(stringResource(R.string.current_badge))
@@ -171,14 +183,17 @@ import java.time.LocalDate
 
 @Composable internal fun Settings(reminderStore: ReminderStore? = null, onRemindersChanged: () -> Unit = {}, dataFiles: DataFiles? = null, hasVehicle: Boolean = false) = Page {
     Text(stringResource(R.string.settings), style = MaterialTheme.typography.headlineMedium)
-    LanguageSelector(); HorizontalDivider()
-    if (reminderStore != null) { ReminderSettingsSection(reminderStore, onRemindersChanged); HorizontalDivider() }
-    Text(stringResource(R.string.your_data), style = MaterialTheme.typography.titleMedium)
-    Text(stringResource(R.string.local_storage_note))
-    if (dataFiles != null) DataSection(dataFiles, hasVehicle)
-    HorizontalDivider()
-    Text(stringResource(R.string.data_sources_title), style = MaterialTheme.typography.titleMedium)
-    Text(stringResource(R.string.data_sources_note), style = MaterialTheme.typography.bodySmall)
+    Group { LanguageSelector() }
+    if (reminderStore != null) Group { ReminderSettingsSection(reminderStore, onRemindersChanged) }
+    Group {
+        Text(stringResource(R.string.your_data), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.local_storage_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (dataFiles != null) DataSection(dataFiles, hasVehicle)
+    }
+    Group {
+        Text(stringResource(R.string.data_sources_title), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.data_sources_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     // Lets a tester say exactly which build a remark is about.
     Text(stringResource(R.string.app_version, BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("app_version"))
 }

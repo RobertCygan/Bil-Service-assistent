@@ -22,13 +22,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
@@ -64,7 +62,6 @@ import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
-import kotlin.random.Random
 
 /** Colours taken from the owner's design of the first screen. */
 internal object Cockpit {
@@ -160,7 +157,7 @@ private var introPlayed = false
     LaunchedEffect(Unit) { introPlayed = true; reveal.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
     val locale = uiLocale(); val vehicle = snapshot.vehicle
 
-    Box(Modifier.fillMaxSize().drawBehind { cockpitBackground() }) {
+    Box(Modifier.fillMaxSize().cockpitBackdrop()) {
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -238,8 +235,8 @@ private var introPlayed = false
                 // Next to each other only when both labels fit in full; a label is never shortened.
                 val widest = with(LocalDensity.current) { listOf(update, readings).maxOf { measurer.measure(it, labelStyle, maxLines = 1).size.width }.toDp() }
                 val buttons: @Composable (Modifier) -> Unit = { modifier ->
-                    OutlinedButton(onClick = { go("reading/new") }, modifier = modifier.testTag("add_reading")) { Text(update) }
-                    OutlinedButton(onClick = { go("readings") }, modifier = modifier.testTag("reading_history")) { Text(readings) }
+                    QuietButton(onClick = { go("reading/new") }, modifier = modifier.testTag("add_reading")) { Text(update) }
+                    QuietButton(onClick = { go("readings") }, modifier = modifier.testTag("reading_history")) { Text(readings) }
                 }
                 if (widest + 48.dp <= (maxWidth - 12.dp) / 2) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons(Modifier.weight(1f)) }
                 else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { buttons(Modifier.fillMaxWidth()) }
@@ -257,11 +254,11 @@ private var introPlayed = false
 
 /** A new car has nothing to calculate from. Both ways of getting a first result are one tap away. */
 @Composable private fun GettingStarted(go: (String) -> Unit) {
-    OutlinedCard(Modifier.fillMaxWidth().testTag("getting_started")) {
+    Panel(Modifier.fillMaxWidth().testTag("getting_started")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.getting_started), style = MaterialTheme.typography.bodyMedium)
-            Button(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("start_indicator")) { Text(stringResource(R.string.indicator_title)) }
-            OutlinedButton(onClick = { go("interval/new") }, modifier = Modifier.fillMaxWidth().testTag("start_interval")) { Text(stringResource(R.string.add_interval)) }
+            PrimaryButton(onClick = { go("indicator") }, modifier = Modifier.fillMaxWidth().testTag("start_indicator")) { Text(stringResource(R.string.indicator_title)) }
+            QuietButton(onClick = { go("interval/new") }, modifier = Modifier.fillMaxWidth().testTag("start_interval")) { Text(stringResource(R.string.add_interval)) }
         }
     }
 }
@@ -426,23 +423,5 @@ private const val ARC_RISE = 0.335f
             if (startCaption != null && startValue != null) label(startCaption, startValue, if (figures.arcStartsOverdue) Cockpit.red else Cockpit.muted, atStart = true)
             if (endCaption != null && endValue != null) label(endCaption, endValue, Cockpit.cyan, atStart = false)
         }
-    }
-}
-
-/** The dark backdrop of the design: a soft gradient, a faint floor grid running to a horizon, and a few specks of light. */
-private fun DrawScope.cockpitBackground() {
-    drawRect(Brush.verticalGradient(listOf(Cockpit.background, Cockpit.backgroundLow, Cockpit.background)))
-    val horizon = size.height * 0.40f
-    drawCircle(Brush.radialGradient(listOf(Cockpit.red.copy(alpha = 0.07f), Cockpit.red.copy(alpha = 0f)), Offset(0f, horizon), size.width * 0.7f), size.width * 0.7f, Offset(0f, horizon))
-    drawCircle(Brush.radialGradient(listOf(Cockpit.cyan.copy(alpha = 0.06f), Cockpit.cyan.copy(alpha = 0f)), Offset(size.width, horizon), size.width * 0.7f), size.width * 0.7f, Offset(size.width, horizon))
-    val line = Cockpit.cyan.copy(alpha = 0.05f); val vanish = Offset(size.width / 2, horizon)
-    for (i in -12..12) drawLine(line, vanish, Offset(size.width / 2 + i * size.width * 0.22f, size.height), strokeWidth = 1f)
-    var y = horizon + 6.dp.toPx(); var step = 6.dp.toPx()
-    while (y < size.height) { drawLine(line, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f); step *= 1.22f; y += step }
-    // The same specks every time: a fixed seed, so nothing jumps between frames or screenshots.
-    val random = Random(7)
-    repeat(46) {
-        val colour = when (it % 5) { 0 -> Cockpit.orange; 1, 2 -> Cockpit.cyan; else -> Cockpit.text }
-        drawCircle(colour.copy(alpha = 0.18f + random.nextFloat() * 0.35f), (0.5f + random.nextFloat()).dp.toPx(), Offset(random.nextFloat() * size.width, random.nextFloat() * size.height))
     }
 }

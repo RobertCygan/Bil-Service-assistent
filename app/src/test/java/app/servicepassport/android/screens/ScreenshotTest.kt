@@ -66,6 +66,37 @@ class ScreenshotTest {
 
     @Test fun english() = tour("en", seeded())
 
+    /** Every other screen once, so the whole app can be looked at side by side. */
+    @Test fun everyOtherScreen() {
+        val repository = seeded()
+        val store = app.servicepassport.android.documents.DocumentStore(context, db, clock, java.io.File(context.cacheDir, "shots-${id()}"))
+        val reminders = app.servicepassport.android.reminders.ReminderStore(context).also { it.settings = app.servicepassport.reminders.ReminderSettings(enabled = true) }
+        val files = app.servicepassport.android.backup.DataFiles(context, app.servicepassport.android.backup.GarageBackup(db, clock, reminders, store), null)
+        val reader = app.servicepassport.android.documents.DocumentAnalyzer(context, object : app.servicepassport.android.documents.TextOcr {
+            override suspend fun recognize(context: Context, page: app.servicepassport.android.documents.PageImage) = emptyList<app.servicepassport.extraction.OcrLine>()
+        })
+        compose.setContent { CarServiceApp(repository, reminders, dataFiles = files, documents = reader, documentStore = store) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
+        fun back() = tab("back")
+        open("open_dashboard")
+        compose.onAllNodes(hasText("Cabin filter · Replacement") and hasClickAction()).onFirst().performScrollTo().performClick(); compose.waitForIdle()
+        shot("all-forecast"); back()
+        open("manage_intervals"); shot("all-intervals")
+        open("add_interval"); shot("all-interval-form"); back(); back()
+        open("open_indicator"); shot("all-indicator"); back()
+        tab("nav_history")
+        compose.onAllNodesWithTag("history_entry").onFirst().performScrollTo().performClick(); compose.waitForIdle()
+        shot("all-service-details"); back()
+        tab("nav_overview")
+        open("import_document"); shot("all-import"); back()
+        open("reading_history"); shot("all-readings"); back()
+        open("add_reading"); shot("all-reading-form"); back()
+        open("edit_car"); shot("all-car-form"); back()
+        open("add_service"); shot("all-service-form"); back()
+        tab("nav_settings"); shot("all-settings")
+        compose.onNodeWithTag("app_version").performScrollTo(); shot("all-settings-lower")
+    }
+
     /** The first screen in its other states: nothing overdue, and a car that has nothing to calculate from yet. */
     @Test fun nothingOverdue() {
         val repository = runBlocking {

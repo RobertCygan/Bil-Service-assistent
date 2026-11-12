@@ -52,7 +52,7 @@ internal fun inputMessage(problem: InputProblem): Int = when (problem) {
 }
 
 @Composable internal fun Page(content: @Composable ColumnScope.() -> Unit) {
-    Column(Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
+    Column(Modifier.fillMaxSize().cockpitBackdrop().imePadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp), content = content)
 }
 @Composable internal fun ErrorPanel(state: GarageState, local: InputProblem? = null) {
     val issue = local ?: state.inputProblem
@@ -60,7 +60,7 @@ internal fun inputMessage(problem: InputProblem): Int = when (problem) {
     if (state.problem == StorageProblem.WRITE) Text(stringResource(R.string.write_error), color = MaterialTheme.colorScheme.error)
 }
 @Composable internal fun NoteCard(text: String) {
-    OutlinedCard(Modifier.fillMaxWidth()) { Text(text, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium) }
+    Panel(Modifier.fillMaxWidth()) { Text(text, Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,7 +90,7 @@ internal fun inputMessage(problem: InputProblem): Int = when (problem) {
 
 @Composable internal fun OdometerReview(warnings: Set<ReadingWarning>, token: String?, reason: String, reviewedToken: String?, onReason: (String) -> Unit, onReview: (String?) -> Unit) {
     if (warnings.isEmpty()) return
-    OutlinedCard(Modifier.fillMaxWidth()) {
+    Panel(Modifier.fillMaxWidth(), accent = Cockpit.orange, lit = true) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.warning_title), style = MaterialTheme.typography.titleMedium)
             warnings.forEach { warning -> Text(stringResource(when (warning) {

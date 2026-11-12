@@ -33,7 +33,7 @@ internal fun signedWhole(text: String): Int? {
     if (snapshot == null) { Text(stringResource(R.string.no_history_without_car)); return@Page }
     val locale = uiLocale()
     val latest = snapshot.latestIndicator
-    if (latest == null) Text(stringResource(R.string.indicator_none)) else OutlinedCard(Modifier.fillMaxWidth().testTag("indicator_latest")) {
+    if (latest == null) Text(stringResource(R.string.indicator_none)) else Panel(Modifier.fillMaxWidth().testTag("indicator_latest")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.indicator_latest, LocalDates.text(latest.observedDay, locale), formattedKm(latest.odometerKm, locale)), style = MaterialTheme.typography.titleMedium)
             latest.remainingKm?.let { Text(stringResource(R.string.indicator_km_value, formattedKm(it.toLong(), locale))) }
@@ -55,7 +55,7 @@ internal fun signedWhole(text: String): Int? {
     OutlinedTextField(days, { days = it; issue = null }, Modifier.fillMaxWidth().testTag("indicator_days"), label = { Text(stringResource(R.string.indicator_days)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text))
     Text(stringResource(R.string.indicator_input_help), style = MaterialTheme.typography.bodySmall)
     ErrorPanel(state, issue)
-    Button(enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("save_indicator"), onClick = {
+    PrimaryButton(enabled = !state.saving, modifier = Modifier.fillMaxWidth().testTag("save_indicator"), onClick = {
         try {
             val day = requireNotNull(LocalDates.day(date, locale, today))
             val reading = LocalNumbers.kilometers(odometer, locale) ?: throw InputRejected(InputProblem.INVALID_KM)

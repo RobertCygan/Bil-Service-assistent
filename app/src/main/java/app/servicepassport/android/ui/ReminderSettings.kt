@@ -26,6 +26,7 @@ import app.servicepassport.android.reminders.ReminderStore
 import app.servicepassport.reminders.ReminderSettings
 
 /** Reminders are opt-in. Refusing the system permission never blocks the rest of the app. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable internal fun ReminderSettingsSection(store: ReminderStore, onChanged: () -> Unit) {
     val context = LocalContext.current
     var settings by remember { mutableStateOf(store.settings) }
@@ -58,7 +59,8 @@ import app.servicepassport.reminders.ReminderSettings
                 }) { Text(stringResource(R.string.reminders_open_settings)) }
             }
             Text(stringResource(R.string.reminders_repeat), style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The choices wrap onto a second line when they do not fit side by side.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf<Pair<Int?, Int>>(null to R.string.reminders_repeat_never, 7 to R.string.reminders_repeat_7, 14 to R.string.reminders_repeat_14, 30 to R.string.reminders_repeat_30).forEach { (days, label) ->
                     FilterChip(selected = settings.repeatEveryDays == days, modifier = Modifier.testTag("reminders_repeat_${days ?: 0}"), onClick = { update(settings.copy(repeatEveryDays = days)) }, label = { Text(stringResource(label)) })
                 }
