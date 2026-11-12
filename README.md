@@ -24,6 +24,41 @@ Raporty poniżej (Etapy 0–4 i przygotowanie integracji) są zapisem historyczn
 
 Rekomendacja: Kotlin + Jetpack Compose, dane i OCR lokalnie, bez kont użytkowników w MVP. Wybór dostawcy harmonogramów pozostaje otwarty; jego warunki mogą wymagać małego backendu.
 
+## Stan i decyzje — projekt wstrzymany do namysłu (12 listopada 2026)
+
+Ostatnia wersja testowa: **0.12.1** (w `main`). Dalsze prace w kodzie są wstrzymane do decyzji właściciela.
+
+**Co działa:** wszystko poza danymi producentów — dopasowanie auta, liczenie terminów po kilometrach i czasie, pulpit, przypomnienia, odczyt faktur i stron książki serwisowej, odczyt przebiegu ze zdjęcia licznika (aparat jest o jedno dotknięcie z ekranu głównego), kopia danych, ciemny styl we wszystkich ekranach.
+
+**Czego brakuje do obietnicy „dodaję auto i od razu widzę, co i kiedy wymienić”:** samych wpisów harmonogramów producentów. Silnik je przyjmie bez zmian w kodzie; katalog jest pusty.
+
+### Skąd mogą pochodzić harmonogramy
+
+| Droga | Uwagi |
+| --- | --- |
+| Licencja Autodata / TecRMI / HaynesPro | Wszystkie marki naraz. Ceny API nie są publiczne; abonamenty warsztatowe (ok. 55–95 GBP miesięcznie) nie dają prawa do pokazywania danych w aplikacji konsumenckiej. Wymaga zapytania ofertowego, własnego serwera i zmiany polityki prywatności. |
+| Ręczne przepisanie z instrukcji i książek serwisowych producentów | Fakty z dokumentu producenta, każdy wpis z dokładnym źródłem (dokument, wydanie, strona, data sprawdzenia). Rozsądny start: kilkanaście–30 modeli z roczników ok. 2005–2016. Instrukcje grupy VW, Volvo, BMW i Mercedesa często odsyłają do osobnego planu serwisowego. |
+
+**Granice, których nie przekraczamy:** nie kopiujemy płatnych baz (także „ręcznie” ani z cudzych zrzutów z forów), nie podajemy fałszywego źródła, interwałów nie bierzemy z pamięci modelu AI, nie pobieramy stron serwisów pośredniczących (np. regnr.no) ani danych właścicieli. Baza przygotowana przez inną osobę lub narzędzie musi przed włączeniem spełnić cztery warunki: udokumentowane źródło i prawo do użycia, źródło przy każdym wpisie, rozróżnienie wariantów silnika i skrzyni (przy braku pewności: „Brak potwierdzonego harmonogramu”), format zgodny z silnikiem i brak wymogu internetu.
+
+### Zaplanowane, jeszcze niezrobione
+
+1. **Dane auta z rejestru Statens vegvesen** (bezpłatnie, po numerze rejestracyjnym lub VIN): marka, model, rok, paliwo, moc, kod silnika, rodzaj skrzyni (rejestr podaje tylko „automat”, więc typu skrzyni nie rozstrzyga) oraz **termin EU-kontroll** jako osobna pozycja na zegarze. Wymaga klucza API i własnego serwera (szkielet: `lookup-server`), przywrócenia uprawnienia sieciowego i zmiany polityki prywatności. Danych właściciela nie pobieramy.
+2. **Odczyt VIN-u ze zdjęcia** (dowód rejestracyjny, tabliczka pod szybą, słupek) oraz **odczyt tablicy rejestracyjnej**, gdy VIN jest słabo widoczny; trzecia droga: ręczne wpisanie rejestracji. Samo rozpoznanie tekstu działa bez internetu; pobranie danych wymaga punktu 1.
+3. **Dwa tryby auta:** auto, które samo podaje termin serwisu na zegarach — aplikacja nie dubluje przypomnień i służy do historii, dokumentów i raportu dla kupującego; auto bez wskaźnika lub ze starą kontrolką — pełne liczenie z harmonogramu. Pytanie „czy Twoje auto pokazuje, ile zostało do serwisu?” zadawane raz przy dodawaniu auta.
+4. **Raport historii serwisowej dla kupującego auto** — najbardziej obiecujący pomysł na realną wartość bez płatnych danych.
+
+### Ocena i sposób sprawdzenia
+
+Z płatnymi danymi i reklamą przychód prawdopodobnie przez długi czas nie pokryje kosztów. Zanim zostaną wydane pieniądze:
+
+1. zmierzyć odczyt na ok. 40 prawdziwych fakturach i na zdjęciach licznika kilku aut;
+2. dać aplikację 5–10 osobom na dwa tygodnie i sprawdzić, czy wracają;
+3. poprosić o oferty Autodata, TecAlliance i HaynesPro dla aplikacji konsumenckiej;
+4. dopiero na tej podstawie decydować o danych, serwerze i sklepie.
+
+Jeżeli nikt nie wraca, projekt zostaje jako pokaz możliwości. Lista kontrolna do sprawdzenia na telefonie: [docs/12-etap-8-beta.md](docs/12-etap-8-beta.md).
+
 ## Przebiegi i ręczna historia — Etap 3
 
 - [Zakres, APK do pobrania i weryfikacja](docs/stage-3/README.md)
