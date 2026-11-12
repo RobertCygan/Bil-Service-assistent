@@ -12,6 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -74,7 +79,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
         Scaffold(
             topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium) }, navigationIcon = {
                 if (route !in tabs) IconButton(onClick = { back() }, modifier = Modifier.testTag("back")) { Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = stringResource(R.string.back)) }
-            }) },
+            }, actions = { if (route in tabs) LanguageSwitch() }) },
             bottomBar = { NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 listOf(Triple("overview", R.string.overview, Icons.Default.Home), Triple("history", R.string.history, Icons.AutoMirrored.Default.List), Triple("settings", R.string.settings, Icons.Default.Settings)).forEach { (target, label, icon) ->
                     NavigationBarItem(modifier = Modifier.testTag("nav_$target"), selected = route == target, icon = { Icon(icon, contentDescription = null) }, label = { Text(stringResource(label)) }, onClick = { go(target) },
@@ -122,6 +127,22 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
             pendingRoute = null; pendingBack = false; dirty = false
             if (wasBack) nav.popBackStack() else if (destination != null) navigate(destination)
         }, modifier = Modifier.testTag("confirm_discard")) { Text(stringResource(R.string.discard_changes)) } }, dismissButton = { TextButton(onClick = { pendingRoute = null; pendingBack = false }) { Text(stringResource(R.string.keep_editing)) } })
+    }
+}
+
+/** NO / EN at the top of the main screens: the language is one tap away, wherever the phone's own language points. */
+@Composable private fun LanguageSwitch() {
+    val norwegian = LocalConfiguration.current.locales[0].language in setOf("nb", "no"); val context = LocalContext.current
+    Row(Modifier.padding(end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        listOf(Triple("NO", "nb-NO", norwegian), Triple("EN", "en", !norwegian)).forEach { (label, tag, chosen) ->
+            val name = stringResource(if (tag == "en") R.string.language_english else R.string.language_norwegian)
+            TextButton(
+                onClick = { if (!chosen) AppLanguage.choose(context, tag) }, contentPadding = PaddingValues(horizontal = 6.dp),
+                modifier = Modifier.widthIn(min = 44.dp).testTag("switch_language_${tag.take(2)}").semantics { contentDescription = name; selected = chosen },
+            ) {
+                Text(label, color = if (chosen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = if (chosen) FontWeight.Bold else FontWeight.Normal)
+            }
+        }
     }
 }
 
