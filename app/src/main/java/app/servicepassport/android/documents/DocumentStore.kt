@@ -84,6 +84,14 @@ class DocumentStore(
         return cameraUri()
     }
 
+    /**
+     * Where the camera app writes a photo of the instrument cluster. Like [cameraTarget] the address is always the
+     * same; the photo is only read for its number and then deleted.
+     */
+    fun odometerPhotoTarget(): Uri { staging.mkdirs(); File(staging, ODOMETER_FILE).delete(); return odometerPhotoUri() }
+    fun odometerPhotoUri(): Uri = FileProvider.getUriForFile(context, authority(context), File(staging, ODOMETER_FILE))
+    fun discardOdometerPhoto() { File(staging, ODOMETER_FILE).delete() }
+
     /** The photo the camera app wrote. The address is always the same, so it need not be remembered while the camera is open. */
     fun cameraUri(): Uri = FileProvider.getUriForFile(context, authority(context), File(staging, CAMERA_FILE))
 
@@ -124,7 +132,7 @@ class DocumentStore(
      * staging directory; its description is rebuilt from the file itself, so nothing else has to be stored.
      */
     suspend fun pending(): StagedDocument? = withContext(Dispatchers.IO) {
-        val file = staging.listFiles()?.filter { it.isFile && it.name != CAMERA_FILE && it.name != REVIEW_FILE && it.length() > 0 }?.maxByOrNull { it.lastModified() } ?: return@withContext null
+        val file = staging.listFiles()?.filter { it.isFile && it.name != CAMERA_FILE && it.name != ODOMETER_FILE && it.name != REVIEW_FILE && it.length() > 0 }?.maxByOrNull { it.lastModified() } ?: return@withContext null
         val mimeType = DocumentTypes.of(context, Uri.fromFile(file))?.takeIf(DocumentTypes::supported) ?: return@withContext null
         StagedDocument(file.name.substringBeforeLast('.'), file.name, mimeType, digest(file), file.length())
     }
@@ -244,6 +252,7 @@ class DocumentStore(
         const val STAGED = "documents-staged"
         const val RESTORE = "documents-restore"
         private const val CAMERA_FILE = "camera.jpg"
+        private const val ODOMETER_FILE = "odometer.jpg"
         private const val REVIEW_FILE = "review.txt"
         fun authority(context: Context): String = context.packageName + ".files"
     }

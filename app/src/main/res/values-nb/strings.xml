@@ -362,4 +362,9 @@
         <item quantity="other">dager</item>
     </plurals>
     <string name="current_odometer_short">Kilometerstand</string>
+    <string name="odometer_photo">Ta bilde av kilometertelleren</string>
+    <string name="odometer_photo_reading">Leser bildet …</string>
+    <string name="odometer_photo_found">Lest fra bildet: %1$s km</string>
+    <string name="odometer_photo_check">Sammenlign med displayet i bilen, rett om nødvendig, og lagre. Bildet blir ikke lagret.</string>
+    <string name="odometer_photo_nothing">Fant ingen kilometerstand i bildet. Prøv igjen nærmere displayet, eller skriv inn tallet.</string>
 </resources>

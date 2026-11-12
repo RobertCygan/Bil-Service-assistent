@@ -122,7 +122,7 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
                 }
                 composable("service/{id}") { node -> ServiceDetails(state, node.arguments?.getString("id").orEmpty(), ::go, documentStore, { id -> model.removeDocument(id) {} }) { id, revision -> model.deleteService(id, revision) { saved("history") } } }
                 composable("readings") { Readings(state, ::go, model::selectReading) { id, revision -> model.deleteReading(id, revision) {} } }
-                composable("reading/new") { ReadingEditor(state, null, model.today, { dirty = it }) { input -> model.saveReading(input) { saved("overview") } } }
+                composable("reading/new") { ReadingEditor(state, null, model.today, { dirty = it }, documents, documentStore) { input -> model.saveReading(input) { saved("overview") } } }
                 composable("reading/{id}") { node ->
                     val reading = state.snapshot?.readings?.firstOrNull { it.id == node.arguments?.getString("id") && it.eventId == null }
                     if (reading == null) Page { Text(stringResource(R.string.entry_not_found)) } else ReadingEditor(state, reading, model.today, { dirty = it }) { input -> model.saveReading(input) { saved("readings") } }

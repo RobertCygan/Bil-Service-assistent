@@ -104,6 +104,24 @@ class DocumentRecognitionTest {
         assertEquals(90, photo.rotationDegrees)
     }
 
+    /** A drawn instrument cluster: light figures on black, a speed scale, a trip meter, a clock and the total mileage. */
+    @Test fun theMileageIsReadFromAPhotoOfAnInstrumentCluster() = runBlocking {
+        val picture = Bitmap.createBitmap(1600, 900, Bitmap.Config.ARGB_8888)
+        val small = Paint().apply { color = Color.LTGRAY; textSize = 46f; isAntiAlias = true }
+        val large = Paint().apply { color = Color.WHITE; textSize = 84f; isAntiAlias = true }
+        Canvas(picture).apply {
+            drawColor(Color.BLACK)
+            listOf("20", "40", "60", "80", "100", "120", "140").forEachIndexed { i, speed -> drawText(speed, 120f + i * 200f, 140f, small) }
+            drawText("ODO 93 231 km", 420f, 460f, large)
+            drawText("TRIP A 512.4 km", 420f, 600f, small)
+            drawText("12:45", 120f, 780f, small); drawText("21.5 °C", 1200f, 780f, small)
+        }
+        val file = File(context.cacheDir, "cluster.jpg")
+        file.outputStream().use { picture.compress(Bitmap.CompressFormat.JPEG, 92, it) }
+        val offered = DocumentAnalyzer(context, MlKitOcr()).odometer(Uri.fromFile(file), lastKnownKm = 92_480)
+        assertEquals("offered: $offered", 93_231, offered.firstOrNull()?.km)
+    }
+
     @Test fun aFileThatIsNotAnImageIsRefusedCleanly() = runBlocking {
         val file = File(context.cacheDir, "broken.jpg").apply { writeText("this is not a photo") }
         assertEquals(DocumentAnalysis.Failed(AnalysisProblem.UNREADABLE), DocumentAnalyzer(context, MlKitOcr()).analyse(Uri.fromFile(file), VehicleIdentity(), today))
