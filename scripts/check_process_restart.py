@@ -42,6 +42,21 @@ def tap(root, label):
     adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
 
 
+def tap_after_scrolling(label):
+    """Taps a label that may be further down the screen: scrolls up a part of the screen at a time until it shows."""
+    for _ in range(8):
+        root = window()
+        if any(node.get("text") == label for node in root.iter("node")):
+            tap(root, label)
+            return
+        whole = next(node for node in root.iter("node") if node.get("bounds"))
+        left, top, right, bottom = map(int, re.findall(r"\d+", whole.get("bounds")))
+        x = str((left + right) // 2)
+        adb("shell", "input", "swipe", x, str(top + (bottom - top) * 65 // 100), x, str(top + (bottom - top) * 35 // 100), "400")
+        time.sleep(1.5)
+    raise AssertionError(f"'{label}' did not appear after scrolling")
+
+
 def dashboard_counts(text):
     # Each tile shows the number above its label. Compose may expose them separately or as one item ("1, Forfalt").
     for label in ["Forfalt", "Snart frist", "Trenger opplysninger", "Ingen hast"]:
@@ -61,7 +76,7 @@ root = wait_for(
     "Fresh process did not restore the profile, explicit current reading and Bokmål UI",
 )
 (OUT / "overview-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
-tap(root, "Se alle")  # the link next to the "Serviceoversikt" heading
+tap_after_scrolling("Se alle")  # the link next to the "Serviceoversikt" heading, below the arc
 wait_for(
     lambda text: "Ingen bekreftet serviceplan" in text and dashboard_counts(text),
     "Fresh process did not restore all four driver intervals and their separate categories",
