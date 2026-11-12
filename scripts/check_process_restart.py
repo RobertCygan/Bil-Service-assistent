@@ -22,8 +22,17 @@ def adb(*args, timeout=40):
 
 
 def window():
-    adb("shell", "uiautomator", "dump", "/sdcard/history-window.xml")
-    return ET.fromstring(adb("shell", "cat", "/sdcard/history-window.xml"))
+    """The screen as a tree of nodes. The dump needs a still screen; while something moves (the first screen opens
+    with a short movement) it writes no file, so it is asked again until it does."""
+    said = b""
+    for _ in range(10):
+        subprocess.run(["adb", "shell", "rm", "-f", "/sdcard/history-window.xml"], timeout=40, capture_output=True)
+        said = subprocess.run(["adb", "shell", "uiautomator", "dump", "/sdcard/history-window.xml"], timeout=60, capture_output=True).stdout
+        read = subprocess.run(["adb", "shell", "cat", "/sdcard/history-window.xml"], timeout=40, capture_output=True)
+        if read.returncode == 0 and read.stdout.strip():
+            return ET.fromstring(read.stdout)
+        time.sleep(1.5)
+    raise AssertionError("The screen could not be read: " + said.decode("utf-8", errors="replace")[:500])
 
 
 def wait_for(check, message):
