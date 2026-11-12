@@ -73,6 +73,24 @@ class AppLanguageTest {
         assertSame(context, AppLanguage.localized(context, sdk = 33))
     }
 
+    @Test fun aPhoneInAnotherLanguageStartsInNorwegian() {
+        AppLanguage.startInNorwegianUnlessThePhoneFits(context, phoneLanguage = "pl")
+        assertEquals("nb-NO", AppCompatDelegate.getApplicationLocales().toLanguageTags())
+        assertEquals("Servicepåminnelser", AppLanguage.localized(context).getString(R.string.reminder_channel))
+    }
+
+    @Test fun anEnglishOrNorwegianPhoneKeepsItsOwnLanguage() {
+        for (language in listOf("en", "nb", "no")) AppLanguage.startInNorwegianUnlessThePhoneFits(context, phoneLanguage = language)
+        assertTrue(AppCompatDelegate.getApplicationLocales().isEmpty)
+        assertSame(context, AppLanguage.localized(context))
+    }
+
+    @Test fun aChoiceAlreadyMadeIsNeverReplacedByTheDefault() {
+        AppLanguage.choose(context, "en")
+        AppLanguage.startInNorwegianUnlessThePhoneFits(context, phoneLanguage = "pl")
+        assertEquals("en", AppCompatDelegate.getApplicationLocales().toLanguageTags())
+    }
+
     @Test fun theStatusBarIconIsTheShapeOnly() {
         // Android draws a status bar icon from its outline alone. The launcher icon has a filled background and would
         // show as a plain square.

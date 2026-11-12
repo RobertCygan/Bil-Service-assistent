@@ -2,6 +2,7 @@ package app.servicepassport.android
 
 import android.content.Context
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.Build
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -26,6 +27,15 @@ object AppLanguage {
         if (stored(context).contains(TAG)) return
         val current = AppCompatDelegate.getApplicationLocales()
         if (!current.isEmpty) stored(context).edit().putString(TAG, current.toLanguageTags()).apply()
+    }
+
+    /**
+     * The app is made for drivers in Norway. On a phone set to neither Norwegian nor English it starts in Norwegian
+     * instead of English; the switch at the top of the screen changes it at any time. A choice already made is kept.
+     */
+    fun startInNorwegianUnlessThePhoneFits(context: Context, phoneLanguage: String = Resources.getSystem().configuration.locales[0].language) {
+        if (stored(context).contains(TAG) || !AppCompatDelegate.getApplicationLocales().isEmpty) return
+        if (phoneLanguage !in setOf("en", "nb", "no")) choose(context, "nb-NO")
     }
 
     /** A context whose texts are in the chosen language. Without a choice the phone's language applies, as on screen. */

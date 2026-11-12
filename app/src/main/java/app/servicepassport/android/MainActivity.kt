@@ -20,6 +20,7 @@ class MainActivity : AppCompatActivity() {
         // While the app is open only stale notifications are removed; new ones come from the background check.
         fun syncReminders() { lifecycleScope.launch { app.reminders.sync(mayNotify = false) } }
         AppLanguage.adopt(this)
+        AppLanguage.startInNorwegianUnlessThePhoneFits(this)
         // Finishes a restore that was cut short and removes document files that no entry refers to.
         lifecycleScope.launch { runCatching { app.documentStore.repair() } }
         setContent { CarServiceApp(repository, app.reminderStore, ::syncReminders, app.dataFiles, app.documents, app.documentStore) }
