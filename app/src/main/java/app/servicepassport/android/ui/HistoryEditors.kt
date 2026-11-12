@@ -109,7 +109,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     }, modifier = Modifier.fillMaxWidth().testTag("save_service")) { Text(stringResource(if (state.saving) R.string.saving else R.string.save_service)) }
 }
 
-@Composable internal fun ReadingEditor(state: GarageState, reading: OdometerReadingEntity?, today: LocalDate, onDirty: (Boolean) -> Unit, reader: DocumentAnalyzer? = null, store: DocumentStore? = null, save: (ReadingInput) -> Unit) = Page {
+@Composable internal fun ReadingEditor(state: GarageState, reading: OdometerReadingEntity?, today: LocalDate, onDirty: (Boolean) -> Unit, reader: DocumentAnalyzer? = null, store: DocumentStore? = null, startWithPhoto: Boolean = false, save: (ReadingInput) -> Unit) = Page {
     val snapshot = state.snapshot ?: return@Page; val locale = uiLocale()
     val id = rememberSaveable { reading?.id ?: UUID.randomUUID().toString() }
     val expectedRevision = rememberSaveable { reading?.revision ?: -1L }.takeIf { it >= 0 }
@@ -137,7 +137,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     Text(snapshot.vehicle.displayName)
     DateField(stringResource(R.string.reading_date), date, "reading_date", today) { date = it; reviewedToken = null; if (reading != null) current = false; issue = null }
     OutlinedTextField(value = km, onValueChange = { km = it; reviewedToken = null; if (reading != null) current = false; issue = null }, singleLine = true, label = { Text(stringResource(R.string.odometer_km)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().testTag("reading_km"))
-    if (reading == null && reader != null && store != null) OdometerFromPhoto(reader, store, snapshot.currentReading?.km?.toInt(), locale) { km = it.toString(); reviewedToken = null; issue = null }
+    if (reading == null && reader != null && store != null) OdometerFromPhoto(reader, store, snapshot.currentReading?.km?.toInt(), locale, startWithPhoto) { km = it.toString(); reviewedToken = null; issue = null }
     Row { Checkbox(checked = current, onCheckedChange = { current = it; reviewedToken = null }, modifier = Modifier.testTag("use_current")); Text(stringResource(R.string.use_as_current), Modifier.padding(top = 12.dp)) }
     Text(stringResource(R.string.selection_help), style = MaterialTheme.typography.bodySmall)
     if (reading?.id == snapshot.currentReading?.id && reading != null) NoteCard(stringResource(R.string.selection_cleared_help))
@@ -200,7 +200,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
  * A photo of the instrument cluster instead of typing: the number read from it is put into the mileage field, where
  * the driver sees it and saves it like a typed one. Nothing is saved from the photo alone, and the photo is not kept.
  */
-@Composable private fun OdometerFromPhoto(reader: DocumentAnalyzer, store: DocumentStore, lastKnownKm: Int?, locale: String, onRead: (Int) -> Unit) {
+@Composable private fun OdometerFromPhoto(reader: DocumentAnalyzer, store: DocumentStore, lastKnownKm: Int?, locale: String, openCameraAtOnce: Boolean, onRead: (Int) -> Unit) {
     val scope = rememberCoroutineScope()
     var busy by remember { mutableStateOf(false) }
     var noCamera by remember { mutableStateOf(false) }
@@ -219,10 +219,12 @@ private fun decodeWork(raw: String): List<WorkInput> {
             }
         }
     }
-    QuietButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("odometer_photo"), onClick = {
-        noCamera = false
-        try { camera.launch(store.odometerPhotoTarget()) } catch (_: Exception) { noCamera = true }
-    }) { Text(stringResource(R.string.odometer_photo)) }
+    fun openCamera() { noCamera = false; try { camera.launch(store.odometerPhotoTarget()) } catch (_: Exception) { noCamera = true } }
+    // Coming from the camera symbol or the mileage on the first screen: the camera opens by itself, once. Rebuilding
+    // the screen (the phone is turned, the app comes back) must not open it again.
+    var openedAtOnce by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (openCameraAtOnce && !openedAtOnce) { openedAtOnce = true; openCamera() } }
+    QuietButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("odometer_photo"), onClick = { openCamera() }) { Text(stringResource(R.string.odometer_photo)) }
     if (noCamera) Text(stringResource(R.string.import_no_camera), color = MaterialTheme.colorScheme.error)
     if (busy) { CircularProgressIndicator(); Text(stringResource(R.string.odometer_photo_reading)) }
     offered?.let { found ->
