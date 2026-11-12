@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -30,6 +32,7 @@ import java.time.LocalDate
             state.loading -> CircularProgressIndicator(Modifier.testTag("loading"))
             state.problem == StorageProblem.READ -> { Text(stringResource(R.string.read_error)); PrimaryButton(onClick = retry) { Text(stringResource(R.string.retry)) } }
             else -> {
+                Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(112.dp).align(Alignment.CenterHorizontally))
                 Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.welcome_body)); LanguageSelector()
                 PrimaryButton(onClick = { go("vehicle") }, modifier = Modifier.fillMaxWidth().testTag("add_car")) { Text(stringResource(R.string.add_car)) }

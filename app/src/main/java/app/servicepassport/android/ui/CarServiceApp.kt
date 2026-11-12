@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.semantics.semantics
@@ -77,7 +79,12 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
     LaunchedEffect(route) { model.clearProblem() }
     AppTheme {
         Scaffold(
-            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium) }, navigationIcon = {
+            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Image(painterResource(R.drawable.logo), contentDescription = null, modifier = Modifier.size(28.dp))
+                    Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                }
+            }, navigationIcon = {
                 if (route !in tabs) IconButton(onClick = { back() }, modifier = Modifier.testTag("back")) { Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = stringResource(R.string.back)) }
             }, actions = { if (route in tabs) LanguageSwitch() }) },
             bottomBar = { NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
