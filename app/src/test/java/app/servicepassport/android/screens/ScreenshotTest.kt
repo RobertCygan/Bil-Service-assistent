@@ -58,13 +58,37 @@ class ScreenshotTest {
         compose.setContent { CarServiceApp(repository) }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
         shot("$prefix-1-overview")
+        compose.onNodeWithTag("reading_history").performScrollTo(); shot("$prefix-1-overview-lower")
         open("open_dashboard"); shot("$prefix-2-dashboard")
         tab("nav_history"); shot("$prefix-3-history")
         tab("nav_settings"); shot("$prefix-4-settings")
     }
 
-    @Test fun light() = tour("light", seeded())
-    @Test @Config(qualifiers = "+night") fun dark() = tour("dark", seeded())
+    @Test fun english() = tour("en", seeded())
+
+    /** The first screen in its other states: nothing overdue, and a car that has nothing to calculate from yet. */
+    @Test fun nothingOverdue() {
+        val repository = runBlocking {
+            val repo = ProfileRepository(db, clock)
+            repo.save(ProfileInput("Familiebilen", 2019, day("2019-04-02"), "Volvo", "V60"))
+            val car = requireNotNull(db.vehicles().getProfile()).id
+            repo.saveService(ServiceInput(id(), car, null, day("2026-06-02"), 78_200, listOf(WorkInput("engine_oil", "replace"))))
+            repo.saveReading(ReadingInput(id(), car, null, day("2026-11-03"), 84_100, useAsCurrent = true))
+            repo.saveInterval(UserIntervalInput(id(), car, null, "engine_oil", "replace", 15_000, 12))
+            repo
+        }
+        compose.setContent { CarServiceApp(repository) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
+        shot("state-nothing-overdue")
+    }
+
+    @Test fun aCarWithNothingToCalculateFrom() {
+        val repository = runBlocking { ProfileRepository(db, clock).also { it.save(ProfileInput("Familiebilen", 2019, day("2019-04-02"), "Volvo", "V60")) } }
+        compose.setContent { CarServiceApp(repository) }
+        compose.waitUntil(10_000) { compose.onAllNodesWithTag("profile_name").fetchSemanticsNodes().isNotEmpty() }
+        shot("state-new-car")
+        compose.onNodeWithTag("reading_history").performScrollTo(); shot("state-new-car-lower")
+    }
 
     /** Norwegian texts are longer than the English ones; large text is what many drivers actually use. */
     private fun readabilityTour(prefix: String, repository: ProfileRepository) {
@@ -86,6 +110,6 @@ class ScreenshotTest {
     @Test fun welcome() {
         compose.setContent { CarServiceApp(ProfileRepository(db, clock)) }
         compose.waitUntil(10_000) { compose.onAllNodesWithTag("add_car").fetchSemanticsNodes().isNotEmpty() }
-        shot("light-0-welcome")
+        shot("en-0-welcome")
     }
 }

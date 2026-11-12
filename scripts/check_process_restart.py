@@ -43,10 +43,10 @@ def tap(root, label):
 
 
 def dashboard_counts(text):
-    # Each tile shows the number above its label. Compose may expose them separately or as one merged node.
+    # Each tile shows the number above its label. Compose may expose them separately or as one item ("1, Forfalt").
     for label in ["Forfalt", "Snart frist", "Trenger opplysninger", "Ingen hast"]:
         if not any((value == label and i > 0 and text[i - 1] == "1")
-                   or re.fullmatch(r"1\s+" + re.escape(label), value)
+                   or re.fullmatch(r"1[\s,]+" + re.escape(label), value)
                    for i, value in enumerate(text)):
             return False
     return True
@@ -57,7 +57,7 @@ adb("shell", "am", "start", "-W", "-n", COMPONENT)
 root = wait_for(
     lambda text: "Foundation test car" in text and "Modellår: 2022" in text
     and any(re.fullmatch(r"59[\s\u00a0\u202f]?000 km", value) for value in text)
-    and "Gjeldende kilometerstand" in text,
+    and any(value.lower() == "gjeldende kilometerstand" for value in text),
     "Fresh process did not restore the profile, explicit current reading and Bokmål UI",
 )
 (OUT / "overview-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
