@@ -150,6 +150,33 @@ class SettingsAndFormsFlowTest {
         compose.onNodeWithText(text(R.string.indicator_source)).assertExists()
     }
 
+    /** The same texts the on-device walk-through looks for, checked here before any device run. */
+    @Test fun anOverdueItemOpensFromTheFirstScreenAndFromTheOverviewWithItsFiguresAndBasis() {
+        runBlocking {
+            repository.saveService(ServiceInput(id(), car, null, day("2024-05-14"), 61_300, listOf(WorkInput("cabin_filter", "replace"))))
+            repository.saveInterval(UserIntervalInput(id(), car, null, "cabin_filter", "replace", 30_000, null))
+        }
+        start()
+        compose.await("urgent_tasks")
+        compose.onNode(hasText("Cabin filter · Replacement") and hasClickAction()).performScrollTo().performClick()
+        compose.await("forecast_category")
+        compose.onNodeWithTag("forecast_category").assertTextEquals("Overdue")
+        compose.onNodeWithText("Your interval").assertExists()
+        compose.onNodeWithText("Repeat interval").performScrollTo().assertExists()
+        compose.onNodeWithText("61,300 km", substring = true).assertExists()
+        compose.tap("back"); compose.await("profile_name")
+        compose.click("open_dashboard"); compose.await("dashboard_title")
+        compose.awaitText("count_OVERDUE", "1")
+        compose.onNode(hasText("Cabin filter · Replacement") and hasClickAction()).performScrollTo().performClick()
+        compose.await("forecast_category")
+        // A saved entry shows its mileage as a figure of its own.
+        compose.tap("back"); compose.tap("nav_history"); compose.await("history_entry")
+        compose.onNodeWithTag("history_entry").performScrollTo().performClick()
+        compose.await("edit_service")
+        compose.onNodeWithText("61,300 km").assertExists()
+        compose.onAllNodesWithTag("confirmed_work").assertCountEquals(1)
+    }
+
     @Test fun theLanguageSwitchAtTheTopIsOneTapOnTheMainScreensOnly() {
         start()
         compose.await("profile_name")

@@ -208,7 +208,8 @@ internal fun usedFraction(task: DashboardTask): Float? {
         task.remainingKm?.let { Text(stringResource(R.string.distance_to_due, formattedKm(it.toLong(), locale)), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
         task.remainingDays?.let { Text(stringResource(R.string.days_to_due, it.toString()), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
     }
-    SectionLabel(stringResource(originResource(task.origin)))
+    // Written as it is everywhere else: this is the name of a source, not a decorative label.
+    Text(stringResource(originResource(task.origin)), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     when (task.origin) {
         TaskOrigin.USER -> NoteCard(stringResource(R.string.user_interval_explanation))
         TaskOrigin.VEHICLE_DISPLAY -> NoteCard(stringResource(R.string.indicator_explanation))
