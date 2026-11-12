@@ -72,12 +72,13 @@ fun CarServiceApp(repository: ProfileRepository, reminderStore: ReminderStore? =
     LaunchedEffect(route) { model.clearProblem() }
     AppTheme {
         Scaffold(
-            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge) }, navigationIcon = {
+            topBar = { TopAppBar(colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background), title = { Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleMedium) }, navigationIcon = {
                 if (route !in tabs) IconButton(onClick = { back() }, modifier = Modifier.testTag("back")) { Icon(Icons.AutoMirrored.Default.ArrowBack, contentDescription = stringResource(R.string.back)) }
             }) },
-            bottomBar = { NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
+            bottomBar = { NavigationBar(containerColor = MaterialTheme.colorScheme.background) {
                 listOf(Triple("overview", R.string.overview, Icons.Default.Home), Triple("history", R.string.history, Icons.AutoMirrored.Default.List), Triple("settings", R.string.settings, Icons.Default.Settings)).forEach { (target, label, icon) ->
-                    NavigationBarItem(modifier = Modifier.testTag("nav_$target"), selected = route == target, icon = { Icon(icon, contentDescription = null) }, label = { Text(stringResource(label)) }, onClick = { go(target) })
+                    NavigationBarItem(modifier = Modifier.testTag("nav_$target"), selected = route == target, icon = { Icon(icon, contentDescription = null) }, label = { Text(stringResource(label)) }, onClick = { go(target) },
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent, selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary))
                 }
             } },
         ) { padding ->

@@ -1,6 +1,5 @@
 package app.servicepassport.android.ui
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -22,42 +21,27 @@ data class AppColors(
     }
 }
 
-private val LightScheme = lightColorScheme(
-    primary = Color(0xFF1F5C4A), onPrimary = Color.White, primaryContainer = Color(0xFFCDE9DC), onPrimaryContainer = Color(0xFF072019),
-    secondary = Color(0xFF4D6359), onSecondary = Color.White, secondaryContainer = Color(0xFFDCE8E0), onSecondaryContainer = Color(0xFF16211C),
-    tertiary = Color(0xFF8A5A1C), onTertiary = Color.White, tertiaryContainer = Color(0xFFFCEBCB), onTertiaryContainer = Color(0xFF2E1B00),
-    background = Color(0xFFF4F7F3), onBackground = Color(0xFF171D1A), surface = Color(0xFFF4F7F3), onSurface = Color(0xFF171D1A),
-    surfaceVariant = Color(0xFFE1E7E1), onSurfaceVariant = Color(0xFF454B47),
-    surfaceContainerLowest = Color.White, surfaceContainerLow = Color.White, surfaceContainer = Color(0xFFECF1EB),
-    surfaceContainerHigh = Color(0xFFE6ECE6), surfaceContainerHighest = Color(0xFFE0E7E0),
-    outline = Color(0xFF727A74), outlineVariant = Color(0xFFCDD5CE), error = Color(0xFFB3261E),
+// One dark scheme, built from the colours of the owner's design. The design has no light version.
+private val CockpitScheme = darkColorScheme(
+    primary = Color(0xFF3FD9F7), onPrimary = Color(0xFF00222B), primaryContainer = Color(0xFF0D3A47), onPrimaryContainer = Color(0xFFC8F4FD),
+    secondary = Color(0xFF9FB4C9), onSecondary = Color(0xFF0E1C2A), secondaryContainer = Color(0xFF1A2B3D), onSecondaryContainer = Color(0xFFD5E3F1),
+    tertiary = Color(0xFFFFA42B), onTertiary = Color(0xFF3A2200), tertiaryContainer = Color(0xFF4A2F06), onTertiaryContainer = Color(0xFFFFDFB3),
+    background = Color(0xFF060A12), onBackground = Color(0xFFF3F6FA), surface = Color(0xFF060A12), onSurface = Color(0xFFF3F6FA),
+    surfaceVariant = Color(0xFF1B2939), onSurfaceVariant = Color(0xFFA9B5C3),
+    surfaceContainerLowest = Color(0xFF04070D), surfaceContainerLow = Color(0xFF0C1420), surfaceContainer = Color(0xFF101A28),
+    surfaceContainerHigh = Color(0xFF162233), surfaceContainerHighest = Color(0xFF1D2B3F),
+    outline = Color(0xFF6C7C8F), outlineVariant = Color(0xFF243347), error = Color(0xFFFF8A7A), onError = Color(0xFF3B0A05),
+    errorContainer = Color(0xFF4A1510), onErrorContainer = Color(0xFFFFD9D4),
 )
-private val DarkScheme = darkColorScheme(
-    primary = Color(0xFF8FD3B8), onPrimary = Color(0xFF00382A), primaryContainer = Color(0xFF14493A), onPrimaryContainer = Color(0xFFCDE9DC),
-    secondary = Color(0xFFB4CCBF), onSecondary = Color(0xFF20352C), secondaryContainer = Color(0xFF2C4238), onSecondaryContainer = Color(0xFFD0E8DB),
-    tertiary = Color(0xFFF5BD6B), onTertiary = Color(0xFF452B00), tertiaryContainer = Color(0xFF4F3200), onTertiaryContainer = Color(0xFFFFDDB0),
-    background = Color(0xFF0F1412), onBackground = Color(0xFFE0E4DF), surface = Color(0xFF0F1412), onSurface = Color(0xFFE0E4DF),
-    surfaceVariant = Color(0xFF414943), onSurfaceVariant = Color(0xFFC1C8C2),
-    surfaceContainerLowest = Color(0xFF0A0F0D), surfaceContainerLow = Color(0xFF191E1B), surfaceContainer = Color(0xFF1D2220),
-    surfaceContainerHigh = Color(0xFF272D2A), surfaceContainerHighest = Color(0xFF323835),
-    outline = Color(0xFF8B928C), outlineVariant = Color(0xFF414943), error = Color(0xFFFFB4AB),
-)
-private val LightColors = AppColors(
-    overdue = StatusPalette(Color(0xFFB3261E), Color(0xFFFBE4E1), Color(0xFF5C100B)),
-    dueSoon = StatusPalette(Color(0xFFA86400), Color(0xFFFCEBCB), Color(0xFF4A2C00)),
-    needsData = StatusPalette(Color(0xFF3F5F8A), Color(0xFFDFE8F5), Color(0xFF14263F)),
-    noUrgency = StatusPalette(Color(0xFF1F7A4D), Color(0xFFD8F0E0), Color(0xFF0B3520)),
-    hero = Color(0xFF1F5C4A), onHero = Color.White, onHeroMuted = Color(0xFFBFE0D2),
-)
-private val DarkColors = AppColors(
-    overdue = StatusPalette(Color(0xFFFFB4AB), Color(0xFF5C1A15), Color(0xFFFFDAD6)),
-    dueSoon = StatusPalette(Color(0xFFF5BD6B), Color(0xFF4F3200), Color(0xFFFFDDB0)),
-    needsData = StatusPalette(Color(0xFFA9C7F2), Color(0xFF22364F), Color(0xFFD5E3F8)),
-    noUrgency = StatusPalette(Color(0xFF8FD6AA), Color(0xFF123D27), Color(0xFFC4EFD2)),
-    hero = Color(0xFF14493A), onHero = Color(0xFFE3F4EC), onHeroMuted = Color(0xFF9CC8B6),
+private val CockpitColors = AppColors(
+    overdue = StatusPalette(Color(0xFFFF6B5E), Color(0xFF3A1512), Color(0xFFFFD9D4)),
+    dueSoon = StatusPalette(Color(0xFFF5A742), Color(0xFF3A2A0E), Color(0xFFFFE3B8)),
+    needsData = StatusPalette(Color(0xFF5AA2F0), Color(0xFF10243F), Color(0xFFD3E5FB)),
+    noUrgency = StatusPalette(Color(0xFF45D08A), Color(0xFF0F3323), Color(0xFFC6F2DA)),
+    hero = Color(0xFF0D3A47), onHero = Color(0xFFF3F6FA), onHeroMuted = Color(0xFFA9B5C3),
 )
 
-internal val LocalAppColors = staticCompositionLocalOf { LightColors }
+internal val LocalAppColors = staticCompositionLocalOf { CockpitColors }
 
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(18.dp),
@@ -76,8 +60,7 @@ private val AppTypography = Typography().let { base ->
 }
 
 @Composable internal fun AppTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    CompositionLocalProvider(LocalAppColors provides if (dark) DarkColors else LightColors) {
-        MaterialTheme(colorScheme = if (dark) DarkScheme else LightScheme, typography = AppTypography, shapes = AppShapes, content = content)
+    CompositionLocalProvider(LocalAppColors provides CockpitColors) {
+        MaterialTheme(colorScheme = CockpitScheme, typography = AppTypography, shapes = AppShapes, content = content)
     }
 }

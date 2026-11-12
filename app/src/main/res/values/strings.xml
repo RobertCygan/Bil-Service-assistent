@@ -352,8 +352,16 @@
     <string name="days_over">%1$s days over</string>
     <string name="documents_count">Documents: %1$d</string>
     <string name="previous_service_km">Last service</string>
-    <string name="next_limit_km">Next limit</string>
     <string name="no_value">—</string>
     <string name="app_version">Version %1$s</string>
     <string name="getting_started">Nothing to calculate yet. The quickest start is to enter what your car\'s own service display shows. You can also add your own intervals; they are your settings, not manufacturer recommendations.</string>
+    <string name="to_next_service">To next service</string>
+    <string name="overdue_by">Overdue by</string>
+    <string name="last_service_km">Last service: %1$s km</string>
+    <string name="arc_overdue_limit">Overdue service</string>
+    <string name="arc_upcoming_limit">Upcoming service</string>
+    <plurals name="unit_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
 </resources>

@@ -349,8 +349,16 @@
     <string name="days_over">%1$s dager over</string>
     <string name="documents_count">Dokumenter: %1$d</string>
     <string name="previous_service_km">Forrige service</string>
-    <string name="next_limit_km">Neste frist</string>
     <string name="no_value">—</string>
     <string name="app_version">Versjon %1$s</string>
     <string name="getting_started">Ingenting å beregne ennå. Den raskeste starten er å legge inn det bilens egen serviceindikator viser. Du kan også legge inn dine egne intervaller; de er dine innstillinger, ikke produsentens anbefalinger.</string>
+    <string name="to_next_service">Til neste service</string>
+    <string name="overdue_by">Forfalt med</string>
+    <string name="last_service_km">Siste service: %1$s km</string>
+    <string name="arc_overdue_limit">Forfalt service</string>
+    <string name="arc_upcoming_limit">Kommende service</string>
+    <plurals name="unit_days">
+        <item quantity="one">dag</item>
+        <item quantity="other">dager</item>
+    </plurals>
 </resources>

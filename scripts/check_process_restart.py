@@ -22,8 +22,17 @@ def adb(*args, timeout=40):
 
 
 def window():
-    adb("shell", "uiautomator", "dump", "/sdcard/history-window.xml")
-    return ET.fromstring(adb("shell", "cat", "/sdcard/history-window.xml"))
+    """The screen as a tree of nodes. The dump needs a still screen; while something moves (the first screen opens
+    with a short movement) it writes no file, so it is asked again until it does."""
+    said = b""
+    for _ in range(10):
+        subprocess.run(["adb", "shell", "rm", "-f", "/sdcard/history-window.xml"], timeout=40, capture_output=True)
+        said = subprocess.run(["adb", "shell", "uiautomator", "dump", "/sdcard/history-window.xml"], timeout=60, capture_output=True).stdout
+        read = subprocess.run(["adb", "shell", "cat", "/sdcard/history-window.xml"], timeout=40, capture_output=True)
+        if read.returncode == 0 and read.stdout.strip():
+            return ET.fromstring(read.stdout)
+        time.sleep(1.5)
+    raise AssertionError("The screen could not be read: " + said.decode("utf-8", errors="replace")[:500])
 
 
 def wait_for(check, message):
@@ -42,11 +51,26 @@ def tap(root, label):
     adb("shell", "input", "tap", str((left + right) // 2), str((top + bottom) // 2))
 
 
+def tap_after_scrolling(label):
+    """Taps a label that may be further down the screen: scrolls up a part of the screen at a time until it shows."""
+    for _ in range(8):
+        root = window()
+        if any(node.get("text") == label for node in root.iter("node")):
+            tap(root, label)
+            return
+        whole = next(node for node in root.iter("node") if node.get("bounds"))
+        left, top, right, bottom = map(int, re.findall(r"\d+", whole.get("bounds")))
+        x = str((left + right) // 2)
+        adb("shell", "input", "swipe", x, str(top + (bottom - top) * 65 // 100), x, str(top + (bottom - top) * 35 // 100), "400")
+        time.sleep(1.5)
+    raise AssertionError(f"'{label}' did not appear after scrolling")
+
+
 def dashboard_counts(text):
-    # Each tile shows the number above its label. Compose may expose them separately or as one merged node.
+    # Each tile shows the number above its label. Compose may expose them separately or as one item ("1, Forfalt").
     for label in ["Forfalt", "Snart frist", "Trenger opplysninger", "Ingen hast"]:
         if not any((value == label and i > 0 and text[i - 1] == "1")
-                   or re.fullmatch(r"1\s+" + re.escape(label), value)
+                   or re.fullmatch(r"1[\s,]+" + re.escape(label), value)
                    for i, value in enumerate(text)):
             return False
     return True
@@ -57,11 +81,11 @@ adb("shell", "am", "start", "-W", "-n", COMPONENT)
 root = wait_for(
     lambda text: "Foundation test car" in text and "Modellår: 2022" in text
     and any(re.fullmatch(r"59[\s\u00a0\u202f]?000 km", value) for value in text)
-    and "Gjeldende kilometerstand" in text,
+    and any(value.lower() == "gjeldende kilometerstand" for value in text),
     "Fresh process did not restore the profile, explicit current reading and Bokmål UI",
 )
 (OUT / "overview-no.png").write_bytes(adb("exec-out", "screencap", "-p"))
-tap(root, "Se alle")  # the link next to the "Serviceoversikt" heading
+tap_after_scrolling("Se alle")  # the link next to the "Serviceoversikt" heading, below the arc
 wait_for(
     lambda text: "Ingen bekreftet serviceplan" in text and dashboard_counts(text),
     "Fresh process did not restore all four driver intervals and their separate categories",

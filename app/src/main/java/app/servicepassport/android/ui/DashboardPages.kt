@@ -2,17 +2,27 @@ package app.servicepassport.android.ui
 
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.geometry.Size
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.servicepassport.android.R
 import app.servicepassport.android.dashboard.*
@@ -44,19 +54,24 @@ private fun reasonResource(reason: DashboardReason) = when (reason) {
     DashboardReason.CALCULATION_LIMIT -> R.string.dashboard_calculation_limit
 }
 
-@Composable internal fun DashboardCounts(dashboard: DashboardState) {
-    Column(Modifier.fillMaxWidth().testTag("dashboard_counts"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+/** The four groups as tiles: the number in the group's colour, a coloured edge, brighter when there is something in it. */
+@Composable internal fun DashboardCounts(dashboard: DashboardState, onClick: (() -> Unit)? = null) {
+    Column(Modifier.fillMaxWidth().testTag("dashboard_counts"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         listOf(listOf(Category.OVERDUE, Category.DUE_SOON), listOf(Category.NEEDS_DATA, Category.NO_URGENCY)).forEach { categories ->
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 categories.forEach { category ->
                     val count = dashboard.tasks.count { it.category == category }
-                    val palette = LocalAppColors.current.status(category); val scheme = MaterialTheme.colorScheme
-                    // Colour only where there is something to act on; an empty group stays quiet.
-                    Surface(color = if (count > 0) palette.container else scheme.surfaceContainer, contentColor = if (count > 0) palette.onContainer else scheme.onSurfaceVariant, shape = MaterialTheme.shapes.medium, modifier = Modifier.weight(1f)) {
-                        Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
-                            Text(count.toString(), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.testTag("count_${category.name}"))
-                            Text(stringResource(categoryResource(category)), style = MaterialTheme.typography.labelLarge)
-                        }
+                    val accent = LocalAppColors.current.status(category).accent; val shape = MaterialTheme.shapes.small
+                    val glow = Brush.radialGradient(listOf(accent.copy(alpha = if (count > 0) 0.30f else 0.12f), accent.copy(alpha = 0.03f)), center = Offset(0f, 0f), radius = 600f)
+                    Column(
+                        // Read out as one item ("3, Overdue"), whether or not the tile can be tapped.
+                        Modifier.weight(1f).testTag("count_${category.name}").semantics(mergeDescendants = true) {}.clip(shape).background(glow).border(1.dp, accent.copy(alpha = if (count > 0) 0.9f else 0.35f), shape)
+                            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                            .heightIn(min = 86.dp).padding(horizontal = 10.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(count.toString(), color = accent, fontSize = 32.sp, fontWeight = FontWeight.Medium)
+                        Text(stringResource(categoryResource(category)), color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -142,7 +157,7 @@ internal fun usedFraction(task: DashboardTask): Float? {
     return listOfNotNull(byDistance, byTime).maxOrNull()?.coerceIn(0f, 1f)
 }
 
-@Composable private fun remainingText(task: DashboardTask): String? {
+@Composable internal fun remainingText(task: DashboardTask): String? {
     val locale = uiLocale()
     val parts = listOfNotNull(
         task.remainingKm?.let { stringResource(if (it >= 0) R.string.km_left else R.string.km_over, formattedKm(kotlin.math.abs(it.toLong()), locale)) },
