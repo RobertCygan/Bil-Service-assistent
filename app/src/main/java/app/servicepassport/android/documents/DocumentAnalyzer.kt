@@ -61,6 +61,22 @@ sealed interface DocumentAnalysis {
 /** Reads a picked image or PDF and returns a draft for review. It stores nothing and changes nothing. */
 class DocumentAnalyzer(private val context: Context, private val ocr: TextOcr, private val extractor: DocumentExtractor = DocumentExtractor()) {
 
+    /**
+     * Reads the mileage from a photo of the instrument cluster. Returns the numbers that could be the total mileage,
+     * the most likely first; an empty list when nothing could be read. The driver sees the number and confirms it.
+     */
+    suspend fun odometer(photo: Uri, lastKnownKm: Int?): List<OdometerCandidate> = withContext(Dispatchers.IO) {
+        try {
+            OdometerPhoto.candidates(ocr.recognize(context, PageImage.FromUri(photo)), lastKnownKm)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (_: OutOfMemoryError) {
+            emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
     suspend fun analyse(uri: Uri, vehicle: VehicleIdentity, today: LocalDate): DocumentAnalysis = withContext(Dispatchers.IO) {
         try {
             val resolver = context.contentResolver

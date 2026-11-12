@@ -1,5 +1,13 @@
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+
 package app.servicepassport.android.ui
 
+import kotlinx.coroutines.launch
+import app.servicepassport.extraction.OdometerCandidate
+import app.servicepassport.android.documents.DocumentStore
+import app.servicepassport.android.documents.DocumentAnalyzer
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import app.servicepassport.android.documents.ServicePrefill
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -101,7 +109,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     }, modifier = Modifier.fillMaxWidth().testTag("save_service")) { Text(stringResource(if (state.saving) R.string.saving else R.string.save_service)) }
 }
 
-@Composable internal fun ReadingEditor(state: GarageState, reading: OdometerReadingEntity?, today: LocalDate, onDirty: (Boolean) -> Unit, save: (ReadingInput) -> Unit) = Page {
+@Composable internal fun ReadingEditor(state: GarageState, reading: OdometerReadingEntity?, today: LocalDate, onDirty: (Boolean) -> Unit, reader: DocumentAnalyzer? = null, store: DocumentStore? = null, save: (ReadingInput) -> Unit) = Page {
     val snapshot = state.snapshot ?: return@Page; val locale = uiLocale()
     val id = rememberSaveable { reading?.id ?: UUID.randomUUID().toString() }
     val expectedRevision = rememberSaveable { reading?.revision ?: -1L }.takeIf { it >= 0 }
@@ -129,6 +137,7 @@ private fun decodeWork(raw: String): List<WorkInput> {
     Text(snapshot.vehicle.displayName)
     DateField(stringResource(R.string.reading_date), date, "reading_date", today) { date = it; reviewedToken = null; if (reading != null) current = false; issue = null }
     OutlinedTextField(value = km, onValueChange = { km = it; reviewedToken = null; if (reading != null) current = false; issue = null }, singleLine = true, label = { Text(stringResource(R.string.odometer_km)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth().testTag("reading_km"))
+    if (reading == null && reader != null && store != null) OdometerFromPhoto(reader, store, snapshot.currentReading?.km?.toInt(), locale) { km = it.toString(); reviewedToken = null; issue = null }
     Row { Checkbox(checked = current, onCheckedChange = { current = it; reviewedToken = null }, modifier = Modifier.testTag("use_current")); Text(stringResource(R.string.use_as_current), Modifier.padding(top = 12.dp)) }
     Text(stringResource(R.string.selection_help), style = MaterialTheme.typography.bodySmall)
     if (reading?.id == snapshot.currentReading?.id && reading != null) NoteCard(stringResource(R.string.selection_cleared_help))
@@ -185,4 +194,48 @@ private fun decodeWork(raw: String): List<WorkInput> {
             save(ProfileInput(name, year.toIntOrNull(), firstDate, details[0], details[1], details[2], details[3], details[4], details[5], details[6], details[7], details[8], details[9], details[10], details[11]))
         } catch (e: InputRejected) { issue = e.problem }
     }, modifier = Modifier.fillMaxWidth().testTag("save_car")) { Text(stringResource(if (state.saving) R.string.saving else R.string.save_car)) }
+}
+
+/**
+ * A photo of the instrument cluster instead of typing: the number read from it is put into the mileage field, where
+ * the driver sees it and saves it like a typed one. Nothing is saved from the photo alone, and the photo is not kept.
+ */
+@Composable private fun OdometerFromPhoto(reader: DocumentAnalyzer, store: DocumentStore, lastKnownKm: Int?, locale: String, onRead: (Int) -> Unit) {
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var noCamera by remember { mutableStateOf(false) }
+    // What the last photo gave: null before any photo, an empty list when nothing could be read.
+    var offered by remember { mutableStateOf<List<OdometerCandidate>?>(null) }
+    var chosen by rememberSaveable { mutableStateOf<Int?>(null) }
+    // The photo always lands in the same private file, so it is read even if Android restarted the app meanwhile.
+    val camera = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { taken ->
+        if (taken) { busy = true; offered = null
+            scope.launch {
+                try {
+                    val found = reader.odometer(store.odometerPhotoUri(), lastKnownKm)
+                    offered = found; chosen = found.firstOrNull()?.km
+                    found.firstOrNull()?.let { onRead(it.km) }
+                } finally { store.discardOdometerPhoto(); busy = false }
+            }
+        }
+    }
+    QuietButton(enabled = !busy, modifier = Modifier.fillMaxWidth().testTag("odometer_photo"), onClick = {
+        noCamera = false
+        try { camera.launch(store.odometerPhotoTarget()) } catch (_: Exception) { noCamera = true }
+    }) { Text(stringResource(R.string.odometer_photo)) }
+    if (noCamera) Text(stringResource(R.string.import_no_camera), color = MaterialTheme.colorScheme.error)
+    if (busy) { CircularProgressIndicator(); Text(stringResource(R.string.odometer_photo_reading)) }
+    offered?.let { found ->
+        if (found.isEmpty()) Text(stringResource(R.string.odometer_photo_nothing), color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("odometer_photo_nothing"))
+        else Group(Modifier.testTag("odometer_photo_result"), accent = Cockpit.cyan) {
+            Text(stringResource(R.string.odometer_photo_found, formattedKm(found.first { it.km == (chosen ?: found.first().km) }.km.toLong(), locale)), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.odometer_photo_check), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Other numbers from the same photo, in case the first one was not the mileage.
+            if (found.size > 1) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                found.forEach { candidate ->
+                    FilterChip(selected = candidate.km == chosen, onClick = { chosen = candidate.km; onRead(candidate.km) }, label = { Text(formattedKm(candidate.km.toLong(), locale) + " km") }, modifier = Modifier.testTag("odometer_photo_choice"))
+                }
+            }
+        }
+    }
 }

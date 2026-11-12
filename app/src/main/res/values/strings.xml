@@ -365,4 +365,9 @@
         <item quantity="other">days</item>
     </plurals>
     <string name="current_odometer_short">Odometer</string>
+    <string name="odometer_photo">Take a photo of the odometer</string>
+    <string name="odometer_photo_reading">Reading the photo…</string>
+    <string name="odometer_photo_found">Read from the photo: %1$s km</string>
+    <string name="odometer_photo_check">Compare it with the display in the car, correct it if needed, then save. The photo is not kept.</string>
+    <string name="odometer_photo_nothing">No mileage could be read from the photo. Try again closer to the display, or type the number.</string>
 </resources>
